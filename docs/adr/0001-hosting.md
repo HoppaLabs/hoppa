@@ -5,7 +5,7 @@
 ## Decision
 
 Deploy `dist/` to GitHub Pages from `.github/workflows/deploy.yml`, publishing on
-every push to `main`. The repo stays **private**.
+every push to `main`. The live URL is **https://hoppalabs.github.io/hoppa/**.
 
 ## Why
 
@@ -14,12 +14,18 @@ Netlify. Pages is the only one of the three that needs no third-party account
 and no API token in repo secrets, so it was the shortest path to a URL that
 works while the dev machine is asleep.
 
-## The cost of keeping the repo private
+## Private vs public
 
 GitHub Pages on a **private** repository requires a paid plan (Pro, Team or
-Enterprise) on the account. On a free plan the `deploy-pages` step fails with a
-permissions error, and the fix is to make the repo public or upgrade. This was
-chosen with that trade understood.
+Enterprise); on a free plan the `deploy-pages` step fails with a permissions
+error. Day 1 accepted that trade and kept the repo private.
+
+**Superseded:** the repo now lives in the `HoppaLabs` organisation and is
+public, so no paid plan is involved, and the site is served from the org:
+`https://hoppalabs.github.io/hoppa/`. Nothing in the build had to change —
+`index.html` loads `./app.js` relatively, so the project subpath works wherever
+the repo lives. The pre-move URL is dead and GitHub does not redirect Pages
+across the move, so anyone holding an old link needs the new one.
 
 ## Enabling Pages
 
