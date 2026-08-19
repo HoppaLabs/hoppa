@@ -21,6 +21,11 @@
       "level": "levels/day4.lvl",
       "chars": 76,
       "code": "EQEEAA__ZwekYKECCgoQIKChAgek4MCBAgwIECDAgFpKCAoSIICgulBpDImxRybSdilyJbW7ibDS"
+    },
+    {
+      "level": "levels/day7.lvl",
+      "chars": 76,
+      "code": "EQFEAAg_VwekYKECCgoQIKChAgek4MCBAgwIECDAgFpKCAoSIICgulBpDImxRybSdilyJbW7ibC5"
     }
   ]
 }

@@ -1,0 +1,28 @@
+{
+  "note": "sacred: see CLAUDE.md hard rule 6. do not regenerate to go green.",
+  "level": "levels/day7.lvl",
+  "engine": "delve",
+  "behaviourVersion": 5,
+  "creature": {
+    "id": "01J8XK6R4T2B",
+    "name": "Nim",
+    "caps": {
+      "MOVE_GROUND": 0,
+      "MOVE_AIR": 0,
+      "REACH": 102,
+      "FORCE": 0,
+      "GUARD": 51,
+      "HASTE": 255,
+      "MASS": 0,
+      "SPARK": 0
+    }
+  },
+  "log": "...RRRRRRRRRDDDDLLLDDDDLLLLLRRRDDDRRRRRRRRRRRRRUUURRRUUUURLDDDDLLLDDDRRRR",
+  "turns": 37,
+  "finalPosition": {
+    "x": 22,
+    "y": 12
+  },
+  "status": "won",
+  "stateHash": "9b765fa0"
+}

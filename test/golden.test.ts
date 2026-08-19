@@ -5,13 +5,29 @@ import day3 from "./golden/day3-clean.json";
 import day4bruk from "./golden/day4-bruk.json";
 import day4nim from "./golden/day4-nim.json";
 import day4pell from "./golden/day4-pell.json";
+import day7bruk from "./golden/day7-bruk.json";
+import day7nim from "./golden/day7-nim.json";
+import day7pell from "./golden/day7-pell.json";
 import {
   DAY1_LEVEL_TEXT,
   DAY2_LEVEL_TEXT,
   DAY3_LEVEL_TEXT,
   DAY4_LEVEL_TEXT,
+  DAY7_LEVEL_TEXT,
 } from "../src/core/fixtures.ts";
-import { BRUK, NIM, PELL, type Creature } from "../src/core/creature.ts";
+import { creatureFromCaps, type Creature } from "../src/core/creature.ts";
+
+// A vector records the caps it was made with. Rebuilding the creature from the
+// FILE rather than from today's preset is what lets the presets be rebalanced
+// without quietly changing what a committed vector claims.
+function creatureOf(vector: { creature: { id: string; name: string; caps: unknown } | null }) {
+  if (vector.creature === null) return undefined;
+  return creatureFromCaps(
+    vector.creature.id,
+    vector.creature.name,
+    vector.creature.caps as Record<string, number>,
+  );
+}
 import { parseLevel } from "../src/core/level.ts";
 import { hashHex } from "../src/core/hash.ts";
 import { engineFor } from "../src/engines/registry.ts";
@@ -28,9 +44,12 @@ const VECTORS: Array<{ text: string; golden: typeof day1 | typeof day4bruk; crea
   { text: DAY1_LEVEL_TEXT, golden: day1 },
   { text: DAY2_LEVEL_TEXT, golden: day2 },
   { text: DAY3_LEVEL_TEXT, golden: day3 },
-  { text: DAY4_LEVEL_TEXT, golden: day4bruk, creature: BRUK },
-  { text: DAY4_LEVEL_TEXT, golden: day4nim, creature: NIM },
-  { text: DAY4_LEVEL_TEXT, golden: day4pell, creature: PELL },
+  { text: DAY4_LEVEL_TEXT, golden: day4bruk, creature: creatureOf(day4bruk) },
+  { text: DAY4_LEVEL_TEXT, golden: day4nim, creature: creatureOf(day4nim) },
+  { text: DAY4_LEVEL_TEXT, golden: day4pell, creature: creatureOf(day4pell) },
+  { text: DAY7_LEVEL_TEXT, golden: day7bruk, creature: creatureOf(day7bruk) },
+  { text: DAY7_LEVEL_TEXT, golden: day7nim, creature: creatureOf(day7nim) },
+  { text: DAY7_LEVEL_TEXT, golden: day7pell, creature: creatureOf(day7pell) },
 ];
 
 // E9. If this fails, engine behaviour changed and every shipped link that pins
@@ -92,6 +111,26 @@ test("the three presets produce three different runs of the same level", () => {
 
   // Nim's HASTE buys real time: the same level, far fewer turns on the clock.
   expect(day4nim.turns).toBeLessThan(day4bruk.turns);
+});
+
+test("behaviour 5 reads no MASS at all: every day 7 vector has MASS zero", () => {
+  for (const vector of [day7bruk, day7nim, day7pell]) {
+    expect(vector.creature?.caps.MASS).toBe(0);
+  }
+  // ...and the day 4 vectors, made when it still mattered, keep theirs.
+  expect(day4bruk.creature?.caps.MASS).toBe(240);
+});
+
+test("the three budget builds still produce three different runs", () => {
+  const rows = [day7bruk, day7nim, day7pell]
+    .map((v) => `  ${(v.creature?.name ?? "?").padEnd(5)} ${String(v.log.length).padStart(3)} steps  ` +
+      `${String(v.turns).padStart(3)} turns  ${v.stateHash}`)
+    .join("\n");
+  console.log(`\n${rows}`);
+  expect(new Set([day7bruk, day7nim, day7pell].map((v) => v.stateHash)).size).toBe(3);
+  // Speed still buys time: Nim spends far fewer turns than the others.
+  expect(day7nim.turns).toBeLessThan(day7bruk.turns);
+  expect(day7nim.turns).toBeLessThan(day7pell.turns);
 });
 
 // The day 3 vector is a *clean* run: it exists to prove the guards can be

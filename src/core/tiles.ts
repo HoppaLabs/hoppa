@@ -12,6 +12,9 @@ export const TILE_EXIT_LOCKED = 5;
 export const TILE_EXIT_OPEN = 6;
 // Day 3.
 export const TILE_GUARD = 7;
+// A guard you have barged, standing there seeing stars. Its own tile because
+// "can I walk past this one right now" has to be answerable at a glance.
+export const TILE_GUARD_REELING = 8;
 
-// Day 3 tileset. Grows as engines gain tiles; capped at 16 per engine.
-export const TILE_COUNT = 8;
+// Grows as engines gain tiles; capped at 16 per engine.
+export const TILE_COUNT = 9;

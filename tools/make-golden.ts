@@ -11,8 +11,27 @@ import {
   DAY2_LEVEL_TEXT,
   DAY3_LEVEL_TEXT,
   DAY4_LEVEL_TEXT,
+  DAY7_LEVEL_TEXT,
 } from "../src/core/fixtures.ts";
-import { BRUK, NIM, PELL, type Creature } from "../src/core/creature.ts";
+import { BRUK, NIM, PELL, creatureFromCaps, type Creature } from "../src/core/creature.ts";
+
+// The day 4 vectors were made before the presets moved onto a pip budget. A
+// golden vector is (level, CREATURE, log) -> hash, so its creature is part of
+// the fixture and must be spelled out here rather than read from whatever the
+// presets happen to be today. Regenerating these to match a rebalance is
+// exactly what CLAUDE.md hard rule 6 forbids.
+const V4_BRUK = creatureFromCaps("01J8XK4M2P7Q", "Bruk", {
+  MOVE_GROUND: 180, MOVE_AIR: 40, REACH: 90, FORCE: 220,
+  GUARD: 200, HASTE: 60, MASS: 240, SPARK: 10,
+});
+const V4_NIM = creatureFromCaps("01J8XK6R4T2B", "Nim", {
+  MOVE_GROUND: 210, MOVE_AIR: 120, REACH: 60, FORCE: 50,
+  GUARD: 40, HASTE: 210, MASS: 40, SPARK: 90,
+});
+const V4_PELL = creatureFromCaps("01J8XK8W6Y5N", "Pell", {
+  MOVE_GROUND: 120, MOVE_AIR: 20, REACH: 200, FORCE: 90,
+  GUARD: 240, HASTE: 30, MASS: 110, SPARK: 40,
+});
 import { CODEC_VERSION, encodeLevel } from "../src/core/codec.ts";
 import { parseLevel } from "../src/core/level.ts";
 import { hashHex } from "../src/core/hash.ts";
@@ -63,22 +82,45 @@ const VECTORS: ReadonlyArray<{
     file: "test/golden/day4-bruk.json",
     level: "levels/day4.lvl",
     text: DAY4_LEVEL_TEXT,
-    creature: BRUK,
+    creature: V4_BRUK,
     log: ".RRRRRRRRRDDDDLLLDDDDLLLLLRRRRRUUUURRRRRRRRRRRRRRRLDDDDLLLDDDLLLLRRRRRRRR",
   },
   {
     file: "test/golden/day4-nim.json",
     level: "levels/day4.lvl",
     text: DAY4_LEVEL_TEXT,
-    creature: NIM,
+    creature: V4_NIM,
     log: "...RRRRRRRRRDDDDLLLDDDDLLLLLRRRDDDRRRRRRRRRRRRRUUURRRUUUURLDDDDLLLDDDRRRR",
   },
   {
     file: "test/golden/day4-pell.json",
     level: "levels/day4.lvl",
     text: DAY4_LEVEL_TEXT,
-    creature: PELL,
+    creature: V4_PELL,
     log: "..RRRRRRRRRDDDDLLLDDDDLLLLRRDDDRRRRRRRRRRRRRUUURRRUUUDDDLLLDDDRRRR",
+  },
+  // Behaviour 5: MASS is no longer read, and a creature is built from a pip
+  // budget. Three legal builds, three different runs of one level.
+  {
+    file: "test/golden/day7-bruk.json",
+    level: "levels/day7.lvl",
+    text: DAY7_LEVEL_TEXT,
+    creature: BRUK,
+    log: "..RRRRRRRRRDDDDLLLDDDDLLLLLRRRDDDRRRRRRRRRRRRRUUURRRUUUURLDDDDLLLDDDRRRR",
+  },
+  {
+    file: "test/golden/day7-nim.json",
+    level: "levels/day7.lvl",
+    text: DAY7_LEVEL_TEXT,
+    creature: NIM,
+    log: "...RRRRRRRRRDDDDLLLDDDDLLLLLRRRDDDRRRRRRRRRRRRRUUURRRUUUURLDDDDLLLDDDRRRR",
+  },
+  {
+    file: "test/golden/day7-pell.json",
+    level: "levels/day7.lvl",
+    text: DAY7_LEVEL_TEXT,
+    creature: PELL,
+    log: "RRRRRRRRRDDDDLLLDDDDLLLLRRRRRRRRRRRRRRRRRRUUUDDDLLLDDDLLLRRRRRRR",
   },
 ];
 
@@ -91,6 +133,7 @@ const CODES = [
   { level: "levels/day2.lvl", text: DAY2_LEVEL_TEXT },
   { level: "levels/day3.lvl", text: DAY3_LEVEL_TEXT },
   { level: "levels/day4.lvl", text: DAY4_LEVEL_TEXT },
+  { level: "levels/day7.lvl", text: DAY7_LEVEL_TEXT },
 ];
 
 const codes = {
