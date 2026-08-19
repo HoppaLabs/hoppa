@@ -11,6 +11,7 @@ import { renderAscii } from "./ascii.ts";
 import { hashHex } from "../core/hash.ts";
 import { engineFor, UnknownBehaviourError } from "../engines/registry.ts";
 import { PRESETS, presetByName } from "../core/creature.ts";
+import { CodecError, decodeLevel, encodeLevel, levelToText, sameLevel } from "../core/codec.ts";
 import {
   INPUT_DOWN,
   INPUT_LEFT,
@@ -44,6 +45,8 @@ function usage(): never {
       "  verify <file.lvl>              run spec S13 checks L1-L5",
       "  play   <file.lvl> --moves URDL apply a move string, print the grid",
       "         [--creature <name>]     one of: " + PRESETS.map((c) => c.name).join(", "),
+      "  link   <file.lvl> [--site URL] print a share link for a level",
+      "  open   <url-or-code>           decode a link back to .lvl on stdout",
       "",
       "  moves: U R D L, '.' waits",
     ].join("\n"),
@@ -61,6 +64,7 @@ const { values, positionals } = parseArgs({
   options: {
     moves: { type: "string", default: "" },
     creature: { type: "string", default: "" },
+    site: { type: "string", default: "https://hoppalabs.github.io/hoppa/" },
   },
   allowPositionals: true,
 });
@@ -141,12 +145,39 @@ try {
     console.log(`\n  ${parts.join("   ")}`);
     const message = engine.message();
     if (message !== null) console.log(`  "${message}"`);
+  } else if (command === "link") {
+    const level = parseLevel(await readLevelText(file));
+    const code = encodeLevel(level);
+
+    // L6 on the spot: a link nobody can decode is worse than no link.
+    if (!sameLevel(level, decodeLevel(code))) {
+      console.error("round-trip FAILED -- refusing to hand out a link that does not decode");
+      process.exit(1);
+    }
+
+    const name = (file as string).replace(/^.*\//, "").replace(/\.lvl$/, "");
+    const url = `${values.site as string}#p/${name}/${code}`;
+    console.log(`  code   ${code}`);
+    console.log(`  chars  ${code.length} of 150 (spec S10 budget)`);
+    console.log(`  url    ${url.length} of 300`);
+    console.log("");
+    console.log(url);
+  } else if (command === "open") {
+    const argument = file;
+    if (argument === undefined) usage();
+    const at = argument.lastIndexOf("/");
+    const code = at < 0 ? argument : argument.slice(at + 1);
+    process.stdout.write(levelToText(decodeLevel(code)));
   } else {
     usage();
   }
 } catch (err) {
   if (err instanceof LevelParseError) {
     console.error(`level error: ${err.message}`);
+    process.exit(1);
+  }
+  if (err instanceof CodecError) {
+    console.error(`link error: ${err.message}`);
     process.exit(1);
   }
   if (err instanceof UnknownBehaviourError) {

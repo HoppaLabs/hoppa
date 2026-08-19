@@ -13,6 +13,7 @@ import {
   DAY4_LEVEL_TEXT,
 } from "../src/core/fixtures.ts";
 import { BRUK, NIM, PELL, type Creature } from "../src/core/creature.ts";
+import { CODEC_VERSION, encodeLevel } from "../src/core/codec.ts";
 import { parseLevel } from "../src/core/level.ts";
 import { hashHex } from "../src/core/hash.ts";
 import { engineFor } from "../src/engines/registry.ts";
@@ -80,6 +81,30 @@ const VECTORS: ReadonlyArray<{
     log: "..RRRRRRRRRDDDDLLLDDDDLLLLRRDDDRRRRRRRRRRRRRUUURRRUUUDDDLLLDDDRRRR",
   },
 ];
+
+// The wire format itself is a golden vector. A link is permanent and unhosted:
+// if these codes ever change, every link already sent decodes to something else
+// or stops decoding at all. Changing one is not a merge conflict to resolve, it
+// is a decision to make -- see docs/adr/0006.
+const CODES = [
+  { level: "levels/day1.lvl", text: DAY1_LEVEL_TEXT },
+  { level: "levels/day2.lvl", text: DAY2_LEVEL_TEXT },
+  { level: "levels/day3.lvl", text: DAY3_LEVEL_TEXT },
+  { level: "levels/day4.lvl", text: DAY4_LEVEL_TEXT },
+];
+
+const codes = {
+  note: "sacred: a shipped link is permanent. see CLAUDE.md hard rule 6 and docs/adr/0006.",
+  codecVersion: CODEC_VERSION,
+  levels: CODES.map((entry) => {
+    const code = encodeLevel(parseLevel(entry.text));
+    return { level: entry.level, chars: code.length, code };
+  }),
+};
+await Bun.write("test/golden/codes.json", `${JSON.stringify(codes, null, 2)}\n`);
+for (const row of codes.levels) {
+  console.log(`code ${row.level.padEnd(16)} ${String(row.chars).padStart(3)} chars  ${row.code}`);
+}
 
 for (const spec of VECTORS) {
   const level = parseLevel(spec.text);

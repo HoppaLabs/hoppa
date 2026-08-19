@@ -1,6 +1,9 @@
-// Day 4 play page: pick a creature, then collect the treasure, dodge the
-// patrols, and get out. The level and the rules do not change between creatures
-// -- only the eight numbers do, and that is the whole demonstration.
+// Day 5 play page: the level can now arrive in the URL.
+//
+// If the fragment carries a level, that is what you play -- and it is played
+// under the behaviour version IT pins, not the newest one, which is the whole
+// reason old engine builds stay in the bundle. Otherwise you get the built-in
+// level.
 //
 // Input arrives from taps, swipes or arrow keys; all three feed the same
 // engine.step() so the input log is identical whichever you use.
@@ -10,27 +13,41 @@
 
 import { DAY4_LEVEL_TEXT } from "../../core/fixtures.ts";
 import { PRESETS, type Creature } from "../../core/creature.ts";
+import { CodecError } from "../../core/codec.ts";
+import { levelFromHash, linkFor } from "./link.ts";
 import { parseLevel } from "../../core/level.ts";
 import { hashHex } from "../../core/hash.ts";
 import { engineFor } from "../../engines/registry.ts";
-import type { DelveV4 } from "../../engines/delve/v4.ts";
+import { Readout } from "./readout.ts";
 import {
   INPUT_DOWN,
   INPUT_LEFT,
   INPUT_RIGHT,
   INPUT_UP,
   INPUT_WAIT,
-  STATUS_PLAYING,
   STATUS_WON,
   type Input,
 } from "../../engines/types.ts";
 import { GridRenderer } from "./renderer.ts";
 
-const level = parseLevel(DAY4_LEVEL_TEXT);
+const BUILT_IN_NAME = "The Three Bands";
+
+// A level from a link, if there is one. A broken code must say so out loud
+// rather than dumping the player into a different level and looking fine.
+let loadError: string | null = null;
+let shared: ReturnType<typeof levelFromHash> = null;
+try {
+  shared = levelFromHash(window.location.hash);
+} catch (err) {
+  loadError = err instanceof CodecError ? err.message : String(err);
+}
+
+const level = shared === null ? parseLevel(DAY4_LEVEL_TEXT) : shared.level;
+const levelName = shared === null ? BUILT_IN_NAME : shared.slug.replace(/-/g, " ");
 let chosen: Creature = PRESETS[0] as Creature;
 // engineFor returns the Engine contract; the play page also wants the delve
 // read-outs (turns, treasure), which is what this cast is for.
-const build = () => engineFor(level, chosen) as unknown as DelveV4;
+const build = () => new Readout(engineFor(level, chosen));
 let engine = build();
 
 const canvas = document.getElementById("grid") as HTMLCanvasElement;
@@ -39,6 +56,8 @@ const pad = document.getElementById("pad") as HTMLElement;
 const stage = document.getElementById("stage") as HTMLElement;
 const over = document.getElementById("over") as HTMLElement;
 const stable = document.getElementById("stable") as HTMLElement;
+const said = document.getElementById("said") as HTMLElement;
+const levelname = document.getElementById("levelname") as HTMLElement;
 const trait = document.getElementById("trait") as HTMLElement;
 const verdict = document.getElementById("verdict") as HTMLElement;
 const saying = document.getElementById("saying") as HTMLElement;
@@ -48,32 +67,46 @@ const renderer = new GridRenderer(canvas);
 let blockedUntil = 0;
 
 function finished(): boolean {
-  return engine.currentStatus() !== STATUS_PLAYING;
+  return engine.finished();
 }
 
 function paint(): void {
   const blocked = engine.didBump() && performance.now() < blockedUntil;
   renderer.draw(engine.render(), blocked);
 
-  const got = engine.collectedCount();
-  const total = engine.treasureTotal();
-  const alert = engine.alertLevel();
-  const max = engine.alertMax();
-  // The alarm reads as pips rather than a number: how close to caught is a
-  // thing you want to see, not read.
-  const pips = "\u25cf".repeat(alert) + "\u25cb".repeat(Math.max(0, max - alert));
-  hud.innerHTML =
-    `<span class="${engine.tookFreeStep() ? "free" : ""}"><b>${engine.turns()}</b> turns</span>` +
-    `<span class="${got === total ? "done" : "gold"}"><b>${got}/${total}</b> treasure</span>` +
-    `<span class="alarm alarm-${alert}"><b>${pips}</b></span>` +
-    `<span>${hashHex(engine.stateHash())}</span>`;
+  // Every part of the HUD is optional, because an older behaviour version may
+  // simply not have the idea. A day 1 link has no treasure and no alarm.
+  const parts = [`<span class="${engine.tookFreeStep() ? "free" : ""}"><b>${engine.turns()}</b> turns</span>`];
+
+  const treasure = engine.treasure();
+  if (treasure !== null) {
+    const done = treasure.got === treasure.total;
+    parts.push(
+      `<span class="${done ? "done" : "gold"}"><b>${treasure.got}/${treasure.total}</b> treasure</span>`,
+    );
+  }
+
+  const alarm = engine.alarm();
+  if (alarm !== null) {
+    // The alarm reads as pips rather than a number: how close to caught is a
+    // thing you want to see, not read.
+    const pips =
+      "\u25cf".repeat(alarm.level) + "\u25cb".repeat(Math.max(0, alarm.max - alarm.level));
+    parts.push(`<span class="alarm alarm-${alarm.level}"><b>${pips}</b></span>`);
+  }
+
+  parts.push(`<span>${hashHex(engine.stateHash())}</span>`);
+  hud.innerHTML = parts.join("");
 
   if (finished()) {
     const won = engine.currentStatus() === STATUS_WON;
     over.className = won ? "show" : "show lost";
     verdict.textContent = won ? "out" : engine.wasCaught() ? "caught" : "lost";
     saying.textContent = engine.message() ?? "";
-    tally.textContent = `${engine.turns()} turns · ${got}/${total} treasure`;
+    tally.textContent =
+      treasure === null
+        ? `${engine.turns()} turns`
+        : `${engine.turns()} turns · ${treasure.got}/${treasure.total} treasure`;
   } else {
     over.className = "";
   }
@@ -103,14 +136,28 @@ function reset(): void {
 
 // --- the stable -------------------------------------------------------------
 
-/** What this creature is good and bad at, in one line a kid can act on. */
+/**
+ * What this creature is good and bad at, in one line a kid can act on.
+ * Older behaviour versions ignore creatures entirely, so this says so rather
+ * than promising a difference that will not arrive.
+ */
 function traitLine(creature: Creature): string {
-  const probe = engineFor(level, creature) as unknown as DelveV4;
+  const probe = engineFor(level, creature) as unknown as {
+    noise?(): number;
+    alertMax?(): number;
+    reachCells?(): number;
+  };
+  if (probe.noise === undefined) {
+    return `this level was made before creatures — everyone plays it the same`;
+  }
+  const ceiling = probe.alertMax?.() ?? 3;
   const parts = [
     probe.noise() > 1 ? "heard from far off" : "quiet on its feet",
-    `survives ${probe.alertMax() - 1} ${probe.alertMax() - 1 === 1 ? "scare" : "scares"}`,
+    `survives ${ceiling - 1} ${ceiling - 1 === 1 ? "scare" : "scares"}`,
     creature.caps.HASTE >= 128 ? "often moves for free" : "moves at one pace",
-    probe.reachCells() > 0 ? "picks up gems from a step away" : "must stand on a gem to take it",
+    (probe.reachCells?.() ?? 0) > 0
+      ? "picks up gems from a step away"
+      : "must stand on a gem to take it",
   ];
   return parts.join(" · ");
 }
@@ -220,6 +267,29 @@ window.addEventListener("keydown", (ev) => {
     setTimeout(() => el.classList.remove("lit"), 90);
   }
 });
+
+levelname.textContent = levelName;
+
+// A fragment-only change does not reload a page, so opening a second link in a
+// tab that already has one would otherwise leave the old level on screen.
+window.addEventListener("hashchange", () => window.location.reload());
+
+(document.getElementById("share") as HTMLButtonElement).addEventListener("click", async () => {
+  const base = `${window.location.origin}${window.location.pathname}`;
+  const url = linkFor(level, levelName, base);
+  try {
+    await navigator.clipboard.writeText(url);
+    said.textContent = `link copied — ${url.length} characters`;
+  } catch {
+    // Clipboard access needs a secure context and a real gesture; when it is
+    // refused, showing the link is still a way to send it.
+    said.textContent = url;
+  }
+});
+
+if (loadError !== null) {
+  said.textContent = `that link would not open (${loadError}) — playing the built-in level instead`;
+}
 
 paintStable();
 resize();

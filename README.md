@@ -3,11 +3,11 @@
 Levels that live in a link. See [`docs/spec.md`](docs/spec.md) for the design and
 [`CLAUDE.md`](CLAUDE.md) for how we work. Both are binding.
 
-**Day 4 of 14.** Pick one of three creatures, then collect four gems in a 24×14
-dungeon while guards patrol it, open the exit, and get out. Bruk is heard from
-across the room; Nim moves twice for the price of once; Pell picks gems up
-without stepping on them. Same level, same rules, three different runs — that is
-the whole collection loop in miniature.
+**Day 5 of 14.** Pick one of three creatures, collect four gems in a 24×14
+dungeon while guards patrol it, open the exit, and get out — then **send the
+level to someone by link**. The level rides in the URL fragment, about 80
+characters of it, and it is played under the rules it was made with, not
+whatever the site ships today.
 
 ## Commands
 
@@ -21,6 +21,8 @@ the whole collection loop in miniature.
 | `bun run deploy` | Check, build, and report what CI still has to do |
 | `bun run cli verify levels/day4.lvl` | Run the spec §13 checks L1–L5 on a level |
 | `bun run cli play levels/day4.lvl --moves RRDD --creature Nim` | Apply a move string as a creature, print the grid |
+| `bun run cli link levels/day4.lvl` | Print a share link, with its size against the budget |
+| `bun run cli open '<url-or-code>'` | Decode a link back to `.lvl` on stdout |
 
 No runtime dependencies, and none in the toolchain either — Bun runs the
 TypeScript, bundles the browser build and runs the tests.
@@ -28,7 +30,7 @@ TypeScript, bundles the browser build and runs the tests.
 ## Layout
 
 ```
-src/core/      grid, level, verify, reach, patrol, creature, hash      DETERMINISM ZONE
+src/core/      grid, level, verify, reach, patrol, creature, codec     DETERMINISM ZONE
 src/engines/   Engine interface, registry, delve/v1..v4               DETERMINISM ZONE
 src/cli/       util.parseArgs front end, ASCII debug view
 src/web/play/  canvas renderer, play page
@@ -59,8 +61,17 @@ politely rather than guessing — spec §13's E11.
 
 Adding a rule means adding the next version, never editing the last one — see
 [`0003`](docs/adr/0003-delve-v2-and-the-day-2-rules.md),
-[`0004`](docs/adr/0004-guards-alert-and-capture.md) and
-[`0005`](docs/adr/0005-capabilities-and-the-three-presets.md).
+[`0004`](docs/adr/0004-guards-alert-and-capture.md),
+[`0005`](docs/adr/0005-capabilities-and-the-three-presets.md) and
+[`0006`](docs/adr/0006-share-links-and-the-wire-format.md).
+
+## Links
+
+A level travels in the URL fragment: `<site>/#p/<slug>/<code>`. The code is
+70–88 characters for the levels shipped so far, against spec §10's budget of
+150, and carries the engine behaviour version so a link always plays by the
+rules it was made with. `test/golden/codes.json` pins the wire format — if it
+changes, every link ever sent breaks.
 
 ## The determinism check
 

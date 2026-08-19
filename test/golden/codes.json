@@ -1,0 +1,26 @@
+{
+  "note": "sacred: a shipped link is permanent. see CLAUDE.md hard rule 6 and docs/adr/0006.",
+  "codecVersion": 1,
+  "levels": [
+    {
+      "level": "levels/day1.lvl",
+      "chars": 70,
+      "code": "EQBEAAm_Gf___wAAAzw3AyQhOyQhIywhKwA_KxYAKxI-KxIiKx4iKwA2CwAAA____hDI6Q"
+    },
+    {
+      "level": "levels/day2.lvl",
+      "chars": 82,
+      "code": "EQCEABWFef___wgEA2v180oVE1rVW0KRQ36fewCRC2y160SEK0e9q0QhI33nO____nDImxFyQSRqeiiyXg"
+    },
+    {
+      "level": "levels/day3.lvl",
+      "chars": 88,
+      "code": "EQDEABvGdf___wAAA9ff19ff19ff1wCAQ_319_319_319wABA_fX9_fX9wEAg____qDImxRybSdilaJbLbW7ibCc"
+    },
+    {
+      "level": "levels/day4.lvl",
+      "chars": 76,
+      "code": "EQEEAA__ZwekYKECCgoQIKChAgek4MCBAgwIECDAgFpKCAoSIICgulBpDImxRybSdilyJbW7ibDS"
+    }
+  ]
+}
