@@ -3,10 +3,11 @@
 Levels that live in a link. See [`docs/spec.md`](docs/spec.md) for the design and
 [`CLAUDE.md`](CLAUDE.md) for how we work. Both are binding.
 
-**Day 3 of 14.** Collect four gems in a 24×14 dungeon while four guards patrol
-it, which opens the exit, then get out. Get close and they hear you; get closer
-and they have you. That is the whole game so far, and that is deliberate: one
-playable increment per day.
+**Day 4 of 14.** Pick one of three creatures, then collect four gems in a 24×14
+dungeon while guards patrol it, open the exit, and get out. Bruk is heard from
+across the room; Nim moves twice for the price of once; Pell picks gems up
+without stepping on them. Same level, same rules, three different runs — that is
+the whole collection loop in miniature.
 
 ## Commands
 
@@ -18,8 +19,8 @@ playable increment per day.
 | `bun run dev` | Local dev server on :3000 |
 | `bun run build` | Static output into `dist/` |
 | `bun run deploy` | Check, build, and report what CI still has to do |
-| `bun run cli verify levels/day3.lvl` | Run the spec §13 checks L1–L5 on a level |
-| `bun run cli play levels/day3.lvl --moves RRDD` | Apply a move string, print the grid |
+| `bun run cli verify levels/day4.lvl` | Run the spec §13 checks L1–L5 on a level |
+| `bun run cli play levels/day4.lvl --moves RRDD --creature Nim` | Apply a move string as a creature, print the grid |
 
 No runtime dependencies, and none in the toolchain either — Bun runs the
 TypeScript, bundles the browser build and runs the tests.
@@ -27,8 +28,8 @@ TypeScript, bundles the browser build and runs the tests.
 ## Layout
 
 ```
-src/core/      grid, level parser, verify, reach, patrol, hash        DETERMINISM ZONE
-src/engines/   Engine interface, registry, delve/v1..v3               DETERMINISM ZONE
+src/core/      grid, level, verify, reach, patrol, creature, hash      DETERMINISM ZONE
+src/engines/   Engine interface, registry, delve/v1..v4               DETERMINISM ZONE
 src/cli/       util.parseArgs front end, ASCII debug view
 src/web/play/  canvas renderer, play page
 levels/        committed .lvl fixtures (canonical)
@@ -54,10 +55,12 @@ politely rather than guessing — spec §13's E11.
 | `delve/1` | Move one cell a turn; walls and the grid edge refuse. Never ends. |
 | `delve/2` | v1's movement, plus turns, treasure, an exit that opens once every gem is collected, a 999-turn cap, and win/loss. |
 | `delve/3` | v2's rules, plus guards that patrol geometry-derived corridors, a noise radius that raises the alarm, and capture. |
+| `delve/4` | v3's rules, with MASS, GUARD, HASTE and REACH read from a creature instead of fixed. |
 
 Adding a rule means adding the next version, never editing the last one — see
-[`0003`](docs/adr/0003-delve-v2-and-the-day-2-rules.md) and
-[`0004`](docs/adr/0004-guards-alert-and-capture.md).
+[`0003`](docs/adr/0003-delve-v2-and-the-day-2-rules.md),
+[`0004`](docs/adr/0004-guards-alert-and-capture.md) and
+[`0005`](docs/adr/0005-capabilities-and-the-three-presets.md).
 
 ## The determinism check
 

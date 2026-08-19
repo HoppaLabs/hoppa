@@ -10,6 +10,7 @@ import { verifyLevelText } from "../core/verify.ts";
 import { renderAscii } from "./ascii.ts";
 import { hashHex } from "../core/hash.ts";
 import { engineFor, UnknownBehaviourError } from "../engines/registry.ts";
+import { PRESETS, presetByName } from "../core/creature.ts";
 import {
   INPUT_DOWN,
   INPUT_LEFT,
@@ -42,6 +43,7 @@ function usage(): never {
       "",
       "  verify <file.lvl>              run spec S13 checks L1-L5",
       "  play   <file.lvl> --moves URDL apply a move string, print the grid",
+      "         [--creature <name>]     one of: " + PRESETS.map((c) => c.name).join(", "),
       "",
       "  moves: U R D L, '.' waits",
     ].join("\n"),
@@ -56,7 +58,10 @@ async function readLevelText(path: string | undefined): Promise<string> {
 
 const { values, positionals } = parseArgs({
   args: Bun.argv.slice(2),
-  options: { moves: { type: "string", default: "" } },
+  options: {
+    moves: { type: "string", default: "" },
+    creature: { type: "string", default: "" },
+  },
   allowPositionals: true,
 });
 
@@ -99,7 +104,17 @@ try {
     if (!result.ok) process.exit(1);
   } else if (command === "play") {
     const level = parseLevel(await readLevelText(file));
-    const engine = engineFor(level);
+
+    const wanted = values.creature as string;
+    const creature = wanted === "" ? undefined : presetByName(wanted);
+    if (wanted !== "" && creature === undefined) {
+      console.error(
+        `unknown creature "${wanted}" -- try one of: ${PRESETS.map((c) => c.name).join(", ")}`,
+      );
+      process.exit(1);
+    }
+
+    const engine = engineFor(level, creature);
     const moves = (values.moves as string).toUpperCase();
 
     let status = STATUS_PLAYING;
@@ -118,6 +133,7 @@ try {
     console.log(renderAscii(engine.render()));
 
     const parts = [
+      creature === undefined ? "no creature" : `as ${creature.name}`,
       `moves ${played}/${moves.length}`,
       `${STATUS_NAME[status] ?? String(status)}`,
       `hash ${hashHex(engine.stateHash())}`,

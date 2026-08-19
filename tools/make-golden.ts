@@ -6,7 +6,13 @@
 // check that matters: a new file should appear and the existing ones should not
 // move a byte.
 
-import { DAY1_LEVEL_TEXT, DAY2_LEVEL_TEXT, DAY3_LEVEL_TEXT } from "../src/core/fixtures.ts";
+import {
+  DAY1_LEVEL_TEXT,
+  DAY2_LEVEL_TEXT,
+  DAY3_LEVEL_TEXT,
+  DAY4_LEVEL_TEXT,
+} from "../src/core/fixtures.ts";
+import { BRUK, NIM, PELL, type Creature } from "../src/core/creature.ts";
 import { parseLevel } from "../src/core/level.ts";
 import { hashHex } from "../src/core/hash.ts";
 import { engineFor } from "../src/engines/registry.ts";
@@ -19,7 +25,13 @@ const STATUS_NAME: Record<number, string> = {
   [STATUS_LOST]: "lost",
 };
 
-const VECTORS: ReadonlyArray<{ file: string; level: string; text: string; log: string }> = [
+const VECTORS: ReadonlyArray<{
+  file: string;
+  level: string;
+  text: string;
+  log: string;
+  creature?: Creature;
+}> = [
   {
     file: "test/golden/day1-walk.json",
     level: "levels/day1.lvl",
@@ -44,11 +56,34 @@ const VECTORS: ReadonlyArray<{ file: string; level: string; text: string; log: s
       ".RRRR..DDDDRRDDDDLLLLLRRRRRRRRRRR..DDDLLRR..UUUUUUULLUUUURRRRRRRRRR" +
       "DDDDRLDDDDLRDDDR",
   },
+  // Spec S15 keys golden vectors on (level, creature, log). From day 4 the
+  // creature is a real input: same level, same rules, three different runs.
+  {
+    file: "test/golden/day4-bruk.json",
+    level: "levels/day4.lvl",
+    text: DAY4_LEVEL_TEXT,
+    creature: BRUK,
+    log: ".RRRRRRRRRDDDDLLLDDDDLLLLLRRRRRUUUURRRRRRRRRRRRRRRLDDDDLLLDDDLLLLRRRRRRRR",
+  },
+  {
+    file: "test/golden/day4-nim.json",
+    level: "levels/day4.lvl",
+    text: DAY4_LEVEL_TEXT,
+    creature: NIM,
+    log: "...RRRRRRRRRDDDDLLLDDDDLLLLLRRRDDDRRRRRRRRRRRRRUUURRRUUUURLDDDDLLLDDDRRRR",
+  },
+  {
+    file: "test/golden/day4-pell.json",
+    level: "levels/day4.lvl",
+    text: DAY4_LEVEL_TEXT,
+    creature: PELL,
+    log: "..RRRRRRRRRDDDDLLLDDDDLLLLRRDDDRRRRRRRRRRRRRUUURRRUUUDDDLLLDDDRRRR",
+  },
 ];
 
 for (const spec of VECTORS) {
   const level = parseLevel(spec.text);
-  const engine = engineFor(level);
+  const engine = engineFor(level, spec.creature);
   let status = STATUS_PLAYING;
   for (const ch of spec.log) status = engine.step(MOVES[ch] as number);
 
@@ -57,7 +92,12 @@ for (const spec of VECTORS) {
     level: spec.level,
     engine: level.engine,
     behaviourVersion: engine.behaviourVersion,
+    creature:
+      spec.creature === undefined
+        ? null
+        : { id: spec.creature.id, name: spec.creature.name, caps: spec.creature.caps },
     log: spec.log,
+    turns: (engine as unknown as { turns?(): number }).turns?.() ?? spec.log.length,
     finalPosition: (engine as unknown as { position(): { x: number; y: number } }).position(),
     status: STATUS_NAME[status] as string,
     stateHash: hashHex(engine.stateHash()),

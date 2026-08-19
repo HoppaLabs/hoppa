@@ -13,6 +13,7 @@ export const EMBEDDED: ReadonlyArray<readonly [string, string]> = [
   ["DAY1_LEVEL_TEXT", "levels/day1.lvl"],
   ["DAY2_LEVEL_TEXT", "levels/day2.lvl"],
   ["DAY3_LEVEL_TEXT", "levels/day3.lvl"],
+  ["DAY4_LEVEL_TEXT", "levels/day4.lvl"],
 ];
 
 export async function renderEmbedModule(): Promise<string> {

@@ -3,7 +3,9 @@
   "level": "levels/day1.lvl",
   "engine": "delve",
   "behaviourVersion": 1,
+  "creature": null,
   "log": "RRRRRRRRRRRRDDDDDDDDDDDLLLLLLLLUUUURRDD",
+  "turns": 39,
   "finalPosition": {
     "x": 14,
     "y": 5

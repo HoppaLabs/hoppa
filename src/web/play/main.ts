@@ -1,16 +1,19 @@
-// Day 3 play page: collect the treasure, dodge the patrols, the exit opens, get
-// out before the turns run out. Input arrives from taps, swipes or arrow keys;
-// all three feed the same engine.step() so the input log is identical whichever
-// you use.
+// Day 4 play page: pick a creature, then collect the treasure, dodge the
+// patrols, and get out. The level and the rules do not change between creatures
+// -- only the eight numbers do, and that is the whole demonstration.
+//
+// Input arrives from taps, swipes or arrow keys; all three feed the same
+// engine.step() so the input log is identical whichever you use.
 //
 // The engine is chosen by the level's behaviour= field, never hardcoded here.
 // That is what lets a link from day 5 onwards pin the rules it was beaten under.
 
-import { DAY3_LEVEL_TEXT } from "../../core/fixtures.ts";
+import { DAY4_LEVEL_TEXT } from "../../core/fixtures.ts";
+import { PRESETS, type Creature } from "../../core/creature.ts";
 import { parseLevel } from "../../core/level.ts";
 import { hashHex } from "../../core/hash.ts";
 import { engineFor } from "../../engines/registry.ts";
-import type { DelveV3 } from "../../engines/delve/v3.ts";
+import type { DelveV4 } from "../../engines/delve/v4.ts";
 import {
   INPUT_DOWN,
   INPUT_LEFT,
@@ -23,10 +26,11 @@ import {
 } from "../../engines/types.ts";
 import { GridRenderer } from "./renderer.ts";
 
-const level = parseLevel(DAY3_LEVEL_TEXT);
+const level = parseLevel(DAY4_LEVEL_TEXT);
+let chosen: Creature = PRESETS[0] as Creature;
 // engineFor returns the Engine contract; the play page also wants the delve
 // read-outs (turns, treasure), which is what this cast is for.
-const build = () => engineFor(level) as unknown as DelveV3;
+const build = () => engineFor(level, chosen) as unknown as DelveV4;
 let engine = build();
 
 const canvas = document.getElementById("grid") as HTMLCanvasElement;
@@ -34,6 +38,8 @@ const hud = document.getElementById("hud") as HTMLElement;
 const pad = document.getElementById("pad") as HTMLElement;
 const stage = document.getElementById("stage") as HTMLElement;
 const over = document.getElementById("over") as HTMLElement;
+const stable = document.getElementById("stable") as HTMLElement;
+const trait = document.getElementById("trait") as HTMLElement;
 const verdict = document.getElementById("verdict") as HTMLElement;
 const saying = document.getElementById("saying") as HTMLElement;
 const tally = document.getElementById("tally") as HTMLElement;
@@ -57,7 +63,7 @@ function paint(): void {
   // thing you want to see, not read.
   const pips = "\u25cf".repeat(alert) + "\u25cb".repeat(Math.max(0, max - alert));
   hud.innerHTML =
-    `<span><b>${engine.turns()}</b> turns</span>` +
+    `<span class="${engine.tookFreeStep() ? "free" : ""}"><b>${engine.turns()}</b> turns</span>` +
     `<span class="${got === total ? "done" : "gold"}"><b>${got}/${total}</b> treasure</span>` +
     `<span class="alarm alarm-${alert}"><b>${pips}</b></span>` +
     `<span>${hashHex(engine.stateHash())}</span>`;
@@ -91,7 +97,39 @@ function move(input: Input): void {
 function reset(): void {
   engine = build();
   blockedUntil = 0;
+  paintStable();
   paint();
+}
+
+// --- the stable -------------------------------------------------------------
+
+/** What this creature is good and bad at, in one line a kid can act on. */
+function traitLine(creature: Creature): string {
+  const probe = engineFor(level, creature) as unknown as DelveV4;
+  const parts = [
+    probe.noise() > 1 ? "heard from far off" : "quiet on its feet",
+    `survives ${probe.alertMax() - 1} ${probe.alertMax() - 1 === 1 ? "scare" : "scares"}`,
+    creature.caps.HASTE >= 128 ? "often moves for free" : "moves at one pace",
+    probe.reachCells() > 0 ? "picks up gems from a step away" : "must stand on a gem to take it",
+  ];
+  return parts.join(" · ");
+}
+
+function paintStable(): void {
+  stable.innerHTML = "";
+  for (const creature of PRESETS) {
+    const button = document.createElement("button");
+    button.className = creature.id === chosen.id ? "on" : "";
+    button.innerHTML = `<b>${creature.name}</b>MASS ${creature.caps.MASS}`;
+    button.setAttribute("aria-pressed", String(creature.id === chosen.id));
+    button.addEventListener("click", () => {
+      if (creature.id === chosen.id) return;
+      chosen = creature;
+      reset();
+    });
+    stable.appendChild(button);
+  }
+  trait.textContent = traitLine(chosen);
 }
 
 // --- layout -----------------------------------------------------------------
@@ -183,4 +221,5 @@ window.addEventListener("keydown", (ev) => {
   }
 });
 
+paintStable();
 resize();

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0d1014">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Crect width='8' height='8' fill='%230d1014'/%3E%3Crect x='2' y='2' width='4' height='4' fill='%23ffc23d'/%3E%3C/svg%3E">
-<title>hoppa — day 3</title>
+<title>hoppa — day 4</title>
 <style>
   :root {
     --bg: #0d1014;
@@ -72,9 +72,24 @@
   #hud .alarm-1 b { color: #ffc23d; }
   #hud .alarm-2 b { color: #ff8a3d; }
   #hud .alarm-3 b { color: #ff5f4d; }
+  /* A free step is a turn the clock did not charge you for. Worth seeing. */
+  #hud .free b { color: var(--open); }
 
   /* The win screen. It sits over the grid rather than replacing it, so the
      level you just beat is still there behind the words. */
+  /* The picker. Three creatures, and a line saying what each one is bad at --
+     the trade is the interesting part, not the stats. */
+  #stable { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  #stable button {
+    font: inherit; font-size: 12px; color: var(--ink);
+    background: var(--key); border: 1px solid var(--edge); border-radius: 8px;
+    padding: 7px 12px; cursor: pointer; line-height: 1.3; text-align: center;
+  }
+  #stable button b { display: block; color: var(--ink-bright); font-size: 13px; }
+  #stable button.on { border-color: var(--gold); color: var(--ink-bright); }
+  #stable button.on b { color: var(--gold); }
+  #trait { color: var(--ink); font-size: 12px; text-align: center; max-width: 34ch; }
+
   #stage { position: relative; }
   #over {
     position: absolute; inset: 0; display: none;
@@ -105,7 +120,9 @@
 </style>
 </head>
 <body>
-  <h1>hoppa <b>day 3</b> &middot; delve</h1>
+  <h1>hoppa <b>day 4</b> &middot; delve</h1>
+  <nav id="stable" aria-label="pick a creature"></nav>
+  <div id="trait"></div>
   <div id="stage">
     <canvas id="grid"></canvas>
     <div id="over" role="status" aria-live="polite">

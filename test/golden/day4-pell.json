@@ -1,0 +1,28 @@
+{
+  "note": "sacred: see CLAUDE.md hard rule 6. do not regenerate to go green.",
+  "level": "levels/day4.lvl",
+  "engine": "delve",
+  "behaviourVersion": 4,
+  "creature": {
+    "id": "01J8XK8W6Y5N",
+    "name": "Pell",
+    "caps": {
+      "MOVE_GROUND": 120,
+      "MOVE_AIR": 20,
+      "REACH": 200,
+      "FORCE": 90,
+      "GUARD": 240,
+      "HASTE": 30,
+      "MASS": 110,
+      "SPARK": 40
+    }
+  },
+  "log": "..RRRRRRRRRDDDDLLLDDDDLLLLRRDDDRRRRRRRRRRRRRUUURRRUUUDDDLLLDDDRRRR",
+  "turns": 59,
+  "finalPosition": {
+    "x": 22,
+    "y": 12
+  },
+  "status": "won",
+  "stateHash": "0a28aee4"
+}

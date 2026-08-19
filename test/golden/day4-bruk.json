@@ -1,0 +1,28 @@
+{
+  "note": "sacred: see CLAUDE.md hard rule 6. do not regenerate to go green.",
+  "level": "levels/day4.lvl",
+  "engine": "delve",
+  "behaviourVersion": 4,
+  "creature": {
+    "id": "01J8XK4M2P7Q",
+    "name": "Bruk",
+    "caps": {
+      "MOVE_GROUND": 180,
+      "MOVE_AIR": 40,
+      "REACH": 90,
+      "FORCE": 220,
+      "GUARD": 200,
+      "HASTE": 60,
+      "MASS": 240,
+      "SPARK": 10
+    }
+  },
+  "log": ".RRRRRRRRRDDDDLLLDDDDLLLLLRRRRRUUUURRRRRRRRRRRRRRRLDDDDLLLDDDLLLLRRRRRRRR",
+  "turns": 56,
+  "finalPosition": {
+    "x": 22,
+    "y": 12
+  },
+  "status": "won",
+  "stateHash": "4ddfbdb6"
+}
