@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0d1014">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Crect width='8' height='8' fill='%230d1014'/%3E%3Crect x='2' y='2' width='4' height='4' fill='%23ffc23d'/%3E%3C/svg%3E">
-<title>hoppa — day 1</title>
+<title>hoppa — day 2</title>
 <style>
   :root {
     --bg: #0d1014;
@@ -14,6 +14,8 @@
     --key: #222a35;
     --key-lit: #39485c;
     --edge: #1a212b;
+    --gold: #ffc23d;
+    --open: #6fe08a;
   }
   * { box-sizing: border-box; }
   html, body {
@@ -57,9 +59,35 @@
   #pad button:active, #pad button.lit { background: var(--key-lit); }
   #up { grid-area: up; } #left { grid-area: left; }
   #down { grid-area: down; } #right { grid-area: right; }
-  footer { display: flex; align-items: center; gap: 14px; }
-  #hud { color: var(--ink); }
+  footer { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  #hud { color: var(--ink); display: flex; gap: 12px; }
   #hud b { color: var(--ink-bright); font-weight: 600; }
+  #hud .gold b { color: var(--gold); }
+  #hud .done b { color: var(--open); }
+
+  /* The win screen. It sits over the grid rather than replacing it, so the
+     level you just beat is still there behind the words. */
+  #stage { position: relative; }
+  #over {
+    position: absolute; inset: 0; display: none;
+    flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    background: rgba(13, 16, 20, .86); border-radius: 3px; text-align: center;
+    padding: 12px;
+  }
+  #over.show { display: flex; }
+  #verdict {
+    font-size: 22px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--open); font-weight: 600;
+  }
+  #over.lost #verdict { color: #ff5f4d; }
+  #saying { color: var(--ink-bright); max-width: 30ch; font-size: 13px; }
+  #tally { color: var(--ink); }
+  #again {
+    font: inherit; font-size: 14px; color: var(--bg); background: var(--open);
+    border: 0; border-radius: 8px; padding: 10px 18px; cursor: pointer;
+    font-weight: 600;
+  }
+  #over.lost #again { background: #ff5f4d; }
   #reset {
     font: inherit; color: var(--ink); background: none;
     border: 1px solid var(--edge); border-radius: 6px; padding: 5px 10px;
@@ -69,8 +97,16 @@
 </style>
 </head>
 <body>
-  <h1>hoppa <b>day 1</b> &middot; delve</h1>
-  <div id="stage"><canvas id="grid"></canvas></div>
+  <h1>hoppa <b>day 2</b> &middot; delve</h1>
+  <div id="stage">
+    <canvas id="grid"></canvas>
+    <div id="over" role="status" aria-live="polite">
+      <div id="verdict"></div>
+      <div id="saying"></div>
+      <div id="tally"></div>
+      <button id="again">play again</button>
+    </div>
+  </div>
   <nav id="pad">
     <button id="up"    aria-label="up">&#9650;</button>
     <button id="left"  aria-label="left">&#9664;</button>

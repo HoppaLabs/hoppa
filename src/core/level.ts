@@ -1,11 +1,18 @@
 // .lvl is ASCII art on disk: readable, diffable, editable in vim over SSH.
 // This parser is strict on purpose -- an unknown glyph is a mistake, not a hint.
+//
+// It is strict about *shape* only. Whether a level is playable -- one exit, the
+// exit reachable, treasure you can actually get to -- is spec S13's L2-L5 and
+// lives in verify.ts. A level with no exit still parses; it just does not pass
+// verification. That split is what lets day 1's exit-less level keep working.
 
 import { GRID_AREA, GRID_H, GRID_W, idx } from "./grid.ts";
 
 export const GLYPH_WALL = "#";
 export const GLYPH_FLOOR = ".";
 export const GLYPH_START = "@";
+export const GLYPH_TREASURE = "$";
+export const GLYPH_EXIT = ">";
 
 export interface Level {
   readonly schema: number;
@@ -18,6 +25,17 @@ export interface Level {
   readonly walls: Uint8Array;
   readonly startX: number;
   readonly startY: number;
+  /** -1 when the level has no exit glyph. L2 is what complains about that. */
+  readonly exitX: number;
+  readonly exitY: number;
+  /**
+   * Treasure cell indices in reading order. The position in this array is the
+   * treasure's bit in the engine's collected mask, so reading order is a
+   * shipped-link concern: never sort it differently.
+   */
+  readonly treasureCells: Int16Array;
+  /** GRID_AREA lookup: treasure slot at this cell, or -1. */
+  readonly treasureSlot: Int8Array;
 }
 
 export class LevelParseError extends Error {}
@@ -74,8 +92,12 @@ export function parseLevel(text: string): Level {
   }
 
   const walls = new Uint8Array(GRID_AREA);
+  const treasureSlot = new Int8Array(GRID_AREA).fill(-1);
+  const found: number[] = [];
   let startX = -1;
   let startY = -1;
+  let exitX = -1;
+  let exitY = -1;
 
   for (let y = 0; y < GRID_H; y = (y + 1) | 0) {
     const row = rows[y] as string;
@@ -93,13 +115,29 @@ export function parseLevel(text: string): Level {
         walls[idx(x, y)] = 0;
         startX = x;
         startY = y;
+      } else if (ch === GLYPH_EXIT) {
+        // A Level holds one exit, so a second one is a shape error, not an
+        // L2 validity question.
+        if (exitX >= 0) fail(`two exits: (${exitX},${exitY}) and (${x},${y})`);
+        walls[idx(x, y)] = 0;
+        exitX = x;
+        exitY = y;
+      } else if (ch === GLYPH_TREASURE) {
+        walls[idx(x, y)] = 0;
+        treasureSlot[idx(x, y)] = found.length | 0;
+        found.push(idx(x, y));
       } else {
-        fail(`row ${y + 1} col ${x + 1}: glyph "${ch}" is not in the day 1 tile set`);
+        fail(`row ${y + 1} col ${x + 1}: glyph "${ch}" is not in the tile set`);
       }
     }
   }
 
   if (startX < 0) fail(`level has no start glyph "${GLYPH_START}"`);
+
+  const treasureCells = new Int16Array(found.length);
+  for (let i = 0; i < found.length; i = (i + 1) | 0) {
+    treasureCells[i] = found[i] as number;
+  }
 
   return {
     schema: header.schema,
@@ -111,9 +149,17 @@ export function parseLevel(text: string): Level {
     walls,
     startX,
     startY,
+    exitX,
+    exitY,
+    treasureCells,
+    treasureSlot,
   };
 }
 
 export function isWall(level: Level, x: number, y: number): boolean {
   return level.walls[idx(x, y)] === 1;
+}
+
+export function hasExit(level: Level): boolean {
+  return level.exitX >= 0;
 }

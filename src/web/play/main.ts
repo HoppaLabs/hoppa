@@ -1,53 +1,85 @@
-// Day 1 play page: one coloured square, one grid, walls that stop you.
-// Input arrives from taps, swipes or arrow keys; all three feed the same
-// engine.step() so the input log is identical whichever you use.
+// Day 2 play page: collect the treasure, the exit opens, get out before the
+// turns run out. Input arrives from taps, swipes or arrow keys; all three feed
+// the same engine.step() so the input log is identical whichever you use.
+//
+// The engine is chosen by the level's behaviour= field, never hardcoded here.
+// That is what lets a link from day 5 onwards pin the rules it was beaten under.
 
-import { DAY1_LEVEL_TEXT } from "../../core/fixtures.ts";
+import { DAY2_LEVEL_TEXT } from "../../core/fixtures.ts";
 import { parseLevel } from "../../core/level.ts";
 import { hashHex } from "../../core/hash.ts";
-import { DelveV1 } from "../../engines/delve/v1.ts";
+import { engineFor } from "../../engines/registry.ts";
+import type { DelveV2 } from "../../engines/delve/v2.ts";
 import {
   INPUT_DOWN,
   INPUT_LEFT,
   INPUT_RIGHT,
   INPUT_UP,
+  STATUS_PLAYING,
+  STATUS_WON,
   type Input,
 } from "../../engines/types.ts";
 import { GridRenderer } from "./renderer.ts";
 
-const level = parseLevel(DAY1_LEVEL_TEXT);
-let engine = new DelveV1(level);
+const level = parseLevel(DAY2_LEVEL_TEXT);
+// engineFor returns the Engine contract; the play page also wants the delve
+// read-outs (turns, treasure), which is what this cast is for.
+const build = () => engineFor(level) as unknown as DelveV2;
+let engine = build();
 
 const canvas = document.getElementById("grid") as HTMLCanvasElement;
 const hud = document.getElementById("hud") as HTMLElement;
 const pad = document.getElementById("pad") as HTMLElement;
 const stage = document.getElementById("stage") as HTMLElement;
+const over = document.getElementById("over") as HTMLElement;
+const verdict = document.getElementById("verdict") as HTMLElement;
+const saying = document.getElementById("saying") as HTMLElement;
+const tally = document.getElementById("tally") as HTMLElement;
 const renderer = new GridRenderer(canvas);
 
-let moves = 0;
 let blockedUntil = 0;
+
+function finished(): boolean {
+  return engine.currentStatus() !== STATUS_PLAYING;
+}
 
 function paint(): void {
   const blocked = engine.didBump() && performance.now() < blockedUntil;
   renderer.draw(engine.render(), blocked);
-  const { x, y } = engine.position();
-  hud.innerHTML = `<b>${moves}</b> moves &middot; (${x},${y}) &middot; ${hashHex(engine.stateHash())}`;
+
+  const got = engine.collectedCount();
+  const total = engine.treasureTotal();
+  hud.innerHTML =
+    `<span><b>${engine.turns()}</b> turns</span>` +
+    `<span class="${got === total ? "done" : "gold"}"><b>${got}/${total}</b> treasure</span>` +
+    `<span>${hashHex(engine.stateHash())}</span>`;
+
+  if (finished()) {
+    const won = engine.currentStatus() === STATUS_WON;
+    over.className = won ? "show" : "show lost";
+    verdict.textContent = won ? "out" : "lost";
+    saying.textContent = engine.message() ?? "";
+    tally.textContent = `${engine.turns()} turns · ${got}/${total} treasure`;
+  } else {
+    over.className = "";
+  }
 }
 
 function move(input: Input): void {
+  if (finished()) return;
   engine.step(input);
-  moves++;
   if (engine.didBump()) {
     blockedUntil = performance.now() + 140;
     navigator.vibrate?.(12);
     setTimeout(paint, 150);
   }
+  if (finished()) navigator.vibrate?.(engine.currentStatus() === STATUS_WON ? [20, 60, 20] : 200);
   paint();
 }
 
 function reset(): void {
-  engine = new DelveV1(level);
-  moves = 0;
+  engine = build();
+  blockedUntil = 0;
   paint();
 }
 
@@ -79,6 +111,10 @@ for (const [id, input] of BUTTONS) {
 }
 
 (document.getElementById("reset") as HTMLButtonElement).addEventListener("click", reset);
+(document.getElementById("again") as HTMLButtonElement).addEventListener("click", (ev) => {
+  ev.stopPropagation();
+  reset();
+});
 
 // --- swipe ------------------------------------------------------------------
 
@@ -117,6 +153,11 @@ const KEYS: Record<string, Input> = {
 };
 
 window.addEventListener("keydown", (ev) => {
+  if (ev.key === "Enter" && finished()) {
+    ev.preventDefault();
+    reset();
+    return;
+  }
   const input = KEYS[ev.key];
   if (input === undefined) return;
   ev.preventDefault();

@@ -4,13 +4,27 @@
 // tileset arrives on day 7; flat squares are the day 1 presentation.
 
 import { GRID_H, GRID_W } from "../../core/grid.ts";
-import { TILE_ACTOR, TILE_FLOOR, TILE_VOID, TILE_WALL } from "../../core/tiles.ts";
+import {
+  TILE_ACTOR,
+  TILE_EXIT_LOCKED,
+  TILE_EXIT_OPEN,
+  TILE_FLOOR,
+  TILE_TREASURE,
+  TILE_VOID,
+  TILE_WALL,
+} from "../../core/tiles.ts";
 
 const COLOUR: Record<number, string> = {
   [TILE_VOID]: "#0d1014",
   [TILE_FLOOR]: "#191f27",
   [TILE_WALL]: "#39485c",
   [TILE_ACTOR]: "#ffc23d",
+  // Treasure is deliberately NOT gold: the actor is gold, and on a 14px tile a
+  // gold nugget and a gold creature are the same square. Cyan reads as a gem
+  // and stays distinct for a red-green colour-blind player too.
+  [TILE_TREASURE]: "#7fe3ff",
+  [TILE_EXIT_LOCKED]: "#7a5c86",
+  [TILE_EXIT_OPEN]: "#6fe08a",
 };
 
 const ACTOR_BLOCKED = "#ff5f4d";
@@ -55,6 +69,45 @@ export class GridRenderer {
       for (let x = 0; x < GRID_W; x++) {
         const tile = tiles[y * GRID_W + x] as number;
         if (tile === TILE_VOID) continue;
+
+        // Treasure is a diamond, not a square: shape carries the difference
+        // from the actor even when the tiles are tiny or the screen is dim.
+        if (tile === TILE_TREASURE) {
+          ctx.fillStyle = COLOUR[TILE_FLOOR] as string;
+          ctx.fillRect(x * t, y * t, t, t);
+          const cx = x * t + t / 2;
+          const cy = y * t + t / 2;
+          const r = Math.max(2, (t / 2) - Math.max(1, Math.floor(t / 5)));
+          ctx.fillStyle = COLOUR[TILE_TREASURE] as string;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy - r);
+          ctx.lineTo(cx + r, cy);
+          ctx.lineTo(cx, cy + r);
+          ctx.lineTo(cx - r, cy);
+          ctx.closePath();
+          ctx.fill();
+          continue;
+        }
+
+        // A shut exit is a barred doorway; an open one glows and the bars are
+        // gone. The difference has to be obvious from across a room.
+        if (tile === TILE_EXIT_LOCKED || tile === TILE_EXIT_OPEN) {
+          const open = tile === TILE_EXIT_OPEN;
+          ctx.fillStyle = COLOUR[tile] as string;
+          ctx.fillRect(x * t, y * t, t, t);
+          const inset = Math.max(1, Math.floor(t / 5));
+          ctx.fillStyle = COLOUR[TILE_VOID] as string;
+          if (open) {
+            // A way through.
+            ctx.fillRect(x * t + inset, y * t + inset, t - inset * 2, t - inset * 2);
+          } else if (t >= 10) {
+            // Two bars across the doorway.
+            const bar = Math.max(1, Math.floor(t / 8));
+            ctx.fillRect(x * t + inset, y * t + Math.floor(t / 3), t - inset * 2, bar);
+            ctx.fillRect(x * t + inset, y * t + Math.floor((t * 2) / 3), t - inset * 2, bar);
+          }
+          continue;
+        }
 
         if (tile === TILE_ACTOR) {
           // The actor sits inset so you can see which cell it occupies.
