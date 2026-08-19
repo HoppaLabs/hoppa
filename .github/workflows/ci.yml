@@ -1,0 +1,25 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # The determinism zone check runs first and on its own, so a failure here
+      # is unmistakable in the log. Do not weaken a rule to make this pass.
+      - name: determinism zone
+        run: bun run check:determinism
+
+      - name: tests
+        run: bun test
+
+      - name: build
+        run: bun run build
