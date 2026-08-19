@@ -1,0 +1,12 @@
+{
+  "note": "sacred: see CLAUDE.md hard rule 6. do not regenerate to go green.",
+  "level": "levels/day1.lvl",
+  "engine": "delve",
+  "behaviourVersion": 1,
+  "log": "RRRRRRRRRRRRDDDDDDDDDDDLLLLLLLLUUUURRDD",
+  "finalPosition": {
+    "x": 14,
+    "y": 5
+  },
+  "stateHash": "bcae695e"
+}
