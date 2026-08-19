@@ -30,12 +30,10 @@ jobs:
       - run: bun test
       - run: bun run build
 
-      # enablement turns Pages on for the repo the first time this runs, so
-      # publishing does not depend on someone having found the right settings
-      # page. Needs the pages: write permission above, which we already have.
+      # Pages must already be enabled with Source: GitHub Actions. The action's
+      # enablement: true cannot do it for you -- creating a Pages site needs
+      # admin, which GITHUB_TOKEN does not have. See docs/adr/0001-hosting.md.
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
