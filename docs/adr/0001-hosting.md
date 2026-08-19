@@ -63,7 +63,12 @@ Source: **GitHub Actions** -- which stops the built-in build from running at all
 workflows are triggered by the same push, so the built-in build has already
 started by the time our workflow could change anything.
 
-Until that setting is confirmed, a re-run of this workflow via `workflow_dispatch`
+**Confirmed fixed.** The source was changed to GitHub Actions on day 2. The next
+push to `main` (`d0eb58d`) ran `ci` and `deploy` only -- no
+`pages build and deployment` -- and all three deploy jobs, including the new
+smoke check, passed.
+
+If it ever regresses, a re-run of this workflow via `workflow_dispatch`
 republishes the game, because a manual dispatch triggers no competing build.
 
 ### What stops it shipping silently again
