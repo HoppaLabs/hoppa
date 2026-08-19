@@ -14,25 +14,38 @@ Netlify. Pages is the only one of the three that needs no third-party account
 and no API token in repo secrets, so it was the shortest path to a URL that
 works while the dev machine is asleep.
 
-## The cost of keeping the repo private
+## The repo is public
 
-GitHub Pages on a **private** repository requires a paid plan (Pro, Team or
-Enterprise) on the account. On a free plan the `deploy-pages` step fails with a
-permissions error, and the fix is to make the repo public or upgrade. This was
-chosen with that trade understood.
+It started private. GitHub Pages on a private repository requires a paid plan
+(Pro, Team or Enterprise), so the repo was made public on day 1 to get a URL
+without one. Nothing user-generated is hosted — the design's whole premise is
+that levels live in URL fragments and never reach a server — so going public
+exposes the source and the spec, and nothing else.
 
-## Enabling Pages
+## Enabling Pages is a manual step, and cannot be automated
 
 The first deploy failed at `actions/configure-pages` with *"Get Pages site
-failed … Not Found"* — Pages had never been switched on for the repo. The
-workflow now passes `enablement: true`, so it turns Pages on itself using the
-`pages: write` permission it already holds, rather than depending on someone
-finding the right settings page. Doing it in the workflow means a fresh clone or
-a new fork deploys without a manual step.
+failed … Not Found"*: Pages had never been switched on for the repo.
 
-One thing this cannot paper over: deployments to the `github-pages` environment
-are restricted to the default branch, so work on a feature branch cannot publish
-until it reaches `main`.
+The obvious fix — the action's own `enablement: true` parameter — **does not
+work**, and was tried and reverted. It fails with:
+
+```
+HttpError: Resource not accessible by integration
+  https://docs.github.com/rest/pages/pages#create-a-apiname-pages-site
+```
+
+Creating a Pages site needs admin rights, and `GITHUB_TOKEN` does not have them
+however the workflow's `permissions:` block is written. `pages: write` is enough
+to *deploy* to an existing site, not to *create* one.
+
+So this stays a one-off manual step, recorded here so nobody spends the same
+hour on it:
+
+**Settings → Pages → Build and deployment → Source: GitHub Actions.**
+
+Deployments to the `github-pages` environment are also restricted to the default
+branch, so work on a feature branch cannot publish until it reaches `main`.
 
 ## Revisit when
 

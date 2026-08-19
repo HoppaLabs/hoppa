@@ -55,6 +55,10 @@ planted violations — a check that has quietly stopped checking is worse than n
 
 ## Deploying
 
-Pushes to `main` build and publish `dist/` to GitHub Pages. See
-[`docs/adr/0001-hosting.md`](docs/adr/0001-hosting.md) — the repo is private, so
-this needs a paid GitHub plan and `Settings → Pages → Source: GitHub Actions`.
+Live at **https://iainashmore.github.io/hoppa/**. Pushes to `main` build and
+publish `dist/` to GitHub Pages.
+
+Pages has to be switched on by hand once, at `Settings → Pages → Source: GitHub
+Actions` — a workflow cannot do it for you. See
+[`docs/adr/0001-hosting.md`](docs/adr/0001-hosting.md) for why, and for why the
+repo is public.
