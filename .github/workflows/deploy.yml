@@ -46,6 +46,48 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - id: deploy
         uses: actions/deploy-pages@v4
+
+  # A green deploy is not the same as a working URL. If the repo's Pages source
+  # is ever set to a branch instead of GitHub Actions, GitHub's built-in Jekyll
+  # build races this workflow and can overwrite dist/ with a rendering of
+  # README.md -- the game 404s while every job here still reports success.
+  # That happened once; the kids get a URL that works or CI goes red.
+  smoke:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: the published URL must serve the game, not something else
+        run: |
+          url="${{ needs.publish.outputs.page_url }}"
+          echo "checking $url"
+
+          # Pages propagation lags the deploy by a few seconds.
+          for attempt in $(seq 1 20); do
+            index=$(curl -fsS --max-time 15 "$url" || true)
+            case "$index" in
+              *'src="./app.js"'*) break ;;
+            esac
+            echo "  attempt $attempt: index.html is not the play page yet"
+            index=""
+            sleep 10
+          done
+
+          if [ -z "$index" ]; then
+            echo "::error::$url is not serving the play page."
+            echo "::error::Check Settings > Pages > Source is 'GitHub Actions', not a branch."
+            curl -sS --max-time 15 "$url" | head -40
+            exit 1
+          fi
+
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "${url}app.js")
+          if [ "$code" != "200" ]; then
+            echo "::error::${url}app.js returned $code -- the bundle is not published."
+            exit 1
+          fi
+
+          echo "ok: index.html loads ./app.js and app.js is 200"

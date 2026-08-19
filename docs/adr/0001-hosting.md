@@ -40,6 +40,39 @@ One thing this cannot paper over: deployments to the `github-pages` environment
 are restricted to the default branch, so work on a feature branch cannot publish
 until it reaches `main`.
 
+## Two publishers race, and the wrong one can win
+
+Day 2 merged, CI went green, every deploy job reported success -- and the live
+URL served a Jekyll rendering of `README.md` with `app.js` 404ing.
+
+The cause: the repo's Pages source is **"Deploy from a branch"**, so GitHub's
+built-in `pages build and deployment` runs on every push to `main` *alongside*
+this workflow. Both publish to the same site, and whichever finishes last wins:
+
+| merge | our `deploy` finished | Jekyll finished | what was live |
+|---|---|---|---|
+| day 1 | 13:28:32 | 13:27:37 | the game |
+| day 2 | 14:44:42 | 14:44:43 | README.md, by one second |
+
+Nothing in the repo can settle this: a branch-source build publishes the
+repository root, and a root `.nojekyll` would only turn a rendered README into a
+404. **The fix is the repo setting** -- Settings > Pages > Build and deployment >
+Source: **GitHub Actions** -- which stops the built-in build from running at all.
+
+`actions/configure-pages` with `enablement: true` does not rescue this: both
+workflows are triggered by the same push, so the built-in build has already
+started by the time our workflow could change anything.
+
+Until that setting is confirmed, a re-run of this workflow via `workflow_dispatch`
+republishes the game, because a manual dispatch triggers no competing build.
+
+### What stops it shipping silently again
+
+A `smoke` job now fetches the published URL after `deploy-pages` and fails the
+run unless `index.html` loads `./app.js` and the bundle returns 200. A green
+deploy and a working URL were not the same thing, and the kids only ever see the
+second one.
+
 ## Revisit when
 
 Day 5 brings share links and day 11 brings result links. If Open Graph preview
