@@ -1,0 +1,13 @@
+{
+  "name": "hoppa",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run src/web/dev-server.ts",
+    "build": "bun run tools/build.ts",
+    "cli": "bun run src/cli/index.ts",
+    "check:determinism": "bun run tools/check-determinism.ts",
+    "check": "bun run check:determinism && bun test"
+  }
+}
