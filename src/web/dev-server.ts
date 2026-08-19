@@ -16,8 +16,9 @@ Bun.serve({
   async fetch(req) {
     const url = new URL(req.url);
     let path = url.pathname === "/" ? "/index.html" : url.pathname;
+    if (path.endsWith("/")) path = `${path}index.html`;
 
-    if (path === "/index.html") await build();
+    if (path.endsWith(".html")) await build();
 
     const file = Bun.file(`dist${path}`);
     if (!(await file.exists())) return new Response("not found", { status: 404 });

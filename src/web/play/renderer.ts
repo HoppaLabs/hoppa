@@ -4,6 +4,8 @@
 // tileset arrives on day 7; flat squares are the day 1 presentation.
 
 import { GRID_H, GRID_W } from "../../core/grid.ts";
+import { colourFor } from "../../core/palette.ts";
+import { SPRITE_H, SPRITE_W, spriteIndex, type Sprite } from "../../core/sprite.ts";
 import {
   TILE_ACTOR,
   TILE_EXIT_LOCKED,
@@ -36,6 +38,35 @@ export class GridRenderer {
   private readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
   private scale = 1;
+  /** The player's creature, drawn instead of a plain square. Cosmetic only. */
+  private sprite: Sprite | null = null;
+  private stamp: HTMLCanvasElement | null = null;
+
+  /**
+   * Set the sprite to draw the actor with. Re-stamped to an offscreen canvas
+   * once per change rather than per frame: 256 fillRects every repaint is the
+   * difference between smooth and not on a cheap phone.
+   */
+  setSprite(sprite: Sprite | null): void {
+    this.sprite = sprite;
+    this.stamp = null;
+    if (sprite === null) return;
+
+    const stamp = document.createElement("canvas");
+    stamp.width = SPRITE_W;
+    stamp.height = SPRITE_H;
+    const ctx = stamp.getContext("2d");
+    if (ctx === null) return;
+    for (let y = 0; y < SPRITE_H; y++) {
+      for (let x = 0; x < SPRITE_W; x++) {
+        const colour = colourFor(sprite.sub, sprite.pixels[spriteIndex(x, y)] as number);
+        if (colour === null) continue;
+        ctx.fillStyle = colour;
+        ctx.fillRect(x, y, 1, 1);
+      }
+    }
+    this.stamp = stamp;
+  }
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -134,9 +165,18 @@ export class GridRenderer {
         }
 
         if (tile === TILE_ACTOR) {
-          // The actor sits inset so you can see which cell it occupies.
           ctx.fillStyle = COLOUR[TILE_FLOOR] as string;
           ctx.fillRect(x * t, y * t, t, t);
+
+          if (this.stamp !== null && !blocked) {
+            // Nearest-neighbour, whole cell. A 16x16 sprite in a 14px tile is
+            // not a clean ratio, and smoothing it would turn pixel art to mud.
+            ctx.drawImage(this.stamp, x * t, y * t, t, t);
+            continue;
+          }
+
+          // No sprite yet, or a refused move: the day 1 square still says
+          // "this is you" perfectly well.
           const pad = Math.max(1, Math.floor(t / 8));
           ctx.fillStyle = blocked ? ACTOR_BLOCKED : (COLOUR[TILE_ACTOR] as string);
           ctx.fillRect(x * t + pad, y * t + pad, t - pad * 2, t - pad * 2);

@@ -15,6 +15,7 @@ import { DAY4_LEVEL_TEXT } from "../../core/fixtures.ts";
 import { PRESETS, type Creature } from "../../core/creature.ts";
 import { CodecError } from "../../core/codec.ts";
 import { levelFromHash, linkFor } from "./link.ts";
+import { loadCreature } from "../stash.ts";
 import { parseLevel } from "../../core/level.ts";
 import { hashHex } from "../../core/hash.ts";
 import { engineFor } from "../../engines/registry.ts";
@@ -44,7 +45,11 @@ try {
 
 const level = shared === null ? parseLevel(DAY4_LEVEL_TEXT) : shared.level;
 const levelName = shared === null ? BUILT_IN_NAME : shared.slug.replace(/-/g, " ");
-let chosen: Creature = PRESETS[0] as Creature;
+// A creature you drew wins over the presets: it is yours, and it is the reason
+// the spec says never to cut day 6.
+const mine = loadCreature();
+const roster: readonly Creature[] = mine === null ? PRESETS : [mine, ...PRESETS];
+let chosen: Creature = roster[0] as Creature;
 // engineFor returns the Engine contract; the play page also wants the delve
 // read-outs (turns, treasure), which is what this cast is for.
 const build = () => new Readout(engineFor(level, chosen));
@@ -130,6 +135,9 @@ function move(input: Input): void {
 function reset(): void {
   engine = build();
   blockedUntil = 0;
+  // Only when the creature changes: stamping 256 pixels every frame is the
+  // difference between smooth and not on a cheap phone.
+  renderer.setSprite(chosen.sprite);
   paintStable();
   paint();
 }
@@ -164,7 +172,7 @@ function traitLine(creature: Creature): string {
 
 function paintStable(): void {
   stable.innerHTML = "";
-  for (const creature of PRESETS) {
+  for (const creature of roster) {
     const button = document.createElement("button");
     button.className = creature.id === chosen.id ? "on" : "";
     button.innerHTML = `<b>${creature.name}</b>MASS ${creature.caps.MASS}`;
@@ -291,5 +299,6 @@ if (loadError !== null) {
   said.textContent = `that link would not open (${loadError}) — playing the built-in level instead`;
 }
 
+renderer.setSprite(chosen.sprite);
 paintStable();
 resize();

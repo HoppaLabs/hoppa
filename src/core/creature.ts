@@ -29,9 +29,20 @@ export interface Creature {
   readonly schema: number;
   readonly id: string;
   readonly name: string;
+  /** The CLI falls back to this when there are no pixels to draw (spec S5). */
   readonly glyph: string;
   readonly caps: Caps;
+  /**
+   * How it looks. Spec S5: "Sprite and capabilities are independent. A kid
+   * draws something spiky and menacing; it can still be a featherweight."
+   *
+   * Appearance NEVER reaches stateHash(). Two creatures with identical caps
+   * and different sprites must play identically, and there is a test for it.
+   */
+  readonly sprite: Sprite;
 }
+
+import { spriteFromRows, type Sprite } from "./sprite.ts";
 
 export const CAP_MIN = 0;
 export const CAP_MAX = 255;
@@ -54,49 +65,137 @@ export function normalise(caps: Partial<Caps>): Caps {
   return out;
 }
 
-function creature(id: string, name: string, glyph: string, caps: Partial<Caps>): Creature {
-  return { schema: 1, id, name, glyph, caps: normalise(caps) };
+function creature(
+  id: string,
+  name: string,
+  glyph: string,
+  caps: Partial<Caps>,
+  sprite: Sprite,
+): Creature {
+  return { schema: 1, id, name, glyph, caps: normalise(caps), sprite };
 }
+
+/** Replace a creature's looks and nothing else. */
+export function reskin(base: Creature, name: string, sprite: Sprite): Creature {
+  return { schema: base.schema, id: base.id, name, glyph: base.glyph, caps: base.caps, sprite };
+}
+
+// Three silhouettes. Three colours each, drawn shape-first the way spec S4 says
+// the constraint is meant to push you.
+const BRUK_ROWS = [
+  "................",
+  "....11111111....",
+  "...1111111111...",
+  "..111111111111..",
+  "..112211112211..",
+  "..112211112211..",
+  "..111111111111..",
+  "..111111111111..",
+  "..113333333311..",
+  "..111111111111..",
+  "..111111111111..",
+  ".11111111111111.",
+  "11.1111111111.11",
+  "11.111....111.11",
+  "...11......11...",
+  "..111......111..",
+];
+
+const NIM_ROWS = [
+  "................",
+  ".......11.......",
+  "......1111......",
+  ".....111111.....",
+  ".....122221.....",
+  ".....111111.....",
+  "....11111111....",
+  "...1111111111...",
+  "...1133331111...",
+  "....11111111....",
+  ".....111111.....",
+  "....11.11.11....",
+  "...11..1..11....",
+  "..11...1...11...",
+  ".......1........",
+  "......11.11.....",
+];
+
+const PELL_ROWS = [
+  "................",
+  ".....111111.....",
+  "....11111111....",
+  "....11222211....",
+  "....11111111....",
+  "....11333311....",
+  "1...11111111...1",
+  "11..11111111..11",
+  "111.11111111.111",
+  ".111.111111.111.",
+  "..111111111111..",
+  "...1111111111...",
+  "....11111111....",
+  "....111..111....",
+  "....11....11....",
+  "...111....111...",
+];
 
 /**
  * Bruk, the heavy. Spec S11's worked example, caps unchanged.
  * Loud enough that sneaking is not really on the menu, and tough enough not to
  * care very much.
  */
-export const BRUK = creature("01J8XK4M2P7Q", "Bruk", "@", {
-  MOVE_GROUND: 180,
-  MOVE_AIR: 40,
-  REACH: 90,
-  FORCE: 220,
-  GUARD: 200,
-  HASTE: 60,
-  MASS: 240,
-  SPARK: 10,
-});
+export const BRUK = creature(
+  "01J8XK4M2P7Q",
+  "Bruk",
+  "@",
+  {
+    MOVE_GROUND: 180,
+    MOVE_AIR: 40,
+    REACH: 90,
+    FORCE: 220,
+    GUARD: 200,
+    HASTE: 60,
+    MASS: 240,
+    SPARK: 10,
+  },
+  spriteFromRows(BRUK_ROWS, [51, 53, 41]),
+);
 
 /** Nim, the quick. Light, fast, and in no state to be caught twice. */
-export const NIM = creature("01J8XK6R4T2B", "Nim", "%", {
-  MOVE_GROUND: 210,
-  MOVE_AIR: 120,
-  REACH: 60,
-  FORCE: 50,
-  GUARD: 40,
-  HASTE: 210,
-  MASS: 40,
-  SPARK: 90,
-});
+export const NIM = creature(
+  "01J8XK6R4T2B",
+  "Nim",
+  "%",
+  {
+    MOVE_GROUND: 210,
+    MOVE_AIR: 120,
+    REACH: 60,
+    FORCE: 50,
+    GUARD: 40,
+    HASTE: 210,
+    MASS: 40,
+    SPARK: 90,
+  },
+  spriteFromRows(NIM_ROWS, [22, 23, 5]),
+);
 
 /** Pell, the long-armed. Slow and steady, and does not need to step on things. */
-export const PELL = creature("01J8XK8W6Y5N", "Pell", "&", {
-  MOVE_GROUND: 120,
-  MOVE_AIR: 20,
-  REACH: 200,
-  FORCE: 90,
-  GUARD: 240,
-  HASTE: 30,
-  MASS: 110,
-  SPARK: 40,
-});
+export const PELL = creature(
+  "01J8XK8W6Y5N",
+  "Pell",
+  "&",
+  {
+    MOVE_GROUND: 120,
+    MOVE_AIR: 20,
+    REACH: 200,
+    FORCE: 90,
+    GUARD: 240,
+    HASTE: 30,
+    MASS: 110,
+    SPARK: 40,
+  },
+  spriteFromRows(PELL_ROWS, [45, 47, 5]),
+);
 
 /** The starter stable, in the order the picker shows them. */
 export const PRESETS: readonly Creature[] = [BRUK, NIM, PELL];
@@ -112,8 +211,14 @@ export function presetByName(name: string): Creature | undefined {
 /** Every axis at one value. Spec S13's E1 and E2 want 0 and 255 to be playable. */
 export function uniformCreature(value: number, name: string): Creature {
   const v = clamp(value);
-  return creature(`uniform-${v}`, name, "?", {
-    MOVE_GROUND: v, MOVE_AIR: v, REACH: v, FORCE: v,
-    GUARD: v, HASTE: v, MASS: v, SPARK: v,
-  });
+  return creature(
+    `uniform-${v}`,
+    name,
+    "?",
+    {
+      MOVE_GROUND: v, MOVE_AIR: v, REACH: v, FORCE: v,
+      GUARD: v, HASTE: v, MASS: v, SPARK: v,
+    },
+    spriteFromRows(NIM_ROWS, [3, 4, 5]),
+  );
 }
