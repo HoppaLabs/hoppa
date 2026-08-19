@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0d1014">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Crect width='8' height='8' fill='%230d1014'/%3E%3Crect x='2' y='2' width='4' height='4' fill='%23ffc23d'/%3E%3C/svg%3E">
-<title>hoppa — day 2</title>
+<title>hoppa — day 3</title>
 <style>
   :root {
     --bg: #0d1014;
@@ -49,7 +49,7 @@
     display: grid; gap: 8px;
     grid-template-columns: repeat(3, 72px);
     grid-template-rows: repeat(2, 62px);
-    grid-template-areas: ".  up  ." "left down right";
+    grid-template-areas: "wait up  ." "left down right";
   }
   #pad button {
     font: inherit; font-size: 20px; color: var(--ink-bright);
@@ -59,11 +59,19 @@
   #pad button:active, #pad button.lit { background: var(--key-lit); }
   #up { grid-area: up; } #left { grid-area: left; }
   #down { grid-area: down; } #right { grid-area: right; }
+  /* Waiting is a move. Guards patrol on a fixed cycle, so standing still to let
+     one walk past is the whole skill of day 3 -- without this button the level
+     is not beatable on a phone. */
+  #wait { grid-area: wait; font-size: 11px; letter-spacing: .1em; color: var(--ink); }
   footer { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center; }
   #hud { color: var(--ink); display: flex; gap: 12px; }
   #hud b { color: var(--ink-bright); font-weight: 600; }
   #hud .gold b { color: var(--gold); }
   #hud .done b { color: var(--open); }
+  #hud .alarm b { color: var(--ink); letter-spacing: .1em; font-weight: 400; }
+  #hud .alarm-1 b { color: #ffc23d; }
+  #hud .alarm-2 b { color: #ff8a3d; }
+  #hud .alarm-3 b { color: #ff5f4d; }
 
   /* The win screen. It sits over the grid rather than replacing it, so the
      level you just beat is still there behind the words. */
@@ -97,7 +105,7 @@
 </style>
 </head>
 <body>
-  <h1>hoppa <b>day 2</b> &middot; delve</h1>
+  <h1>hoppa <b>day 3</b> &middot; delve</h1>
   <div id="stage">
     <canvas id="grid"></canvas>
     <div id="over" role="status" aria-live="polite">
@@ -108,6 +116,7 @@
     </div>
   </div>
   <nav id="pad">
+    <button id="wait"  aria-label="wait one turn">WAIT</button>
     <button id="up"    aria-label="up">&#9650;</button>
     <button id="left"  aria-label="left">&#9664;</button>
     <button id="down"  aria-label="down">&#9660;</button>

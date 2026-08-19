@@ -1,30 +1,32 @@
-// Day 2 play page: collect the treasure, the exit opens, get out before the
-// turns run out. Input arrives from taps, swipes or arrow keys; all three feed
-// the same engine.step() so the input log is identical whichever you use.
+// Day 3 play page: collect the treasure, dodge the patrols, the exit opens, get
+// out before the turns run out. Input arrives from taps, swipes or arrow keys;
+// all three feed the same engine.step() so the input log is identical whichever
+// you use.
 //
 // The engine is chosen by the level's behaviour= field, never hardcoded here.
 // That is what lets a link from day 5 onwards pin the rules it was beaten under.
 
-import { DAY2_LEVEL_TEXT } from "../../core/fixtures.ts";
+import { DAY3_LEVEL_TEXT } from "../../core/fixtures.ts";
 import { parseLevel } from "../../core/level.ts";
 import { hashHex } from "../../core/hash.ts";
 import { engineFor } from "../../engines/registry.ts";
-import type { DelveV2 } from "../../engines/delve/v2.ts";
+import type { DelveV3 } from "../../engines/delve/v3.ts";
 import {
   INPUT_DOWN,
   INPUT_LEFT,
   INPUT_RIGHT,
   INPUT_UP,
+  INPUT_WAIT,
   STATUS_PLAYING,
   STATUS_WON,
   type Input,
 } from "../../engines/types.ts";
 import { GridRenderer } from "./renderer.ts";
 
-const level = parseLevel(DAY2_LEVEL_TEXT);
+const level = parseLevel(DAY3_LEVEL_TEXT);
 // engineFor returns the Engine contract; the play page also wants the delve
 // read-outs (turns, treasure), which is what this cast is for.
-const build = () => engineFor(level) as unknown as DelveV2;
+const build = () => engineFor(level) as unknown as DelveV3;
 let engine = build();
 
 const canvas = document.getElementById("grid") as HTMLCanvasElement;
@@ -49,15 +51,21 @@ function paint(): void {
 
   const got = engine.collectedCount();
   const total = engine.treasureTotal();
+  const alert = engine.alertLevel();
+  const max = engine.alertMax();
+  // The alarm reads as pips rather than a number: how close to caught is a
+  // thing you want to see, not read.
+  const pips = "\u25cf".repeat(alert) + "\u25cb".repeat(Math.max(0, max - alert));
   hud.innerHTML =
     `<span><b>${engine.turns()}</b> turns</span>` +
     `<span class="${got === total ? "done" : "gold"}"><b>${got}/${total}</b> treasure</span>` +
+    `<span class="alarm alarm-${alert}"><b>${pips}</b></span>` +
     `<span>${hashHex(engine.stateHash())}</span>`;
 
   if (finished()) {
     const won = engine.currentStatus() === STATUS_WON;
     over.className = won ? "show" : "show lost";
-    verdict.textContent = won ? "out" : "lost";
+    verdict.textContent = won ? "out" : engine.wasCaught() ? "caught" : "lost";
     saying.textContent = engine.message() ?? "";
     tally.textContent = `${engine.turns()} turns · ${got}/${total} treasure`;
   } else {
@@ -73,6 +81,9 @@ function move(input: Input): void {
     navigator.vibrate?.(12);
     setTimeout(paint, 150);
   }
+  // Being heard gets its own buzz: you need to feel it without looking away
+  // from the guard that heard you.
+  if (engine.wasSpotted() && !finished()) navigator.vibrate?.([8, 40, 8]);
   if (finished()) navigator.vibrate?.(engine.currentStatus() === STATUS_WON ? [20, 60, 20] : 200);
   paint();
 }
@@ -100,6 +111,7 @@ const BUTTONS: ReadonlyArray<readonly [string, Input]> = [
   ["right", INPUT_RIGHT],
   ["down", INPUT_DOWN],
   ["left", INPUT_LEFT],
+  ["wait", INPUT_WAIT],
 ];
 
 for (const [id, input] of BUTTONS) {
@@ -150,6 +162,7 @@ const KEYS: Record<string, Input> = {
   ArrowRight: INPUT_RIGHT, d: INPUT_RIGHT, l: INPUT_RIGHT,
   ArrowDown: INPUT_DOWN, s: INPUT_DOWN, j: INPUT_DOWN,
   ArrowLeft: INPUT_LEFT, a: INPUT_LEFT, h: INPUT_LEFT,
+  " ": INPUT_WAIT, ".": INPUT_WAIT, x: INPUT_WAIT,
 };
 
 window.addEventListener("keydown", (ev) => {

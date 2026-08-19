@@ -8,6 +8,7 @@
 
 import { GRID_AREA, GRID_H, GRID_W, idx } from "./grid.ts";
 import { LevelParseError, parseLevel, type Level } from "./level.ts";
+import { patrolsFor, MAX_PERIOD, MAX_RUN } from "./patrol.ts";
 import { reachableFrom } from "./reach.ts";
 
 /** Engine bitmask width. A ninth treasure has no bit to live in. */
@@ -46,7 +47,7 @@ export function verifyLevelText(text: string): VerifyResult {
         skipped("L2", "exactly one start and one exit"),
         skipped("L3", "exit reachable from start"),
         skipped("L4", "every treasure reachable"),
-        skipped("L5", "at most 8 treasures"),
+        skipped("L5", "at most 8 treasures; all cycle periods <= 8"),
       ],
       ok: false,
       reachableCells: 0,
@@ -106,16 +107,31 @@ export function verifyLevelText(text: string): VerifyResult {
         : `walled off: ${stranded.join(" ")}`,
   });
 
-  // L5's second half -- movement periods <= 8 -- has nothing to check until
-  // guards and rafts land on days 3 and 7.
+  // L5 has two halves: the treasure mask, and spec S8's cap on how long a
+  // moving part's cycle may be. Rafts add to the second half on day 7.
+  const patrols = patrolsFor(level);
+  const tooLong: string[] = [];
+  for (let i = 0; i < patrols.length; i = (i + 1) | 0) {
+    const patrol = patrols[i] as (typeof patrols)[number];
+    if (patrol.period > MAX_PERIOD) {
+      const gx = (patrol.home % GRID_W) | 0;
+      const gy = ((patrol.home / GRID_W) | 0) | 0;
+      tooLong.push(`(${gx},${gy}) run of ${patrol.length}, period ${patrol.period}`);
+    }
+  }
+
+  const treasureOk = count <= MAX_TREASURE;
+  const patrolsOk = tooLong.length === 0;
   checks.push({
     id: "L5",
-    title: "at most 8 treasures",
-    ok: count <= MAX_TREASURE,
-    detail:
-      count <= MAX_TREASURE
-        ? `${count} of ${MAX_TREASURE}`
-        : `${count} treasures -- the collected mask only has ${MAX_TREASURE} bits`,
+    title: "at most 8 treasures; all cycle periods <= 8",
+    ok: treasureOk && patrolsOk,
+    detail: !treasureOk
+      ? `${count} treasures -- the collected mask only has ${MAX_TREASURE} bits`
+      : !patrolsOk
+        ? `guard corridors longer than ${MAX_RUN} cells: ${tooLong.join("; ")}`
+        : `${count} of ${MAX_TREASURE} treasure, ${patrols.length} guard, ` +
+          `longest patrol period ${patrols.reduce((m, p) => (p.period > m ? p.period : m), 0)}`,
   });
 
   let reachableCells = 0;

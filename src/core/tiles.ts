@@ -10,6 +10,8 @@ export const TILE_ACTOR = 3;
 export const TILE_TREASURE = 4;
 export const TILE_EXIT_LOCKED = 5;
 export const TILE_EXIT_OPEN = 6;
+// Day 3.
+export const TILE_GUARD = 7;
 
-// Day 2 tileset. Grows as engines gain tiles; capped at 16 per engine.
-export const TILE_COUNT = 7;
+// Day 3 tileset. Grows as engines gain tiles; capped at 16 per engine.
+export const TILE_COUNT = 8;

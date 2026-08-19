@@ -3,9 +3,10 @@
 Levels that live in a link. See [`docs/spec.md`](docs/spec.md) for the design and
 [`CLAUDE.md`](CLAUDE.md) for how we work. Both are binding.
 
-**Day 2 of 14.** Collect five gems in a 24×14 dungeon, which opens the exit, then
-get out — with a turn counter running. That is the whole game so far, and that is
-deliberate: one playable increment per day.
+**Day 3 of 14.** Collect four gems in a 24×14 dungeon while four guards patrol
+it, which opens the exit, then get out. Get close and they hear you; get closer
+and they have you. That is the whole game so far, and that is deliberate: one
+playable increment per day.
 
 ## Commands
 
@@ -17,8 +18,8 @@ deliberate: one playable increment per day.
 | `bun run dev` | Local dev server on :3000 |
 | `bun run build` | Static output into `dist/` |
 | `bun run deploy` | Check, build, and report what CI still has to do |
-| `bun run cli verify levels/day2.lvl` | Run the spec §13 checks L1–L5 on a level |
-| `bun run cli play levels/day2.lvl --moves RRDD` | Apply a move string, print the grid |
+| `bun run cli verify levels/day3.lvl` | Run the spec §13 checks L1–L5 on a level |
+| `bun run cli play levels/day3.lvl --moves RRDD` | Apply a move string, print the grid |
 
 No runtime dependencies, and none in the toolchain either — Bun runs the
 TypeScript, bundles the browser build and runs the tests.
@@ -26,8 +27,8 @@ TypeScript, bundles the browser build and runs the tests.
 ## Layout
 
 ```
-src/core/      grid, level parser, verify, reach, FNV-1a hash   DETERMINISM ZONE
-src/engines/   Engine interface, registry, delve/v1, delve/v2   DETERMINISM ZONE
+src/core/      grid, level parser, verify, reach, patrol, hash        DETERMINISM ZONE
+src/engines/   Engine interface, registry, delve/v1..v3               DETERMINISM ZONE
 src/cli/       util.parseArgs front end, ASCII debug view
 src/web/play/  canvas renderer, play page
 levels/        committed .lvl fixtures (canonical)
@@ -52,9 +53,11 @@ politely rather than guessing — spec §13's E11.
 |---|---|
 | `delve/1` | Move one cell a turn; walls and the grid edge refuse. Never ends. |
 | `delve/2` | v1's movement, plus turns, treasure, an exit that opens once every gem is collected, a 999-turn cap, and win/loss. |
+| `delve/3` | v2's rules, plus guards that patrol geometry-derived corridors, a noise radius that raises the alarm, and capture. |
 
-Adding a rule means adding `v3.ts`, never editing v2 — see
-[`docs/adr/0003-delve-v2-and-the-day-2-rules.md`](docs/adr/0003-delve-v2-and-the-day-2-rules.md).
+Adding a rule means adding the next version, never editing the last one — see
+[`0003`](docs/adr/0003-delve-v2-and-the-day-2-rules.md) and
+[`0004`](docs/adr/0004-guards-alert-and-capture.md).
 
 ## The determinism check
 

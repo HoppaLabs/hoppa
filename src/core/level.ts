@@ -13,6 +13,7 @@ export const GLYPH_FLOOR = ".";
 export const GLYPH_START = "@";
 export const GLYPH_TREASURE = "$";
 export const GLYPH_EXIT = ">";
+export const GLYPH_GUARD = "G";
 
 export interface Level {
   readonly schema: number;
@@ -36,6 +37,12 @@ export interface Level {
   readonly treasureCells: Int16Array;
   /** GRID_AREA lookup: treasure slot at this cell, or -1. */
   readonly treasureSlot: Int8Array;
+  /**
+   * Guard home cells in reading order. A guard stores no movement data: its
+   * patrol is derived from the corridor it stands in (spec S8), so moving one
+   * glyph in a level editor is the whole edit.
+   */
+  readonly guardCells: Int16Array;
 }
 
 export class LevelParseError extends Error {}
@@ -94,6 +101,7 @@ export function parseLevel(text: string): Level {
   const walls = new Uint8Array(GRID_AREA);
   const treasureSlot = new Int8Array(GRID_AREA).fill(-1);
   const found: number[] = [];
+  const guards: number[] = [];
   let startX = -1;
   let startY = -1;
   let exitX = -1;
@@ -126,6 +134,9 @@ export function parseLevel(text: string): Level {
         walls[idx(x, y)] = 0;
         treasureSlot[idx(x, y)] = found.length | 0;
         found.push(idx(x, y));
+      } else if (ch === GLYPH_GUARD) {
+        walls[idx(x, y)] = 0;
+        guards.push(idx(x, y));
       } else {
         fail(`row ${y + 1} col ${x + 1}: glyph "${ch}" is not in the tile set`);
       }
@@ -137,6 +148,11 @@ export function parseLevel(text: string): Level {
   const treasureCells = new Int16Array(found.length);
   for (let i = 0; i < found.length; i = (i + 1) | 0) {
     treasureCells[i] = found[i] as number;
+  }
+
+  const guardCells = new Int16Array(guards.length);
+  for (let i = 0; i < guards.length; i = (i + 1) | 0) {
+    guardCells[i] = guards[i] as number;
   }
 
   return {
@@ -153,6 +169,7 @@ export function parseLevel(text: string): Level {
     exitY,
     treasureCells,
     treasureSlot,
+    guardCells,
   };
 }
 

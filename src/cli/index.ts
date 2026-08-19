@@ -80,6 +80,7 @@ try {
         ["start", `(${level.startX},${level.startY})`],
         ["exit", level.exitX >= 0 ? `(${level.exitX},${level.exitY})` : "none"],
         ["treasure", String(level.treasureCells.length)],
+        ["guards", String(level.guardCells.length)],
         ["walls", `${walls} of ${GRID_AREA}`],
         ["reachable", `${result.reachableCells} cells from the start`],
       ];

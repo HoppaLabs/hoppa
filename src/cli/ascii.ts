@@ -7,6 +7,7 @@ import {
   TILE_EXIT_LOCKED,
   TILE_EXIT_OPEN,
   TILE_FLOOR,
+  TILE_GUARD,
   TILE_TREASURE,
   TILE_VOID,
   TILE_WALL,
@@ -22,6 +23,7 @@ const GLYPHS: Record<number, string> = {
   // you can see the state over SSH without reading the HUD.
   [TILE_EXIT_LOCKED]: "+",
   [TILE_EXIT_OPEN]: ">",
+  [TILE_GUARD]: "G",
 };
 
 export function renderAscii(tiles: Uint8Array): string {

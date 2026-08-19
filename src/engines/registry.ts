@@ -7,6 +7,7 @@
 import type { Level } from "../core/level.ts";
 import { DelveV1, DELVE_V1_BEHAVIOUR } from "./delve/v1.ts";
 import { DelveV2, DELVE_V2_BEHAVIOUR } from "./delve/v2.ts";
+import { DelveV3, DELVE_V3_BEHAVIOUR } from "./delve/v3.ts";
 import type { Engine } from "./types.ts";
 
 export class UnknownBehaviourError extends Error {}
@@ -16,6 +17,7 @@ type Build = (level: Level) => Engine;
 const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
   [`delve/${DELVE_V1_BEHAVIOUR}`, (level) => new DelveV1(level)],
   [`delve/${DELVE_V2_BEHAVIOUR}`, (level) => new DelveV2(level)],
+  [`delve/${DELVE_V3_BEHAVIOUR}`, (level) => new DelveV3(level)],
 ]);
 
 export function knownBuilds(): string[] {

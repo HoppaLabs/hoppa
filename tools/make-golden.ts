@@ -6,7 +6,7 @@
 // check that matters: a new file should appear and the existing ones should not
 // move a byte.
 
-import { DAY1_LEVEL_TEXT, DAY2_LEVEL_TEXT } from "../src/core/fixtures.ts";
+import { DAY1_LEVEL_TEXT, DAY2_LEVEL_TEXT, DAY3_LEVEL_TEXT } from "../src/core/fixtures.ts";
 import { parseLevel } from "../src/core/level.ts";
 import { hashHex } from "../src/core/hash.ts";
 import { engineFor } from "../src/engines/registry.ts";
@@ -34,6 +34,15 @@ const VECTORS: ReadonlyArray<{ file: string; level: string; text: string; log: s
     log:
       "DDDDDDRRRRRRRUUUURRRDDDDLDDRRRUURRDDDDLRUUUULLDDLLLUUUURUULLLDDDD" +
       "LLLLDDDUUULLLUUUUUURRRDDLDDRRRUUUURRRRRRRDDDDRRUUUURRRRRRRDDDDLRDDDDDDD",
+  },
+  {
+    // A clean run: all four gems, past four patrols, never once heard.
+    file: "test/golden/day3-clean.json",
+    level: "levels/day3.lvl",
+    text: DAY3_LEVEL_TEXT,
+    log:
+      ".RRRR..DDDDRRDDDDLLLLLRRRRRRRRRRR..DDDLLRR..UUUUUUULLUUUURRRRRRRRRR" +
+      "DDDDRLDDDDLRDDDR",
   },
 ];
 

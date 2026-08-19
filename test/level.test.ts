@@ -78,11 +78,12 @@ test("a bad glyph names itself instead of being silently swallowed", () => {
 });
 
 test("a glyph the spec has but the engines do not yet is still an error", () => {
-  // G is spec S9's guard. It arrives on day 3; until then it must not parse as
-  // floor, which would silently turn an unplayable level into a playable one.
+  // ~ is spec S9's water. It arrives with rafts on day 7; until then it must not
+  // parse as floor, which would silently turn an unplayable level into a
+  // playable one.
   const rows = DAY1_LEVEL_TEXT.split("\n");
-  rows[3] = "#..####....######...G..#";
-  expect(() => parseLevel(rows.join("\n"))).toThrow(/glyph "G" is not in the tile set/);
+  rows[3] = "#..####....######...~..#";
+  expect(() => parseLevel(rows.join("\n"))).toThrow(/glyph "~" is not in the tile set/);
 });
 
 test("two starts are an error, not a coin toss", () => {

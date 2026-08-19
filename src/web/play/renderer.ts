@@ -9,6 +9,7 @@ import {
   TILE_EXIT_LOCKED,
   TILE_EXIT_OPEN,
   TILE_FLOOR,
+  TILE_GUARD,
   TILE_TREASURE,
   TILE_VOID,
   TILE_WALL,
@@ -25,6 +26,7 @@ const COLOUR: Record<number, string> = {
   [TILE_TREASURE]: "#7fe3ff",
   [TILE_EXIT_LOCKED]: "#7a5c86",
   [TILE_EXIT_OPEN]: "#6fe08a",
+  [TILE_GUARD]: "#ff5f4d",
 };
 
 const ACTOR_BLOCKED = "#ff5f4d";
@@ -105,6 +107,28 @@ export class GridRenderer {
             const bar = Math.max(1, Math.floor(t / 8));
             ctx.fillRect(x * t + inset, y * t + Math.floor(t / 3), t - inset * 2, bar);
             ctx.fillRect(x * t + inset, y * t + Math.floor((t * 2) / 3), t - inset * 2, bar);
+          }
+          continue;
+        }
+
+        // A guard is a red square with a dark eye. Square like the actor, but
+        // never the actor's colour -- "am I about to touch that" has to be
+        // answerable at a glance and at arm's length.
+        if (tile === TILE_GUARD) {
+          ctx.fillStyle = COLOUR[TILE_FLOOR] as string;
+          ctx.fillRect(x * t, y * t, t, t);
+          const pad = Math.max(1, Math.floor(t / 8));
+          ctx.fillStyle = COLOUR[TILE_GUARD] as string;
+          ctx.fillRect(x * t + pad, y * t + pad, t - pad * 2, t - pad * 2);
+          if (t >= 10) {
+            const eye = Math.max(1, Math.floor(t / 5));
+            ctx.fillStyle = COLOUR[TILE_VOID] as string;
+            ctx.fillRect(
+              x * t + ((t - eye) >> 1),
+              y * t + ((t - eye) >> 1),
+              eye,
+              eye,
+            );
           }
           continue;
         }

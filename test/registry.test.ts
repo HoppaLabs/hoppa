@@ -18,8 +18,8 @@ test("a level pinning behaviour=2 gets the day 2 build", () => {
   expect(engine.behaviourVersion).toBe(2);
 });
 
-test("both builds ship: retiring one would break every link that pinned it", () => {
-  expect(knownBuilds()).toEqual(["delve/1", "delve/2"]);
+test("every build ships: retiring one would break every link that pinned it", () => {
+  expect(knownBuilds()).toEqual(["delve/1", "delve/2", "delve/3"]);
 });
 
 test("E11: an unknown behaviour version refuses politely and names what it has", () => {
