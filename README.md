@@ -16,6 +16,7 @@ per day.
 | `bun run check` | Determinism check then tests — what CI runs |
 | `bun run dev` | Local dev server on :3000 |
 | `bun run build` | Static output into `dist/` |
+| `bun run deploy` | Check, build, and report what CI still has to do |
 | `bun run cli verify levels/day1.lvl` | Parse a level and print its facts |
 | `bun run cli play levels/day1.lvl --moves RRDD` | Apply a move string, print the grid |
 
