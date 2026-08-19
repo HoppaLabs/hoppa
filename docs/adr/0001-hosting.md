@@ -21,13 +21,18 @@ Enterprise) on the account. On a free plan the `deploy-pages` step fails with a
 permissions error, and the fix is to make the repo public or upgrade. This was
 chosen with that trade understood.
 
-## Two settings this needs, once
+## Enabling Pages
 
-1. **Settings → Pages → Build and deployment → Source: GitHub Actions.**
-   Without this the workflow uploads an artifact that nothing publishes.
-2. Deployments to the `github-pages` environment are restricted to the default
-   branch by default, so day-1 work on a feature branch cannot publish until it
-   reaches `main`.
+The first deploy failed at `actions/configure-pages` with *"Get Pages site
+failed … Not Found"* — Pages had never been switched on for the repo. The
+workflow now passes `enablement: true`, so it turns Pages on itself using the
+`pages: write` permission it already holds, rather than depending on someone
+finding the right settings page. Doing it in the workflow means a fresh clone or
+a new fork deploys without a manual step.
+
+One thing this cannot paper over: deployments to the `github-pages` environment
+are restricted to the default branch, so work on a feature branch cannot publish
+until it reaches `main`.
 
 ## Revisit when
 
