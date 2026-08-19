@@ -17,7 +17,9 @@ console.log(
     "  dist/ is ready. Publishing happens in CI:",
     "    push to main -> .github/workflows/deploy.yml -> GitHub Pages",
     "",
-    "  If nothing appears, check docs/adr/0001-hosting.md -- the repo is private,",
-    "  so Pages needs a paid plan and Settings > Pages > Source: GitHub Actions.",
+    "    https://hoppalabs.github.io/hoppa/",
+    "",
+    "  Work on a branch does not publish: deployments to the github-pages",
+    "  environment are restricted to the default branch. See docs/adr/0001-hosting.md.",
   ].join("\n"),
 );
