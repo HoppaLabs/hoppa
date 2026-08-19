@@ -3,11 +3,11 @@
 Levels that live in a link. See [`docs/spec.md`](docs/spec.md) for the design and
 [`CLAUDE.md`](CLAUDE.md) for how we work. Both are binding.
 
-**Day 5 of 14.** Pick one of three creatures, collect four gems in a 24×14
-dungeon while guards patrol it, open the exit, and get out — then **send the
-level to someone by link**. The level rides in the URL fragment, about 80
-characters of it, and it is played under the rules it was made with, not
-whatever the site ships today.
+**Day 6 of 14.** **Draw your own creature** — 16×16, three colours and
+see‑through — then take it into a 24×14 dungeon, collect four gems while guards
+patrol, open the exit and get out. Send the level to someone by link. What you
+draw decides how it *looks*; the body you pick decides what it can *do*, and the
+two never touch.
 
 ## Commands
 
@@ -30,10 +30,13 @@ TypeScript, bundles the browser build and runs the tests.
 ## Layout
 
 ```
-src/core/      grid, level, verify, reach, patrol, creature, codec     DETERMINISM ZONE
+src/core/      grid, level, verify, reach, patrol, creature, sprite,
+               palette, codec, hash                                  DETERMINISM ZONE
 src/engines/   Engine interface, registry, delve/v1..v4               DETERMINISM ZONE
 src/cli/       util.parseArgs front end, ASCII debug view
 src/web/play/  canvas renderer, play page
+src/web/make/  sprite editor
+src/web/       stash.ts — browser storage, outside the determinism zone
 levels/        committed .lvl fixtures (canonical)
 test/golden/   (level, log) → hash vectors — sacred, never regenerate to go green
 tools/         determinism check, build, generators
@@ -62,8 +65,16 @@ politely rather than guessing — spec §13's E11.
 Adding a rule means adding the next version, never editing the last one — see
 [`0003`](docs/adr/0003-delve-v2-and-the-day-2-rules.md),
 [`0004`](docs/adr/0004-guards-alert-and-capture.md),
-[`0005`](docs/adr/0005-capabilities-and-the-three-presets.md) and
-[`0006`](docs/adr/0006-share-links-and-the-wire-format.md).
+[`0005`](docs/adr/0005-capabilities-and-the-three-presets.md),
+[`0006`](docs/adr/0006-share-links-and-the-wire-format.md) and
+[`0007`](docs/adr/0007-drawing-your-own-creature.md).
+
+## Looks and capabilities are separate
+
+A creature is a 16×16 sprite at 2bpp plus eight capability numbers, and the two
+never meet. Drawing something enormous does not make it heavy. This is spec §5's
+rule and CLAUDE.md hard rule 4, and it is the thing most likely to get broken by
+accident, so `test/sprite.test.ts` points several tests straight at it.
 
 ## Links
 

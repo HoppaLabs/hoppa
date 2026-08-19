@@ -49,6 +49,9 @@ const levelName = shared === null ? BUILT_IN_NAME : shared.slug.replace(/-/g, " 
 // the spec says never to cut day 6.
 const mine = loadCreature();
 const roster: readonly Creature[] = mine === null ? PRESETS : [mine, ...PRESETS];
+// A creature you drew borrows a preset's caps AND its id, so "which one is
+// selected" has to be a slot in the roster. Comparing ids lights up two.
+let chosenAt = 0;
 let chosen: Creature = roster[0] as Creature;
 // engineFor returns the Engine contract; the play page also wants the delve
 // read-outs (turns, treasure), which is what this cast is for.
@@ -172,13 +175,16 @@ function traitLine(creature: Creature): string {
 
 function paintStable(): void {
   stable.innerHTML = "";
-  for (const creature of roster) {
+  for (let at = 0; at < roster.length; at++) {
+    const creature = roster[at] as Creature;
+    const selected = at === chosenAt;
     const button = document.createElement("button");
-    button.className = creature.id === chosen.id ? "on" : "";
+    button.className = selected ? "on" : "";
     button.innerHTML = `<b>${creature.name}</b>MASS ${creature.caps.MASS}`;
-    button.setAttribute("aria-pressed", String(creature.id === chosen.id));
+    button.setAttribute("aria-pressed", String(selected));
     button.addEventListener("click", () => {
-      if (creature.id === chosen.id) return;
+      if (at === chosenAt) return;
+      chosenAt = at;
       chosen = creature;
       reset();
     });
