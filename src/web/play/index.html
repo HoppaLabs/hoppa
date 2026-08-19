@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1014">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Crect width='8' height='8' fill='%230d1014'/%3E%3Crect x='2' y='2' width='4' height='4' fill='%23ffc23d'/%3E%3C/svg%3E">
+<title>hoppa — day 1</title>
+<style>
+  :root {
+    --bg: #0d1014;
+    --ink: #7c8899;
+    --ink-bright: #cdd6e0;
+    --key: #222a35;
+    --key-lit: #39485c;
+    --edge: #1a212b;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%;
+    background: var(--bg); color: var(--ink);
+    font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+  body {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 14px; padding: max(10px, env(safe-area-inset-top)) 10px
+             max(10px, env(safe-area-inset-bottom));
+    touch-action: manipulation;
+  }
+  h1 {
+    margin: 0; font-size: 12px; font-weight: 400; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--ink);
+  }
+  h1 b { color: var(--ink-bright); font-weight: 600; }
+  #stage {
+    width: 100%; display: flex; justify-content: center;
+    touch-action: none;
+  }
+  canvas {
+    display: block; image-rendering: pixelated;
+    border: 1px solid var(--edge); border-radius: 3px;
+  }
+  #pad {
+    display: grid; gap: 8px;
+    grid-template-columns: repeat(3, 72px);
+    grid-template-rows: repeat(2, 62px);
+    grid-template-areas: ".  up  ." "left down right";
+  }
+  #pad button {
+    font: inherit; font-size: 20px; color: var(--ink-bright);
+    background: var(--key); border: 1px solid var(--edge); border-radius: 10px;
+    touch-action: manipulation; cursor: pointer;
+  }
+  #pad button:active, #pad button.lit { background: var(--key-lit); }
+  #up { grid-area: up; } #left { grid-area: left; }
+  #down { grid-area: down; } #right { grid-area: right; }
+  footer { display: flex; align-items: center; gap: 14px; }
+  #hud { color: var(--ink); }
+  #hud b { color: var(--ink-bright); font-weight: 600; }
+  #reset {
+    font: inherit; color: var(--ink); background: none;
+    border: 1px solid var(--edge); border-radius: 6px; padding: 5px 10px;
+    cursor: pointer;
+  }
+  #reset:active { background: var(--key); }
+</style>
+</head>
+<body>
+  <h1>hoppa <b>day 1</b> &middot; delve</h1>
+  <div id="stage"><canvas id="grid"></canvas></div>
+  <nav id="pad">
+    <button id="up"    aria-label="up">&#9650;</button>
+    <button id="left"  aria-label="left">&#9664;</button>
+    <button id="down"  aria-label="down">&#9660;</button>
+    <button id="right" aria-label="right">&#9654;</button>
+  </nav>
+  <footer>
+    <span id="hud"></span>
+    <button id="reset">reset</button>
+  </footer>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
