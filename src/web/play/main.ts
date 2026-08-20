@@ -19,7 +19,7 @@ import {
   slugify,
 } from "./link.ts";
 import { encodeQr, QrError } from "../../core/qr.ts";
-import { loadCharacter, loadDraft, playedBefore, rememberPlayed, setSoundOn, soundOn } from "../stash.ts";
+import { loadCharacter, loadDraft, setSoundOn, soundOn } from "../stash.ts";
 import { Sounds, soundsFor, type Moment } from "./sound.ts";
 import { draftToText } from "../../core/draft.ts";
 import { parseLevel } from "../../core/level.ts";
@@ -1235,136 +1235,6 @@ if (loadError !== null) {
   said.textContent = "that link is broken — here is the usual level instead";
 }
 
-
-/**
- * The six rooms the game ships with.
- *
- * Shown as ordinary level links, so everything downstream works without
- * knowing they are special: tapping one is the same act as tapping one in a
- * message, "edit level" opens it in the editor, and beating one offers to
- * share it. A pack that needed its own plumbing would be a second way to play
- * a level, and there is only one.
- */
-function paintPack(): void {
-  const row = document.getElementById("pack") as HTMLElement;
-  row.innerHTML = "";
-
-  const list = document.createElement("div");
-  list.className = "levels";
-  list.hidden = true;
-
-  const header = document.createElement("button");
-  header.className = "heading";
-  const say = (): void => {
-    header.textContent = `levels · ${PACK.length}`;
-    header.setAttribute("aria-expanded", String(!list.hidden));
-    header.classList.toggle("open", !list.hidden);
-  };
-  header.addEventListener("click", () => {
-    list.hidden = !list.hidden;
-    say();
-    // The level is sized against everything else on screen, so opening the
-    // list has to re-measure it.
-    resize();
-  });
-  say();
-
-  const playing = encodeLevel(level);
-  for (let at = 0; at < PACK.length; at++) {
-    const room = PACK[at] as (typeof PACK)[number];
-    const link = document.createElement("a");
-    link.href = `#p/${room.slug}/${room.code}`;
-    // The one you are on is marked rather than removed: a list that changes
-    // length as you play it is a list you cannot count your way through.
-    if (room.code === playing) link.classList.add("here");
-    const number = document.createElement("span");
-    number.className = "n";
-    number.textContent = `${at + 1}`;
-    const name = document.createElement("b");
-    name.textContent = room.name;
-    const teaches = document.createElement("span");
-    teaches.className = "teaches";
-    teaches.textContent = room.teaches;
-    link.append(number, name, teaches);
-    list.appendChild(link);
-  }
-
-  row.appendChild(header);
-  row.appendChild(list);
-}
-
-/**
- * The levels you have played before, as a list you can open.
- *
- * A level is only ever a link -- no accounts, no server, nothing to come back
- * to. The cost of that is real: play your cousin's level on Tuesday, close the
- * tab, and on Wednesday it is gone unless you still have the message. Keeping
- * the codes costs nothing and takes that cost away.
- *
- * A list is the right shape -- a wrapping row of chips cut every name to
- * fifteen characters to make them fit each other, and gave each one a 24px tap
- * target. But a list is expensive down a phone: three rows is 111px, six is
- * 246px, and the level pays for every one of them. Open, it took the play area
- * from 360x210 to its 140px floor.
- *
- * So it is a list behind one line. Shut it costs a single row; open it is a
- * proper list with whole names, and the level shrinks only while you are
- * actually looking at it.
- */
-function paintPlayed(): void {
-  const row = document.getElementById("played") as HTMLElement;
-  const others = playedBefore().filter((was) => was.code !== levelCode);
-  row.innerHTML = "";
-  if (others.length === 0) {
-    row.hidden = true;
-    return;
-  }
-
-  const list = document.createElement("div");
-  list.className = "levels";
-  list.hidden = true;
-
-  const header = document.createElement("button");
-  header.className = "heading";
-  header.setAttribute("aria-expanded", "false");
-  const say = (): void => {
-    header.textContent = `played before · ${others.length}`;
-    header.setAttribute("aria-expanded", String(!list.hidden));
-    header.classList.toggle("open", !list.hidden);
-  };
-  header.addEventListener("click", () => {
-    list.hidden = !list.hidden;
-    say();
-    // The list was not there when the level was measured for the screen.
-    resize();
-  });
-  say();
-
-  for (const was of others) {
-    const link = document.createElement("a");
-    // The same shape the link arrived as, so tapping one is exactly the same
-    // act as tapping it in a message. hashchange reloads the page.
-    // slugify and textContent, because this came out of storage: a tampered
-    // record must not be able to put markup on the page or anything but a
-    // slug in the URL.
-    link.href = `#p/${slugify(was.name)}/${encodeURIComponent(was.code)}`;
-    const name = document.createElement("b");
-    name.textContent = was.name.replace(/-/g, " ");
-    link.appendChild(name);
-    list.appendChild(link);
-  }
-
-  row.appendChild(header);
-  row.appendChild(list);
-  row.hidden = false;
-}
-
-// The six that ship have their own list, permanently, so remembering one here
-// would put the same room on screen twice -- and would push a level a friend
-// actually sent off the end of a list six long.
-if (shared !== null && !isShipped) rememberPlayed(levelCode, shared.slug);
-paintPack();
-paintPlayed();
 
 // Re-checked, not trusted: a stored proof is replayed before it counts.
 proven = provenBefore();

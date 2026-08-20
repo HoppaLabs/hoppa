@@ -25,6 +25,7 @@ import { newestBuild } from "../../core/builds.ts";
 import { decodeLevel, encodeLevel } from "../../core/codec.ts";
 import { slugify } from "../play/link.ts";
 import { GridRenderer } from "../play/renderer.ts";
+import { PACK } from "../../core/pack.ts";
 import {
   TILE_ACTOR, TILE_EXIT_LOCKED, TILE_FLOOR, TILE_GUARD,
   TILE_LADDER, TILE_TREASURE, TILE_WALL,
@@ -260,6 +261,101 @@ function repaint(): void {
   // frozen at whatever angle the last tap caught it at.
   renderer.setSpinning(false);
   renderer.draw(tiles, false);
+}
+
+// --- somewhere to start from -------------------------------------------------
+
+const examplesBox = document.getElementById("examples") as HTMLElement;
+const took = document.getElementById("took") as HTMLElement;
+
+/**
+ * The six rooms the game ships with, offered here as levels to start FROM.
+ *
+ * They used to be a list on the play page, which made them things to play; a
+ * child who wanted to make one still faced an empty grid. They are the same
+ * six either way -- what changed is which page they are on, and therefore what
+ * they are for. The drawing page does exactly this with sixteen characters,
+ * and the two pages should not teach two different habits.
+ */
+function paintExamples(): void {
+  examplesBox.innerHTML = "";
+  for (let at = 0; at < PACK.length; at++) {
+    const room = PACK[at] as (typeof PACK)[number];
+    let theirs: Draft;
+    try {
+      theirs = freshen(draftFromLevel(decodeLevel(room.code)));
+    } catch {
+      // A room that will not decode is one example missing, not a broken page.
+      continue;
+    }
+    const button = document.createElement("button");
+    button.setAttribute("aria-label", `start from ${room.name}`);
+
+    const thumb = document.createElement("canvas");
+    // Drawn through the renderer the GAME uses, from the level's own cells, so
+    // a thumbnail cannot disagree with what tapping it gives you.
+    const small = new GridRenderer(thumb);
+    small.setTileSize(4);
+    small.setSideOn(theirs.engine === "dash");
+    small.setSpinning(false);
+    const shown = new Uint8Array(GRID_W * GRID_H);
+    for (let i = 0; i < shown.length; i = (i + 1) | 0) {
+      shown[i] = TILE_OF[theirs.cells[i] as string] ?? TILE_FLOOR;
+    }
+    small.draw(shown, false, true);
+
+    const what = document.createElement("div");
+    what.className = "what";
+    what.textContent = room.name;
+    button.append(thumb, what);
+    button.addEventListener("click", () => offer(room.name, theirs));
+    examplesBox.appendChild(button);
+  }
+}
+
+/** Is there anything here somebody would mind losing? */
+function drawnOn(): boolean {
+  const empty = blankDraft(draft.engine, draft.behaviourVersion);
+  return draft.cells.some((cell, at) => cell !== empty.cells[at]);
+}
+
+/**
+ * Take one, or ask first.
+ *
+ * Same bargain as the drawing page: there is no undo, so replacing a level
+ * somebody has worked on is not a thing to do quietly -- but asking a child who
+ * has drawn nothing is a toll on exactly the person this is for.
+ */
+function offer(name: string, theirs: Draft): void {
+  took.innerHTML = "";
+  if (!drawnOn()) {
+    take(name, theirs);
+    return;
+  }
+  const asks = document.createElement("span");
+  asks.textContent = `replace what you have drawn with ${name}? `;
+  const yes = document.createElement("button");
+  yes.className = "yes";
+  yes.textContent = "yes";
+  yes.addEventListener("click", () => take(name, theirs));
+  const no = document.createElement("button");
+  no.textContent = "keep mine";
+  no.addEventListener("click", () => {
+    took.innerHTML = "";
+  });
+  took.append(asks, yes, no);
+}
+
+function take(name: string, theirs: Draft): void {
+  draft = theirs;
+  nameBox.value = `my ${name}`;
+  // The example may be a side-on room while you were drawing a top-down one,
+  // so the tools have to follow it or half of them would paint nothing.
+  paintGames();
+  repaint();
+  store();
+  review();
+  took.textContent = `${name} — now change it`;
 }
 
 // --- drawing ------------------------------------------------------------------
@@ -626,6 +722,7 @@ nameBox.addEventListener("input", store);
 
 paintGames();
 paintTools();
+paintExamples();
 refit();
 review();
 

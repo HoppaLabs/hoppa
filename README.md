@@ -103,6 +103,19 @@ stale cache. If a new build lands while you are looking at the page and have not
 touched it, the page quietly reloads into it; the moment you start playing, it
 does not. See [`docs/adr/0023`](docs/adr/0023-offline.md).
 
+## Somewhere to start from
+
+Neither editor opens on a blank page. The drawing page offers **sixteen
+characters** and the level editor offers **the six rooms**; in both cases
+tapping one loads it to be changed rather than chosen. Each asks before
+replacing work, and only when there is work to replace — there is no undo on
+either page.
+
+The character art lives as glyph rows in `tools/gallery.ts` and ships packed.
+The generator measures each body colour against the square it is drawn on and
+refuses anything under 4:1, because the first four picked by eye were
+invisible. See [`docs/adr/0033`](docs/adr/0033-what-a-real-user-said.md).
+
 ## The six rooms it opens with
 
 Six levels ship, in order, one idea at a time: an empty room, then a route,
@@ -129,13 +142,15 @@ from part of the level. Under 12 characters more than a plain link, and the
 time sent is the time that *won*, not whatever is on the clock. See
 [`docs/adr/0032`](docs/adr/0032-a-level-with-a-time-on-it.md).
 
-## The last few levels you played
+## The play page plays; the editors pick
 
-A level is only ever a link, which is the whole design — and the cost is that
-closing the tab used to be the end of it. The last six levels you played are
-kept as the codes that were in their links, so **played before** under the game
-is somewhere to go back to. Tapping one is the same act as tapping it in a
-message. The six that ship are not in this list — they have their own. See [`docs/adr/0026`](docs/adr/0026-levels-you-played.md).
+It used to carry two lists: the six shipped rooms, and the levels you had
+played before. Both were things to *pick*, on the page where you are already
+doing something else. The six moved into the level editor as examples and the
+second list is gone, storage and all. Measured: on an iPhone SE the level went
+from 240×140 — its hard floor — to 288×168. See
+[`docs/adr/0033`](docs/adr/0033-what-a-real-user-said.md), which supersedes
+[`0026`](docs/adr/0026-levels-you-played.md).
 
 ## Nothing asks you to install it
 

@@ -50,7 +50,39 @@
     font: inherit; color: var(--ink-bright); background: var(--key);
     border: 1px solid var(--edge); border-radius: 8px; padding: 8px 12px; cursor: pointer;
   }
-  input { cursor: text; text-align: center; }
+  /* A box you type in must not look like a button you press: same fix, and the
+     same reason, as the drawing page. A field is a hole -- it sits below the
+     page rather than on it, and the text starts where a caret would be. */
+  input {
+    cursor: text; text-align: left;
+    background: var(--bg); border: 1px solid var(--key-lit);
+    border-radius: 6px; box-shadow: inset 0 1px 2px rgb(0 0 0 / .5);
+  }
+  input:focus {
+    outline: none; border-color: var(--gold);
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / .5), 0 0 0 2px rgb(255 194 61 / .25);
+  }
+  .field { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+  .field label { font-size: 11px; color: var(--ink); }
+  /* Six levels, two rows of three. Same idea as the sixteen characters on the
+     drawing page, and drawn through the same renderer the game uses -- a
+     thumbnail that is a picture OF a level rather than the level itself is a
+     thumbnail that can lie. */
+  #examples { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; }
+  #examples button {
+    padding: 4px; display: grid; place-items: center; background: var(--key);
+    border-radius: 8px;
+    /* A grid item is min-width:auto by default, so a canvas 24 cells wide
+       shoulders its own column past 1fr and the last one falls off the screen.
+       Measured: three 432px canvases inside a 390pt column. */
+    min-width: 0;
+  }
+  #examples canvas { width: 100%; max-width: 100%; height: auto; display: block; border-radius: 3px; }
+  #examples .what { font-size: 10px; color: var(--ink); margin-top: 3px; }
+  #examples button:active { border-color: var(--gold); }
+  #took { min-height: 1.3em; font-size: 11px; color: var(--ink); text-align: center; max-width: 38ch; }
+  #took button { padding: 4px 10px; font-size: 12px; margin: 0 3px; }
+  #took .yes { border-color: var(--gold); color: var(--gold); }
   button.on { border-color: var(--gold); }
   button:disabled { opacity: .35; cursor: default; }
   a { color: var(--ink); }
@@ -153,7 +185,17 @@
       where you want it, then let go. pinch to zoom, or tap <b>bigger</b>.
     </div>
 
-    <div class="row"><input id="name" maxlength="24" value="my level" aria-label="what your level is called"></div>
+    <h2>or start from one of these</h2>
+    <div class="hint">tap one, then change it &mdash; they are levels, not choices</div>
+    <div id="examples"></div>
+    <div id="took"></div>
+
+    <div class="row">
+      <span class="field">
+        <label for="name">what it is called</label>
+        <input id="name" maxlength="24" value="my level">
+      </span>
+    </div>
 
     <div id="says"></div>
 

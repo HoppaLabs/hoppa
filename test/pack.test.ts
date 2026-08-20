@@ -110,8 +110,9 @@ test("every room is on the newest rules, so nothing ships already retired", () =
 });
 
 test("a code in the pack is a code the play page can open", () => {
-  // The list builds ordinary #p/ links out of these, so anything wrong with a
-  // code is a level that cannot be tapped.
+  // The level editor builds a draft out of each of these, and a share link is
+  // an ordinary #p/ one, so anything wrong with a code is a room nobody can
+  // open.
   for (const room of PACK) {
     expect(() => decodeLevel(room.code)).not.toThrow();
     expect(room.slug).toMatch(/^[a-z0-9-]+$/);
@@ -132,6 +133,10 @@ test("what each room is for is said in a few words, not a paragraph", () => {
 /* --- and the play page's side of the bargain ------------------------------ */
 
 const play = await Bun.file("src/web/play/main.ts").text();
+const playHtml = await Bun.file("src/web/play/index.html").text();
+const stash = await Bun.file("src/web/stash.ts").text();
+const levelHtml = await Bun.file("src/web/level/index.html").text();
+const levelMain = await Bun.file("src/web/level/main.ts").text();
 
 test("the game opens on the first of the six, not on a level nobody chose", () => {
   // It used to open on the level the engines were developed against: four
@@ -153,17 +158,98 @@ test("every room is a starting point, so edit level always carries one", () => {
   expect(opens).toBeGreaterThan(guard);
 });
 
-test("a room that ships does not also show up as one you played before", () => {
-  // Both lists are on the same screen. The same room in both is furniture, and
-  // six shipped rooms would push out every level a friend actually sent.
-  expect(play.includes("const shipped = new Set(PACK.map((room) => room.code));")).toBe(true);
-  expect(play.includes("if (shared !== null && !isShipped) rememberPlayed(")).toBe(true);
+test("the play page is for playing: neither list is on it any more", () => {
+  // It carried two: the six rooms, and the levels you had played before. Both
+  // were things to PICK, on the page where you are already doing something. The
+  // six are now something to start FROM in the level editor, beside the sixteen
+  // characters on the drawing page -- two pages that pick things, one that
+  // plays.
+  const html = playHtml;
+  expect(html).not.toContain('<nav id="pack"');
+  expect(html).not.toContain('<nav id="played"');
+  expect(play).not.toContain("paintPack");
+  expect(play).not.toContain("paintPlayed");
+  // ...and the storage behind the second one went with it, rather than being
+  // left to accumulate for a list nobody can see.
+  expect(play).not.toContain("rememberPlayed");
+  expect(stash).not.toContain("playedBefore");
 });
 
-test("the pack is shown as ordinary level links and nothing more", () => {
-  // A pack with its own plumbing would be a second way to play a level. Tapping
-  // one of these has to be the same act as tapping one in a message.
-  expect(play.includes("link.href = `#p/${room.slug}/${room.code}`")).toBe(true);
+test("but the six are still shipped, and still known to be shipped", () => {
+  // Which matters for one thing that is NOT a list: a room the game ships with
+  // has nobody to send a score back to, so it shares as a level.
+  expect(PACK.length).toBe(6);
+  expect(play.includes("const shipped = new Set(PACK.map((room) => room.code));")).toBe(true);
+  expect(play.includes("const isShipped = shipped.has(levelCode);")).toBe(true);
+});
+
+test("the level editor offers them instead, the way the drawing page does", () => {
+  expect(levelHtml.includes('<div id="examples"></div>')).toBe(true);
+  expect(levelHtml).toContain("or start from one of these");
+  expect(levelMain.includes("for (let at = 0; at < PACK.length; at++)")).toBe(true);
+  // Drawn through the renderer the GAME uses, from the level's own cells, so a
+  // thumbnail cannot disagree with what tapping it gives you.
+  expect(levelMain.includes("const small = new GridRenderer(thumb);")).toBe(true);
+  // Same bargain as the characters: ask only when there is something to lose.
+  expect(levelMain.includes("if (!drawnOn()) {")).toBe(true);
+  expect(levelMain.includes("replace what you have drawn with")).toBe(true);
+});
+
+test("the game opens on the first of the six, not on a level nobody chose", () => {
+  // It used to open on the level the engines were developed against: four
+  // gems, three guards, corridors a cell wide. That is room 6, not room 1.
+  expect(play.includes("const FRONT_DOOR = PACK[0]")).toBe(true);
+  expect(play.includes('BUILT_IN_NAME')).toBe(false);
+});
+
+test("every room is a starting point, so edit level always carries one", () => {
+  // Not only the rooms that arrived in a link: the six that ship are meant to
+  // be opened up and changed, which is the whole reason they are levels and
+  // not a hard-coded tutorial.
+  const at = play.indexOf("buildLink.href = `./level/#from/${encodeLevel(level)}`");
+  expect(at).toBeGreaterThan(0);
+  // ...and it is not sitting inside `if (shared !== null)`, which would leave
+  // the front door as the one room you could not edit.
+  const guard = play.lastIndexOf("shared !== null", at);
+  const opens = play.lastIndexOf("if (buildLink !== null)", at);
+  expect(opens).toBeGreaterThan(guard);
+});
+
+test("the play page is for playing: neither list is on it any more", () => {
+  // It carried two: the six rooms, and the levels you had played before. Both
+  // were things to PICK, on the page where you are already doing something. The
+  // six are now something to start FROM in the level editor, beside the sixteen
+  // characters on the drawing page -- two pages that pick things, one that
+  // plays.
+  const html = playHtml;
+  expect(html).not.toContain('<nav id="pack"');
+  expect(html).not.toContain('<nav id="played"');
+  expect(play).not.toContain("paintPack");
+  expect(play).not.toContain("paintPlayed");
+  // ...and the storage behind the second one went with it, rather than being
+  // left to accumulate for a list nobody can see.
+  expect(play).not.toContain("rememberPlayed");
+  expect(stash).not.toContain("playedBefore");
+});
+
+test("but the six are still shipped, and still known to be shipped", () => {
+  // Which matters for one thing that is NOT a list: a room the game ships with
+  // has nobody to send a score back to, so it shares as a level.
+  expect(PACK.length).toBe(6);
+  expect(play.includes("const shipped = new Set(PACK.map((room) => room.code));")).toBe(true);
+  expect(play.includes("const isShipped = shipped.has(levelCode);")).toBe(true);
+});
+
+test("the level editor offers them instead, the way the drawing page does", () => {
+  expect(levelHtml.includes('<div id="examples"></div>')).toBe(true);
+  expect(levelHtml).toContain("or start from one of these");
+  expect(levelMain.includes("for (let at = 0; at < PACK.length; at++)")).toBe(true);
+  // Drawn through the renderer the GAME uses, from the level's own cells, so a
+  // thumbnail cannot disagree with what tapping it gives you.
+  expect(levelMain.includes("const small = new GridRenderer(thumb);")).toBe(true);
+  // Same bargain as the characters: ask only when there is something to lose.
+  expect(levelMain.includes("if (!drawnOn()) {")).toBe(true);
+  expect(levelMain.includes("replace what you have drawn with")).toBe(true);
 });
 
 test("beating one of the six offers the level, not a score to send back", () => {
