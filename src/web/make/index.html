@@ -86,10 +86,13 @@
      word "wand" and the word "sword" look alike to somebody still learning to
      read and the picture does not. */
   #weapons { display: flex; gap: 8px; justify-content: center; }
+  #weapons { align-items: stretch; }
   #weapons button {
     display: flex; flex-direction: column; align-items: center; gap: 4px;
-    padding: 8px 18px; font-size: 12px;
+    padding: 8px 10px; font-size: 12px; flex: 1; max-width: 165px;
   }
+  #weapons .says { font-size: 10px; color: var(--ink); line-height: 1.25; }
+  #weapons button.on .says { color: var(--ink-bright); }
   #weapons button.on { outline: 2px solid var(--gold); outline-offset: 2px; }
   #weapons svg { display: block; }
 </style>
@@ -113,7 +116,10 @@
 
 <h2>what it swings</h2>
 <div id="weapons" role="group" aria-label="what your character swings"></div>
-<div class="hint">this is only how it looks. a wand reaches just as far as a sword.</div>
+<div class="hint">
+  both reach just as far and you move just as fast. pick the one you like &mdash;
+  neither is the wrong answer.
+</div>
 
 <h2>what it is good at</h2>
 <div id="points">you have <b id="left">6</b> points to spend</div>
@@ -124,7 +130,7 @@
 </div>
 
 <div class="row">
-  <input id="name" maxlength="12" value="Mine" aria-label="what your character is called">
+  <input id="name" maxlength="12" value="Me" aria-label="what your character is called">
 </div>
 
 <div class="row">

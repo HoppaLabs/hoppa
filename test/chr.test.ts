@@ -270,8 +270,8 @@ test("a code with no weapon named defaults to a sword", () => {
 test("a name is tidied into something typeable, and never empty", () => {
   expect(tidyName("Bash")).toBe("BASH");
   expect(tidyName("  a very long name indeed ")).toBe("AVERYLONGN");
-  expect(tidyName("!!!")).toBe("MINE");
-  expect(tidyName("")).toBe("MINE");
+  expect(tidyName("!!!")).toBe("ME");
+  expect(tidyName("")).toBe("ME");
 });
 
 test("the name travels in the readable part, so a chat log shows whose it is", () => {

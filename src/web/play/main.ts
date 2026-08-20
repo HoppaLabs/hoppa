@@ -11,7 +11,7 @@
 // The engine is chosen by the level's behaviour= field, never hardcoded here.
 // That is what lets a link from day 5 onwards pin the rules it was beaten under.
 
-import { ROAM2_LEVEL_TEXT } from "../../core/fixtures.ts";
+import { ROAM3_LEVEL_TEXT } from "../../core/fixtures.ts";
 import { PRESETS, SPENDABLE, capsToBuild, spent, type Creature } from "../../core/creature.ts";
 import { CodecError, encodeLevel } from "../../core/codec.ts";
 import { levelFromHash, linkFor } from "./link.ts";
@@ -23,7 +23,7 @@ import { engineFor } from "../../engines/registry.ts";
 import { Readout } from "./readout.ts";
 import { Buttons, KEY_BITS, Loop, type Moving } from "./realtime.ts";
 import { HELD_ACT, HELD_DOWN, HELD_LEFT, HELD_RIGHT, HELD_UP } from "../../engines/types.ts";
-import { reachFor } from "../../engines/roam/v2.ts";
+import { reachFor } from "../../engines/roam/v3.ts";
 import {
   INPUT_DOWN,
   INPUT_LEFT,
@@ -98,7 +98,7 @@ try {
   loadError = err instanceof CodecError ? err.message : String(err);
 }
 
-const level = shared === null ? parseLevel(ROAM2_LEVEL_TEXT) : shared.level;
+const level = shared === null ? parseLevel(ROAM3_LEVEL_TEXT) : shared.level;
 const levelName = shared === null ? BUILT_IN_NAME : shared.slug.replace(/-/g, " ");
 
 // The remix loop. On a level somebody sent you, the editor link opens THAT
@@ -140,6 +140,7 @@ const levelname = document.getElementById("levelname") as HTMLElement;
 const trait = document.getElementById("trait") as HTMLElement;
 const verdict = document.getElementById("verdict") as HTMLElement;
 const saying = document.getElementById("saying") as HTMLElement;
+const flash = document.getElementById("flash") as HTMLElement;
 const tally = document.getElementById("tally") as HTMLElement;
 const renderer = new GridRenderer(canvas);
 
@@ -290,9 +291,31 @@ function move(input: Input): void {
   paint();
 }
 
+/**
+ * A line that says what just happened, and then gets out of the way.
+ *
+ * The engine has always produced these -- "Got it.", "Frozen solid.", "That
+ * hurt." -- and nothing ever showed them outside the win screen, which is the
+ * one moment they do not matter. In a real-time game they are how a child finds
+ * out what their own weapon does: a sword kills and a wand freezes, and you
+ * learn that from the first swing rather than from the picker.
+ */
+let flashUntil = 0;
+function flashMessage(text: string | null): void {
+  const now = performance.now();
+  if (text !== null && text !== "") {
+    flash.textContent = text;
+    flash.className = "show";
+    flashUntil = now + 900;
+  } else if (now > flashUntil) {
+    flash.className = "";
+  }
+}
+
 /** The HUD for a real-time run: hearts, treasure, and a clock that ticks. */
 function paintMovingHud(): void {
   const game = moving as Moving;
+  if (!finished()) flashMessage(loop === null ? null : loop.takeMessage());
   const health = game.health();
   const hearts = "\u2665".repeat(health.hp) + "\u2661".repeat(Math.max(0, health.max - health.hp));
   const got = game.collectedCount();

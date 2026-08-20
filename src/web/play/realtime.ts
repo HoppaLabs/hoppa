@@ -78,6 +78,7 @@ export class Loop {
   private last = 0;
   private running = false;
   private frame = 0;
+  private lastSaid: string | null = null;
 
   constructor(
     private readonly engine: Moving,
@@ -101,6 +102,11 @@ export class Loop {
         for (let i = 0; i < ticks; i++) {
           this.engine.step(this.buttons.mask());
           this.buttons.afterTick();
+          // A message belongs to the TICK it happened on, and several ticks
+          // can pass between two frames. Read after the loop and "Got it."
+          // is simply gone -- the one moment a child most needs telling.
+          const line = this.engine.message();
+          if (line !== null && line !== "") this.lastSaid = line;
           if (this.finished()) break;
         }
       }
@@ -109,6 +115,13 @@ export class Loop {
       this.frame = requestAnimationFrame(tick);
     };
     this.frame = requestAnimationFrame(tick);
+  }
+
+  /** The most recent thing the engine said, and clear it once it is read. */
+  takeMessage(): string | null {
+    const said = this.lastSaid;
+    this.lastSaid = null;
+    return said;
   }
 
   stop(): void {

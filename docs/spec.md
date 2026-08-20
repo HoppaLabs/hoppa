@@ -289,10 +289,12 @@ worth carrying between them. The noun is fixed, the verb is the engine's:
 strength is a harder sword from above and a higher jump from the side. A
 creature is not good or bad; it is good at *some levels*.
 
-A creature also carries a **weapon** — sword or wand — which is *cosmetic*, like
-its drawing. A wand reaches as far as a sword and hits as hard; making it
-behave differently would be a third characteristic that is not on the budget,
-and would turn a look into a power. See `docs/adr/0015`.
+A creature also carries a **weapon** — sword or wand. From `roam/3` it is a real
+choice, not a costume: a **sword kills** (one to four swings, by strength) and a
+**wand freezes** (always one wave, three to six seconds, by strength). Neither
+is better — the sword is an investment, the wand is instant relief — so the
+weapon interacts with the budget rather than going round it, and the picker says
+what each does so it is never a hidden power. See `docs/adr/0015` and `0016`.
 
 `MOVE_GROUND`, `MOVE_AIR`, `SPARK`, `MASS`, `GUARD` and `REACH` remain in the
 vocabulary because engine builds up to `delve/5` read them and every link pinning
@@ -318,10 +320,14 @@ find the way out.
 - **Stronger** — fewer swings to put an enemy down, longer it stays down, more hearts
 - **Faster** — you move quicker, so you can outrun what you cannot beat
 
-Enemies **die**: enough hits and one is gone for the rest of the attempt, and the
-room is full again when you start over — the Zelda/Mario rule, not a timer.
-`roam/1` is retired but still shipped: its enemies could walk through walls
-(`docs/adr/0013`).
+Enemies **die** to a sword: enough hits and one is gone for the rest of the
+attempt, and the room is full again when you start over — the Zelda/Mario rule,
+not a timer. A **wand** never kills; one wave freezes an enemy where it stands
+for several seconds.
+
+`roam/1` and `roam/2` are retired but still shipped. v1's enemies could walk
+through walls (`docs/adr/0013`); in v2 the wand was still a costume
+(`docs/adr/0016`).
 
 ### Dash — from the side
 

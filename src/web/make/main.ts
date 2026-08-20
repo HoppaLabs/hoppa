@@ -236,7 +236,7 @@ function paintStats(): void {
 });
 
 (document.getElementById("go") as HTMLButtonElement).addEventListener("click", () => {
-  const name = nameField.value.trim().slice(0, 12) || "Mine";
+  const name = nameField.value.trim().slice(0, 12) || "Me";
   const made = creatureFromBuild("yours", name, "@", build as Build, sprite, weapon);
   saveCharacter(name, build as Build, made);
   note.textContent = "saved";
@@ -263,13 +263,28 @@ const WEAPON_ART: Record<Weapon, string> = {
   </svg>`,
 };
 
+/**
+ * What each one does, on the button.
+ *
+ * This is the whole condition for letting the weapon matter. A child who picks
+ * the wand because they like wands must not discover later that they picked a
+ * different game -- so the choice says what it costs, and neither answer is
+ * the wrong one.
+ */
+const WEAPON_SAYS: Record<Weapon, string> = {
+  sword: "gone for good, if you can land the hits",
+  wand: "frozen on the spot, every time",
+};
+
 function paintWeapons(): void {
   weaponsBox.innerHTML = "";
   for (const choice of WEAPONS) {
     const button = document.createElement("button");
     button.className = choice === weapon ? "on" : "";
     button.setAttribute("aria-pressed", choice === weapon ? "true" : "false");
-    button.innerHTML = `${WEAPON_ART[choice]}<span>${choice}</span>`;
+    button.innerHTML =
+      `${WEAPON_ART[choice]}<span>${choice}</span>` +
+      `<span class="says">${WEAPON_SAYS[choice]}</span>`;
     button.addEventListener("click", () => {
       weapon = choice;
       paintWeapons();
@@ -282,7 +297,7 @@ function paintWeapons(): void {
 // --- the code that IS the character -------------------------------------------
 
 function currentCode(): string {
-  const name = nameField.value.trim().slice(0, 12) || "Mine";
+  const name = nameField.value.trim().slice(0, 12) || "Me";
   return encodeCharacter(name, build as Build, sprite, weapon);
 }
 

@@ -56,7 +56,7 @@ const TOOLS: readonly Tool[] = [
 ];
 
 const GAMES = [
-  { engine: "roam", behaviour: 2, label: "from above" },
+  { engine: "roam", behaviour: 3, label: "from above" },
   { engine: "dash", behaviour: 1, label: "from the side" },
 ] as const;
 

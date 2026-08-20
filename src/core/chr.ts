@@ -164,7 +164,7 @@ export function checkSymbol(symbols: string): string {
 /** Only what survives being read aloud and typed back. */
 export function tidyName(name: string): string {
   const cleaned = name.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
-  return cleaned.length > 0 ? cleaned : "MINE";
+  return cleaned.length > 0 ? cleaned : "ME";
 }
 
 // --- the code ------------------------------------------------------------------
@@ -254,7 +254,7 @@ export function decodeCharacter(code: string): DecodedCharacter {
 }
 
 function titleCase(name: string): string {
-  if (name.length === 0) return "Mine";
+  if (name.length === 0) return "Me";
   return name.charAt(0) + name.slice(1).toLowerCase();
 }
 

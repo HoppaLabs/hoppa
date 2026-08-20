@@ -130,7 +130,16 @@ export class GridRenderer {
       const size = Math.max(4, Math.floor(t * 0.72));
       const x = px(enemy.x) - size / 2;
       const y = px(enemy.y) - size / 2;
-      ctx.fillStyle = enemy.stunned ? "#7a5c86" : enemy.chasing ? "#ff8a3d" : (COLOUR[TILE_GUARD] as string);
+      // A wand freezes rather than stuns, and it should look like it: ice, not
+      // seeing stars. Same state underneath -- this is only how it is drawn.
+      const downColour = this.weapon === "wand" ? "#7fd8ee" : "#7a5c86";
+      // ...and it FLICKERS. "Not moving" is not a signal -- a guard at the end
+      // of its patrol is not moving either. A child has to be able to tell at a
+      // glance which ones cannot touch them, without waiting to see if it walks.
+      const flickering = enemy.stunned && (Date.now() >> 7) % 2 === 0;
+      ctx.fillStyle = enemy.stunned
+        ? (flickering ? "#ffffff" : downColour)
+        : enemy.chasing ? "#ff8a3d" : (COLOUR[TILE_GUARD] as string);
       ctx.fillRect(x, y, size, size);
       if (t >= 10 && !enemy.stunned) {
         // An eye, pointing the way it is coming.

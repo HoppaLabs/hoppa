@@ -153,6 +153,15 @@
   /* The level editor is the other half of the point, so it is a peer of the
      character editor rather than something tucked away below it. */
   #build { border-color: var(--edge); }
+  /* A moment's feedback over the board: what just happened, then gone. It sits
+     on the level rather than under it so a thumb on the buttons still sees it. */
+  #flash {
+    position: absolute; left: 50%; top: 8px; transform: translateX(-50%);
+    background: rgba(13,16,20,.86); border: 1px solid var(--edge); border-radius: 8px;
+    padding: 5px 12px; color: var(--ink-bright); font-size: 12px; white-space: nowrap;
+    opacity: 0; transition: opacity .18s; pointer-events: none;
+  }
+  #flash.show { opacity: 1; }
   #said {
     color: var(--ink); font-size: 12px; min-height: 1.3em; text-align: center;
     max-width: 40ch; word-break: break-all;
@@ -165,6 +174,7 @@
   <div id="trait"></div>
   <div id="stage">
     <canvas id="grid"></canvas>
+    <div id="flash" role="status" aria-live="polite"></div>
     <div id="over" role="status" aria-live="polite">
       <div id="verdict"></div>
       <div id="saying"></div>

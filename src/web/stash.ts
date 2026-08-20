@@ -99,7 +99,7 @@ export function loadCharacter(): Saved | null {
     const sub = normaliseSubPalette(Array.isArray(record.sub) ? record.sub : []);
     const sprite = spriteFromText(record.pixels, sub);
     const build = legalBuild((record.build ?? {}) as Record<string, number>);
-    const name = record.name.slice(0, 12) || "Mine";
+    const name = record.name.slice(0, 12) || "Me";
     // A record written before the choice existed has no weapon in it, and a
     // tampered one may have nonsense: both mean "sword".
     const weapon: Weapon =
@@ -130,7 +130,7 @@ export function forgetCharacter(): void {
 export function startingCharacter(): Saved {
   const build = legalBuild({ FORCE: 0, HASTE: 0 });
   return {
-    creature: creatureFromBuild("yours", "Mine", "@", build, starterSprite()),
+    creature: creatureFromBuild("yours", "Me", "@", build, starterSprite()),
     build,
   };
 }

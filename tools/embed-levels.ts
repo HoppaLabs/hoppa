@@ -17,6 +17,7 @@ export const EMBEDDED: ReadonlyArray<readonly [string, string]> = [
   ["DAY7_LEVEL_TEXT", "levels/day7.lvl"],
   ["ROAM1_LEVEL_TEXT", "levels/roam1.lvl"],
   ["ROAM2_LEVEL_TEXT", "levels/roam2.lvl"],
+  ["ROAM3_LEVEL_TEXT", "levels/roam3.lvl"],
   ["DASH1_LEVEL_TEXT", "levels/dash1.lvl"],
 ];
 
