@@ -14,9 +14,10 @@
 import { ROAM4_LEVEL_TEXT } from "../../core/fixtures.ts";
 import { PRESETS, SPENDABLE, capsToBuild, spent, type Creature } from "../../core/creature.ts";
 import { CodecError, encodeLevel } from "../../core/codec.ts";
-import { levelFromHash, linkFor } from "./link.ts";
+import { levelFromHash, linkFor, resultFromHash, resultLinkFor } from "./link.ts";
 import { encodeQr, QrError } from "../../core/qr.ts";
-import { loadCharacter } from "../stash.ts";
+import { loadCharacter, loadDraft } from "../stash.ts";
+import { draftToText } from "../../core/draft.ts";
 import { parseLevel } from "../../core/level.ts";
 import { hashHex } from "../../core/hash.ts";
 import { engineFor, UnknownBehaviourError } from "../../engines/registry.ts";
@@ -147,8 +148,18 @@ function isRealtime(engine: unknown): boolean {
 // rather than dumping the player into a different level and looking fine.
 let loadError: string | null = null;
 let shared: ReturnType<typeof levelFromHash> = null;
+/**
+ * A reply: somebody beat your level and sent back how fast, with the creature
+ * they did it on. Spec S16 day 11, minus the watching -- a replay of a real
+ * run is 1,700 to 3,000 characters and would not survive a group chat, so what
+ * comes back is the outcome and the creature. See link.ts.
+ */
+let reply: ReturnType<typeof resultFromHash> = null;
 try {
-  shared = levelFromHash(window.location.hash);
+  reply = resultFromHash(window.location.hash);
+  shared = reply === null
+    ? levelFromHash(window.location.hash)
+    : { level: reply.level, slug: reply.slug };
 } catch (err) {
   loadError = err instanceof CodecError ? err.message : String(err);
 }
@@ -186,12 +197,21 @@ function refuses(candidate: typeof level, creature: Creature): string | null {
 const buildLink = document.getElementById("build") as HTMLAnchorElement | null;
 if (buildLink !== null && shared !== null) {
   buildLink.href = `./level/#from/${encodeLevel(level)}`;
-  buildLink.textContent = "change this level";
+  buildLink.textContent = "edit level";
 }
 // A character you made wins over the ready-made ones: it is yours, and it is
 // the reason the spec says never to cut the drawing day.
 const saved = loadCharacter();
-const roster: readonly Creature[] = saved === null ? PRESETS : [saved.creature, ...PRESETS];
+// Whoever beat your level comes with the reply, so you can try their creature
+// against your own level. That is the point of sending one back.
+const guest: readonly Creature[] = reply?.creature == null ? [] : [reply.creature];
+const roster: readonly Creature[] = [
+  ...(saved === null ? [] : [saved.creature]),
+  ...guest,
+  ...PRESETS,
+];
+/** Where the friend's creature sits in the row, or -1 when there is no reply. */
+const guestAt = guest.length === 0 ? -1 : (saved === null ? 0 : 1);
 // A creature you drew borrows a preset's caps AND its id, so "which one is
 // selected" has to be a slot in the roster. Comparing ids lights up two.
 let chosenAt = 0;
@@ -206,6 +226,33 @@ if (refusal !== null) {
   level = parseLevel(ROAM4_LEVEL_TEXT);
   levelName = BUILT_IN_NAME;
 }
+/**
+ * Is this a level I MADE, or one I was SENT?
+ *
+ * Both arrive as a hash, so the URL cannot tell them apart -- and the answer
+ * decides what the share button does. A level you made goes out as a level; a
+ * level you were sent goes back as a time. Getting this wrong means a kid taps
+ * "play" in the editor and is then offered to send their friend a scoreboard
+ * for a level the friend has never seen.
+ *
+ * The editor keeps what you drew, so the honest question is "is this the level
+ * that is in my editor?".
+ */
+function levelIsMine(): boolean {
+  const kept = loadDraft();
+  if (kept === null) return false;
+  try {
+    return encodeLevel(parseLevel(draftToText(kept.draft))) === encodeLevel(level);
+  } catch {
+    // A draft from an older build may no longer encode. That only means it is
+    // not this level.
+    return false;
+  }
+}
+// A reply is always sent back: somebody put a time on your level, and the
+// answer to that is your own time, not the level they have already played.
+const sendingBack = reply !== null || (shared !== null && !levelIsMine());
+
 // engineFor returns the Engine contract; the play page also wants the delve
 // read-outs (turns, treasure), which is what this cast is for.
 const build = () => engineFor(level, chosen);
@@ -222,6 +269,7 @@ const stage = document.getElementById("stage") as HTMLElement;
 const over = document.getElementById("over") as HTMLElement;
 const stable = document.getElementById("stable") as HTMLElement;
 const said = document.getElementById("said") as HTMLElement;
+const boast = document.getElementById("boast") as HTMLElement;
 const sendIt = document.getElementById("sendit") as HTMLButtonElement;
 const qrCanvas = document.getElementById("qr") as HTMLCanvasElement;
 const qrHint = document.getElementById("qrhint") as HTMLElement;
@@ -298,6 +346,9 @@ function paintQr(): void {
  */
 function paintShareGate(): void {
   sendIt.hidden = !hasBeatenThis();
+  // A level you made is sent as a level; one you were sent goes back as a
+  // time. The button says which, because they are different acts.
+  sendIt.textContent = sendingBack ? "send your score" : "share level";
 }
 
 function paint(): void {
@@ -610,12 +661,17 @@ function bestAt(creature: Creature): string {
 
 function paintStable(): void {
   stable.innerHTML = "";
+  stable.classList.toggle("tight", roster.length > 3);
   for (let at = 0; at < roster.length; at++) {
     const creature = roster[at] as Creature;
     const selected = at === chosenAt;
     const button = document.createElement("button");
     button.className = selected ? "on" : "";
-    button.innerHTML = `<b>${creature.name}</b>${bestAt(creature)}`;
+    // The friend's creature can share a name with a preset -- if they beat your
+    // level on Nim, the row has two Nims and "theirs" means nothing. Say which.
+    const under = at === guestAt ? "beat your level" : bestAt(creature);
+    if (at === guestAt) button.classList.add("guest");
+    button.innerHTML = `<b>${creature.name}</b>${under}`;
     button.setAttribute("aria-pressed", String(selected));
     button.addEventListener("click", () => {
       if (at === chosenAt) return;
@@ -630,9 +686,31 @@ function paintStable(): void {
 
 // --- layout -----------------------------------------------------------------
 
+/**
+ * Everything on the page that is not the level, measured rather than guessed.
+ *
+ * This used to be `pad.offsetHeight + 110`, and the 110 was a constant standing
+ * in for the title, the creature row and the HUD. Add a line above the picker,
+ * or give a phone a fifth creature so the row wraps, and the constant is wrong
+ * by exactly that much -- the body centres its overflow, so the title slides
+ * off the top of the screen instead of the level getting smaller.
+ */
+function chromeHeight(): number {
+  const style = getComputedStyle(document.body);
+  const gap = Number.parseFloat(style.rowGap) || 0;
+  let total =
+    (Number.parseFloat(style.paddingTop) || 0) + (Number.parseFloat(style.paddingBottom) || 0);
+  for (const kid of Array.from(document.body.children) as HTMLElement[]) {
+    if (kid === stage) continue;
+    // A hidden element is not taking up room, and must not be charged for.
+    if (kid.hidden || kid.offsetParent === null) continue;
+    total += kid.offsetHeight + gap;
+  }
+  return total;
+}
+
 function resize(): void {
-  const chromeHeight = pad.offsetHeight + 110; // title, hud, padding
-  renderer.fit(stage.clientWidth, Math.max(140, window.innerHeight - chromeHeight));
+  renderer.fit(stage.clientWidth, Math.max(140, window.innerHeight - chromeHeight()));
   paint();
 }
 window.addEventListener("resize", resize);
@@ -771,16 +849,42 @@ levelname.textContent = levelName;
 // tab that already has one would otherwise leave the old level on screen.
 window.addEventListener("hashchange", () => window.location.reload());
 
+/** Seconds on a real-time level, turns on a turn-based one, as the HUD shows. */
+function myScore(): number {
+  return moving === null ? engine.turns() : (moving as Moving).seconds();
+}
+
+/**
+ * Sharing does one of two things, and which one is not a setting.
+ *
+ * A level you MADE gets sent as a level: here, play this. A level somebody
+ * SENT you gets sent back as a result: I did it, this fast, on this creature.
+ * The second is what turns a link into a conversation, and the page already
+ * knows which situation it is in.
+ */
 async function share(): Promise<void> {
   if (!hasBeatenThis()) {
     said.textContent = "finish the level first, then you can send it";
     return;
   }
   const base = `${window.location.origin}${window.location.pathname}`;
-  const url = linkFor(level, levelName, base);
+  const url = sendingBack
+    ? resultLinkFor(
+        level,
+        levelName,
+        chosen.name,
+        capsToBuild(chosen.caps),
+        chosen.sprite,
+        chosen.weapon,
+        myScore(),
+        base,
+      )
+    : linkFor(level, levelName, base);
   try {
     await navigator.clipboard.writeText(url);
-    said.textContent = "link copied — paste it to a friend";
+    said.textContent = sendingBack
+      ? "copied — send it back and see if they can beat your score"
+      : "link copied — paste it to a friend";
   } catch {
     // Clipboard access needs a secure context and a real gesture; when it is
     // refused, showing the link is still a way to send it.
@@ -793,6 +897,18 @@ sendIt.addEventListener("click", (ev) => {
   void share();
 });
 
+/**
+ * The boast, at the top, before anything else happens.
+ *
+ * A reply is a challenge -- "I did it in 41 seconds, go on then" -- and it has
+ * to be the first thing on screen or it is just a level with an odd link.
+ */
+if (reply !== null && reply.creature !== null) {
+  const unit = moving === null ? "turns" : "seconds";
+  boast.textContent = `${reply.who} beat this in ${reply.score} ${unit} — can you?`;
+  boast.hidden = false;
+}
+
 if (loadError !== null) {
   // The reason is real information, but "the code is damaged" is not a sentence
   // a nine-year-old should have to parse when all they did was tap a link.
@@ -800,6 +916,7 @@ if (loadError !== null) {
 }
 
 const levelCode = encodeLevel(level);
+
 // Re-checked, not trusted: a stored proof is replayed before it counts.
 proven = provenBefore();
 paintShareGate();

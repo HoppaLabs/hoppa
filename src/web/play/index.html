@@ -28,7 +28,10 @@
   }
   body {
     display: flex; flex-direction: column; align-items: center;
-    justify-content: center; gap: 14px; padding: max(10px, env(safe-area-inset-top)) 10px
+    /* 10, not 14: a reply page has two more rows than a plain one (the
+       challenge, and a fourth creature), and eight gaps at 14px was 112px of
+       a 664px phone -- spent on air, taken off the level. */
+    justify-content: center; gap: 10px; padding: max(10px, env(safe-area-inset-top)) 10px
              max(10px, env(safe-area-inset-bottom));
     touch-action: manipulation;
   }
@@ -95,6 +98,14 @@
     padding: 7px 12px; cursor: pointer; line-height: 1.3; text-align: center;
   }
   #stable button b { display: block; color: var(--ink-bright); font-size: 13px; }
+  /* Four creatures on a phone wrap onto a second row, and the level pays for
+     it in height. Crowded rows get smaller keys instead. */
+  #stable.tight { gap: 5px; }
+  #stable.tight button { font-size: 11px; padding: 5px 8px; }
+  #stable.tight button b { font-size: 12px; }
+  /* The friend's creature. It can share a name with a preset, so it needs to
+     be findable by eye as well as by the line under the name. */
+  #stable button.guest { border-style: dashed; border-color: var(--gold); }
   #stable button.on { border-color: var(--gold); color: var(--ink-bright); }
   #stable button.on b { color: var(--gold); }
   #trait { color: var(--ink); font-size: 12px; text-align: center; max-width: 34ch; }
@@ -165,6 +176,10 @@
     opacity: 0; transition: opacity .18s; pointer-events: none;
   }
   #flash.show { opacity: 1; }
+  #boast {
+    color: var(--gold); font-size: 14px; text-align: center; max-width: 34ch;
+    line-height: 1.35; margin: 0 0 2px;
+  }
   #said {
     color: var(--ink); font-size: 12px; min-height: 1.3em; text-align: center;
     max-width: 40ch; word-break: break-all;
@@ -173,6 +188,9 @@
 </head>
 <body>
   <h1>hoppa &middot; <span id="levelname">delve</span></h1>
+  <!-- A reply from a friend: their time, and a nudge towards their creature.
+       It sits above the picker because that is what it points at. -->
+  <div id="boast" role="status" hidden></div>
   <nav id="stable" aria-label="pick a creature"></nav>
   <div id="trait"></div>
   <div id="stage">

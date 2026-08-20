@@ -108,7 +108,7 @@ const tiles = new Uint8Array(GRID_W * GRID_H);
 
 /**
  * A level in the URL is one to CHANGE, and it beats whatever draft was in
- * storage: you got here by tapping "change this level" on a level somebody
+ * storage: you got here by tapping "edit level" on a level somebody
  * sent you, and that is a deliberate act. This is the remix loop -- your
  * friend's room, your walls, your creature -- and it is why the level lives in
  * the link rather than on a server.

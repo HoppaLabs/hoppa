@@ -709,7 +709,7 @@ alongside; they just stop dictating the order.
 | 8 | Save and restore your creature with a code, or a QR | Crockford base32, check symbol, import flow, C1–C5 |
 | 9 | A share button — but only once you've beaten it yourself | Input logs, replay verification, share gate, `wa.me` |
 | 10 | **Paint your own level** and play it | Level editor, live validation, L1–L8 |
-| 11 | Send back a result: they watch how you beat it | Result links, replay playback |
+| 11 | Send back a result: your time, and the creature that did it | Result links (252 chars); watching the run does not fit — a replay is 1,700–3,000 chars, `docs/adr/0021` |
 | 12 | **A second game.** Your heavy creature is suddenly the hero | Shove engine, reusing tick model |
 | 13 | Whatever the kids asked for, plus everything they broke | Red team: truncated URLs, retyped codes, unsolvable levels, zero-cap creatures, cycle abuse, oversized sprites |
 | 14 | The whole loop, offline, on a plane | Service worker, golden vectors, README |
