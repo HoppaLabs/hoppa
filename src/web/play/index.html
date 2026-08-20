@@ -129,7 +129,16 @@
   #stable button.guest { border-style: dashed; border-color: var(--gold); }
   #stable button.on { border-color: var(--gold); color: var(--ink-bright); }
   #stable button.on b { color: var(--gold); }
-  #trait { color: var(--ink); font-size: 12px; text-align: center; max-width: 34ch; }
+  /* The value first, then what the value buys -- two rows a kid reads across
+     rather than three adjectives that hid the numbers they just spent. */
+  /* Wide enough for the longest row on the narrowest phone: "strong ooooo
+     3 hits to down an enemy, 4 hearts" is 46 characters, and 34ch broke it
+     over four lines. */
+  #trait { color: var(--ink); font-size: 12px; max-width: 100%; }
+  #trait .row { display: grid; grid-template-columns: 4em 4.8em auto; gap: 6px; align-items: baseline; justify-content: center; }
+  #trait .what { color: var(--ink-bright); font-weight: 600; }
+  #trait .pips { color: var(--gold); letter-spacing: 1px; }
+  #trait .buys { color: var(--ink); }
 
   #stage { position: relative; }
   /* The win screen covers the whole page, not just the board. Once there is a
@@ -174,6 +183,14 @@
   #qrhint { font-size: 11px; color: var(--ink); max-width: 32ch; }
   #qrhint b { color: var(--ink-bright); }
   #qrhint[hidden] { display: none; }
+  #sent {
+    font-size: 12px; color: var(--open); max-width: 32ch; line-height: 1.4;
+    /* `anywhere` breaks only when it has to. `break-all` split "friend" across
+       two lines in a sentence that had room. */
+    overflow-wrap: anywhere;
+  }
+  #sent[hidden] { display: none; }
+  #sent.bad { color: var(--gold); }
   #reset {
     font: inherit; color: var(--ink); background: none;
     border: 1px solid var(--edge); border-radius: 6px; padding: 5px 10px;
@@ -245,6 +262,10 @@
         <button id="again">play again</button>
         <button id="sendit" hidden>share level</button>
       </div>
+      <!-- The answer to tapping share belongs next to share. It used to appear
+           at the very bottom of the page, three hundred pixels below where the
+           thumb was, and read as nothing having happened. -->
+      <div id="sent" hidden></div>
     </div>
   </div>
   <nav id="pad">

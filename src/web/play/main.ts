@@ -12,7 +12,7 @@
 // That is what lets a link from day 5 onwards pin the rules it was beaten under.
 
 import { ROAM5_LEVEL_TEXT } from "../../core/fixtures.ts";
-import { PRESETS, capsToBuild, type Creature } from "../../core/creature.ts";
+import { PIP_MAX, PRESETS, capsToBuild, type Creature } from "../../core/creature.ts";
 import { CodecError, encodeLevel } from "../../core/codec.ts";
 import { levelFromHash, linkFor, resultFromHash, resultLinkFor, slugify } from "./link.ts";
 import { encodeQr, QrError } from "../../core/qr.ts";
@@ -20,6 +20,7 @@ import { loadCharacter, loadDraft, playedBefore, rememberPlayed, setSoundOn, sou
 import { Sounds, soundsFor, type Moment } from "./sound.ts";
 import { draftToText } from "../../core/draft.ts";
 import { parseLevel } from "../../core/level.ts";
+import { stepTableFor } from "../../core/playable.ts";
 import { colourFor } from "../../core/palette.ts";
 import { SPRITE_H, SPRITE_W, spriteIndex } from "../../core/sprite.ts";
 import { hashHex } from "../../core/hash.ts";
@@ -28,7 +29,7 @@ import { Readout } from "./readout.ts";
 import { Recorder, beats, proofKey, type Replayable } from "../../core/proof.ts";
 import { Buttons, KEY_BITS, Loop, type Moving } from "./realtime.ts";
 import { HELD_ACT, HELD_DOWN, HELD_LEFT, HELD_RIGHT, HELD_SWING, HELD_UP } from "../../engines/types.ts";
-import { reachFor } from "../../engines/roam/v5.ts";
+import { ENEMY_SPEED, hitsToKillFor, reachFor, speedFor } from "../../engines/roam/v5.ts";
 import {
   INPUT_DOWN,
   INPUT_LEFT,
@@ -274,6 +275,7 @@ const over = document.getElementById("over") as HTMLElement;
 const stable = document.getElementById("stable") as HTMLElement;
 const said = document.getElementById("said") as HTMLElement;
 const boast = document.getElementById("boast") as HTMLElement;
+const sent = document.getElementById("sent") as HTMLElement;
 const sendIt = document.getElementById("sendit") as HTMLButtonElement;
 const qrCanvas = document.getElementById("qr") as HTMLCanvasElement;
 const qrHint = document.getElementById("qrhint") as HTMLElement;
@@ -583,6 +585,7 @@ function reset(): void {
   // hidden again until the next win.
   qrCanvas.hidden = true;
   qrHint.hidden = true;
+  sent.hidden = true;
   raw = build();
   engine = new Readout(raw);
   moving = isRealtime(raw) ? (raw as unknown as Moving) : null;
@@ -627,28 +630,57 @@ function reset(): void {
  * Saying "hits hard" on a platformer would be a small lie, and the whole point
  * of the budget is that a kid can predict what their creature will do.
  */
-const STRENGTH_WORDS: Record<string, readonly [string, string, string]> = {
-  dash: ["jumps miles", "jumps all right", "can barely hop"],
-  default: ["hits hard", "hits all right", "barely swings"],
-};
+/**
+ * What this creature is, as two rows a kid can read across.
+ *
+ * It used to be three adjectives -- "hits hard · slow · 8 hearts" -- which hid
+ * the numbers a child had just spent points on. Two builds that felt different
+ * read identically, because strength 4 and strength 5 were both "hits hard".
+ *
+ * So: the value, then what the value buys. The pips are the same thing the
+ * make page counts out, so "I gave it four" and "it has four" are the same
+ * picture in both places.
+ *
+ * The noun is fixed and the verb is the engine's (spec §6): strength is a
+ * harder sword from above and a higher jump from the side, and saying "hits
+ * hard" on a platformer would be a small lie.
+ */
+function pipRow(label: string, pips: number, says: string): string {
+  const filled = "\u25cf".repeat(pips) + "\u25cb".repeat(PIP_MAX - pips);
+  return (
+    `<span class="row"><b class="what">${label}</b>` +
+    `<b class="pips">${filled}</b><span class="buys">${says}</span></span>`
+  );
+}
 
 function traitLine(creature: Creature): string {
   const build = capsToBuild(creature.caps);
-  const words = STRENGTH_WORDS[level.engine] ?? (STRENGTH_WORDS.default as readonly string[]);
-  const strength = build.FORCE >= 4 ? words[0] : build.FORCE >= 2 ? words[1] : words[2];
-  // Hearts follow strength, and saying so is the only way a kid finds out that
-  // spending on strength buys more than a harder hit.
-  //
-  // Asked, never copied. This line used to compute "2 + strength" itself, which
-  // was two separate lies: roam/4 hands out "3 + strength", so the picker
-  // promised three hearts while the HUD drew four -- and a turn-based level has
-  // no hearts at all, so it was promising hearts that were never there.
+  const sideOn = level.engine === "dash";
+
+  // What strength actually buys, in the units of THIS game rather than an
+  // adjective. Read out of the engine that is running, never recomputed here.
   const hearts = moving === null ? null : (moving as Moving).health().max;
-  return [
-    strength,
-    build.HASTE >= 4 ? "quick on its feet" : build.HASTE >= 2 ? "steady" : "slow",
-    ...(hearts === null ? [] : [`${hearts} hearts`]),
-  ].join(" · ");
+  const strongBuys: string[] = [];
+  if (sideOn) {
+    // This creature's own step, from the table the checker uses, so the picker
+    // and "can this level be finished" never disagree about the same jump.
+    const cells = stepTableFor(level.behaviourVersion)[build.FORCE] ?? 1;
+    strongBuys.push(`jumps ${cells} ${cells === 1 ? "cell" : "cells"} up`);
+  } else if (creature.weapon === "wand") {
+    // A wand never kills, whatever its strength. That is the trade.
+    strongBuys.push("freezes for longer");
+  } else {
+    const hits = hitsToKillFor(creature);
+    strongBuys.push(`${hits} ${hits === 1 ? "hit" : "hits"} to down an enemy`);
+  }
+  if (hearts !== null) strongBuys.push(`${hearts} hearts`);
+
+  const speed = speedFor(creature);
+  const fastBuys = `${(speed / ENEMY_SPEED).toFixed(1)}× an enemy's pace`;
+
+  return (
+    pipRow("strong", build.FORCE, strongBuys.join(", ")) + pipRow("fast", build.HASTE, fastBuys)
+  );
 }
 
 /**
@@ -772,7 +804,7 @@ function paintStable(): void {
     });
     stable.appendChild(button);
   }
-  trait.textContent = traitLine(chosen);
+  trait.innerHTML = traitLine(chosen);
 }
 
 // --- layout -----------------------------------------------------------------
@@ -958,7 +990,9 @@ function myScore(): number {
  */
 async function share(): Promise<void> {
   if (!hasBeatenThis()) {
-    said.textContent = "finish the level first, then you can send it";
+    sent.className = "bad";
+    sent.textContent = "finish the level first, then you can send it";
+    sent.hidden = false;
     return;
   }
   const base = `${window.location.origin}${window.location.pathname}`;
@@ -976,13 +1010,18 @@ async function share(): Promise<void> {
     : linkFor(level, levelName, base);
   try {
     await navigator.clipboard.writeText(url);
-    said.textContent = sendingBack
+    sent.className = "";
+    sent.textContent = sendingBack
       ? "copied — send it back and see if they can beat your score"
-      : "link copied — paste it to a friend";
+      : "link copied — send it to a friend";
+    sent.hidden = false;
   } catch {
     // Clipboard access needs a secure context and a real gesture; when it is
-    // refused, showing the link is still a way to send it.
-    said.textContent = url;
+    // refused, showing the link is still a way to send it -- but say so, or a
+    // wall of characters reads as an error rather than as the thing to copy.
+    sent.className = "bad";
+    sent.textContent = `press and hold this to copy it: ${url}`;
+    sent.hidden = false;
   }
 }
 
