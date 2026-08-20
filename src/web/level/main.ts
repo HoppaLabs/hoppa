@@ -128,21 +128,26 @@ nameBox.value = start.name;
  * whatever the row has left over -- measured, never assumed.
  */
 /**
- * Whether the level is drawn bigger than the screen and scrolled.
+ * The cell size to draw at, or null for "the whole level at once".
  *
- * On a phone the level is as wide as it can be at "whole level" -- 24 cells
+ * On a phone the level is as wide as it can be when it all fits -- 24 cells
  * across about 370 points is roughly a 15 point cell, and a fingertip is nearer
  * 40. You cannot have both the whole level and a comfortable target on a screen
- * that size, so this is the choice: see everything, or see it properly.
+ * that size, so this is the choice, and pinching is how you make it.
  */
-let big = false;
+let viewTile: number | null = null;
 
 /**
- * The cell size "bigger" aims for, in points. Apple and Google both put the
+ * The cell size the button aims for, in points. Apple and Google both put the
  * smallest safe touch target near 44; this is under that because you can slide
  * to correct before letting go, and a 44 point cell would show six columns.
  */
 const COMFORTABLE = 34;
+/** As close as pinching will go. Beyond this you are looking at four squares. */
+const MAX_TILE = 64;
+
+/** The size the whole level fits at, which is also as far out as you can pinch. */
+let fitTile = 1;
 
 /** Where the viewport is looking, in cells, when the level is bigger than it. */
 let panX = 0;
@@ -159,17 +164,25 @@ function refit(): void {
   // reader has forced on us.
   const sideBox = side.getBoundingClientRect();
   const availableWidth = Math.max(240, board.clientWidth - (wide ? sideBox.width + GAP : 0));
+  // The height budget must NOT subtract the tools when they sit BELOW the
+  // level: the page scrolls, so they do not have to share the screen with it.
+  // Subtracting them squeezed the level to 10 point cells on a real phone --
+  // where the browser's own chrome already eats a chunk of innerHeight --
+  // while the game page, which sizes the same level by width, got 15. Same
+  // level, same phone, two thirds the size. Reported with screenshots.
   const availableHeight = wide
     ? Math.max(200, window.innerHeight - 90)
-    : Math.max(150, window.innerHeight - sideBox.height - 140);
+    : Math.max(180, Math.round(window.innerHeight * 0.75));
 
   // Fit first, then multiply: the zoom is "twice as big as it would otherwise
   // be", not a fixed cell size, so it means the same thing on every screen.
   renderer.fit(availableWidth, availableHeight);
-  const fitted = renderer.tileSize();
-  // Twice as big, or comfortable, whichever is bigger. A fixed multiple would
-  // leave a small phone at 20 points a cell, which is no better than it was.
-  if (big) renderer.setTileSize(Math.max(fitted * 2, COMFORTABLE));
+  fitTile = renderer.tileSize();
+  // You can pinch in as far as MAX_TILE and out until the level fits, and no
+  // further either way: past the fit there is nothing left to see, and past
+  // MAX_TILE there is nothing left on screen.
+  const target = viewTile === null ? fitTile : viewTile;
+  renderer.setTileSize(Math.max(fitTile, Math.min(MAX_TILE, Math.round(target))));
 
   // The window through which the level is seen. At 1x it is the whole thing.
   viewport.style.width = `${Math.min(availableWidth, renderer.tileSize() * GRID_W)}px`;
@@ -202,7 +215,7 @@ function paintViewbar(): void {
   const tile = renderer.tileSize();
   const scrolls = renderer.tileSize() * GRID_W > viewport.clientWidth + 1
     || tile * GRID_H > viewport.clientHeight + 1;
-  zoomButton.textContent = big ? "whole level" : "bigger";
+  zoomButton.textContent = renderer.tileSize() > fitTile ? "whole level" : "bigger";
   pans.hidden = !scrolls;
 }
 
@@ -295,6 +308,12 @@ function put(x: number, y: number): void {
  * aim you can see is easy.
  */
 paper.addEventListener("pointerdown", (event) => {
+  down.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  if (down.size >= 2) {
+    beginPinch();
+    return;
+  }
+
   const cell = cellAt(event);
   if (cell === null) return;
   paper.setPointerCapture(event.pointerId);
@@ -305,6 +324,14 @@ paper.addEventListener("pointerdown", (event) => {
 });
 
 paper.addEventListener("pointermove", (event) => {
+  if (down.has(event.pointerId)) {
+    down.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  }
+  if (pinch !== null) {
+    movePinch();
+    return;
+  }
+
   if (!drawing) return;
   const cell = cellAt(event);
   if (cell === null) return;
@@ -316,6 +343,13 @@ paper.addEventListener("pointermove", (event) => {
 });
 
 paper.addEventListener("pointerup", (event) => {
+  down.delete(event.pointerId);
+  if (pinch !== null) {
+    // Lifting one finger of a pinch ends the pinch; it does not start a stroke.
+    if (down.size < 2) pinch = null;
+    return;
+  }
+
   if (!drawing) return;
   drawing = false;
   const cell = cellAt(event);
@@ -324,7 +358,9 @@ paper.addEventListener("pointerup", (event) => {
 });
 
 for (const name of ["pointercancel", "pointerleave"]) {
-  paper.addEventListener(name, () => {
+  paper.addEventListener(name, (event) => {
+    down.delete((event as PointerEvent).pointerId);
+    if (down.size < 2) pinch = null;
     drawing = false;
     paintAim(null);
   });
@@ -333,10 +369,85 @@ for (const name of ["pointercancel", "pointerleave"]) {
 // --- looking around ---------------------------------------------------------------
 
 zoomButton.addEventListener("click", () => {
-  big = !big;
-  if (!big) { panX = 0; panY = 0; }
+  if (renderer.tileSize() > fitTile) {
+    viewTile = null;
+    panX = 0;
+    panY = 0;
+  } else {
+    // Twice as big, or comfortable, whichever is bigger. A fixed multiple would
+    // leave a small phone at 20 points a cell, which is no better than it was.
+    viewTile = Math.max(fitTile * 2, COMFORTABLE);
+  }
   refit();
 });
+
+// --- pinching -----------------------------------------------------------------------
+//
+// The gesture everybody already has. The button is kept because it needs no
+// gesture at all, works with a mouse, and gets you straight to a size worth
+// drawing at -- but pinching is how you actually settle on one.
+
+const down = new Map<number, { x: number; y: number }>();
+let pinch: { gap: number; tile: number; cellX: number; cellY: number } | null = null;
+
+function gapBetween(a: { x: number; y: number }, c: { x: number; y: number }): number {
+  return Math.hypot(a.x - c.x, a.y - c.y);
+}
+
+function midpoint(a: { x: number; y: number }, c: { x: number; y: number }) {
+  return { x: (a.x + c.x) / 2, y: (a.y + c.y) / 2 };
+}
+
+/** The level coordinate under a point on the screen, in cells. */
+function cellUnder(px: number, py: number): { cellX: number; cellY: number } {
+  const box = viewport.getBoundingClientRect();
+  const tile = renderer.tileSize();
+  return {
+    cellX: panX + (px - box.left) / tile,
+    cellY: panY + (py - box.top) / tile,
+  };
+}
+
+function beginPinch(): void {
+  const points = [...down.values()];
+  if (points.length < 2) return;
+  const a = points[0] as { x: number; y: number };
+  const c = points[1] as { x: number; y: number };
+  const mid = midpoint(a, c);
+  const under = cellUnder(mid.x, mid.y);
+  pinch = { gap: Math.max(1, gapBetween(a, c)), tile: renderer.tileSize(), ...under };
+  // A second finger means this was never a stroke. Drop anything in progress.
+  drawing = false;
+  paintAim(null);
+}
+
+function movePinch(): void {
+  if (pinch === null) return;
+  const points = [...down.values()];
+  if (points.length < 2) return;
+  const a = points[0] as { x: number; y: number };
+  const c = points[1] as { x: number; y: number };
+
+  const wanted = (pinch.tile * Math.max(1, gapBetween(a, c))) / pinch.gap;
+  viewTile = Math.max(fitTile, Math.min(MAX_TILE, Math.round(wanted)));
+  renderer.setTileSize(viewTile);
+
+  // Keep the spot between the fingers where it was, so the level grows out of
+  // what you are looking at rather than out of its top-left corner.
+  const box = viewport.getBoundingClientRect();
+  const mid = midpoint(a, c);
+  const tile = renderer.tileSize();
+  panX = pinch.cellX - (mid.x - box.left) / tile;
+  panY = pinch.cellY - (mid.y - box.top) / tile;
+
+  aim.width = paper.width;
+  aim.height = paper.height;
+  aim.style.width = paper.style.width;
+  aim.style.height = paper.style.height;
+  clampPan();
+  paintViewbar();
+  repaint();
+}
 
 const PANS: ReadonlyArray<readonly [string, number, number]> = [
   ["panleft", -4, 0],
