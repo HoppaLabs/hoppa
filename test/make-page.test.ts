@@ -42,16 +42,37 @@ test("the weapons explain themselves, so nothing repeats them", () => {
   expect(main.includes("enemies frozen on the spot")).toBe(true);
 });
 
-test("fifty-four swatches stay folded away until somebody wants one", () => {
-  // The palette is wanted for the two seconds spent changing what one of the
-  // three colours IS, and it was a wall across the page the rest of the time.
-  expect(html.includes('<div id="swatches" hidden>')).toBe(true);
-  // `display: grid` beats the hidden attribute unless this is said.
-  expect(html.includes("#swatches[hidden] { display: none; }")).toBe(true);
-  expect(main.includes("showSwatches(false);")).toBe(true);
-  // Tapping the open slot shuts it, so there is a way out that is not "pick a
-  // colour you did not want".
-  expect(main.includes("const shut = !swatches.hidden && slot === index;")).toBe(true);
+test("the paint box is open, because it is a paint box and not a settings panel", () => {
+  // Folded away on day 15, with the note "fifty-four swatches is a wall, and it
+  // is only wanted for the two seconds somebody spends changing what one of the
+  // three colours IS". That sentence describes a settings panel. For a child
+  // this is the paint box, and choosing colours is most of what they came to
+  // do -- reported by a real user, who beats the reasoning.
+  expect(html.includes('<div id="swatches"></div>')).toBe(true);
+  expect(html.includes('<div id="swatches" hidden>')).toBe(false);
+  expect(main).not.toContain("showSwatches");
+});
+
+test("one selection over the three colours, not two", () => {
+  // There used to be the pen you drew with AND a separate row of buttons
+  // numbered 1, 2, 3 saying which colour the palette edited, with nothing tying
+  // them together: you could draw in one colour while the palette quietly
+  // changed another. Reported as "it's too confusing picking the slots".
+  expect(html).not.toMatch(/id="slot[123]"/);
+  expect(html.includes("change a colour")).toBe(false);
+  expect(main).not.toContain("let slot");
+  // The palette reads the pen, so there is nothing left to disagree with.
+  expect(main.includes("sprite.sub[ink - 1] === index")).toBe(true);
+  expect(main.includes("sub[ink - 1] = index;")).toBe(true);
+});
+
+test("the rubber has no colour, and the page says so without moving", () => {
+  // A page that changes height under a thumb is a page that gets mis-tapped,
+  // so the palette stays put and goes quiet rather than disappearing.
+  expect(main.includes("const rubber = ink === 0;")).toBe(true);
+  expect(main.includes('swatches.classList.toggle("idle", rubber);')).toBe(true);
+  expect(html.includes("#swatches.idle { opacity: .3; pointer-events: none; }")).toBe(true);
+  expect(main.includes('inkHint.textContent = rubber')).toBe(true);
 });
 
 test("what pasting a code says appears next to the box you pasted into", () => {

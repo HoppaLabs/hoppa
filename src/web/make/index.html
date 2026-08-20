@@ -50,14 +50,30 @@
   /* The four inks. The swatch IS the colour, so it needs no label. */
   #inks button { width: 52px; height: 44px; padding: 0; position: relative; }
   #inks button.on { outline: 2px solid var(--gold); outline-offset: 2px; }
+  /* The rubber used to be drawn as a checkerboard and nothing else, which reads
+     as a colour that is MISSING rather than as a tool. The chequer stays -- it
+     is what "see-through" looks like everywhere -- but a rubber sits on it, so
+     the button says what it does. */
   #inks .none { background:
       linear-gradient(45deg, #1a212b 25%, transparent 25%, transparent 75%, #1a212b 75%) 0 0/12px 12px,
       linear-gradient(45deg, #1a212b 25%, #0d1014 25%, #0d1014 75%, #1a212b 75%) 6px 6px/12px 12px; }
+  #inks .none svg, #clear svg { display: block; width: 20px; height: 20px; }
+  #inks .none svg { margin: 0 auto; }
+  #inks .none svg path, #clear svg path {
+    fill: none; stroke: var(--ink-bright); stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  /* Drop shadow in the flat sense: a dark copy underneath, so the outline reads
+     against both squares of the chequer. */
+  #inks .none svg { filter: drop-shadow(0 0 2px #0d1014) drop-shadow(0 0 2px #0d1014); }
+  #clear { display: inline-flex; align-items: center; gap: 7px; }
   #swatches { display: grid; grid-template-columns: repeat(9, 30px); gap: 4px; }
-  /* `display: grid` beats the hidden attribute, so say so. */
-  #swatches[hidden] { display: none; }
   #swatches button { width: 30px; height: 26px; padding: 0; border-radius: 5px; }
   #swatches button.on { outline: 2px solid var(--ink-bright); outline-offset: 1px; }
+  /* The rubber has no colour to change, so the palette has nothing to do. It
+     stays PUT rather than disappearing: a page that changes height under a
+     thumb is a page that gets mis-tapped. */
+  #swatches.idle { opacity: .3; pointer-events: none; }
   #go { background: var(--open); color: var(--bg); font-weight: 600; border: 0; }
   #note { min-height: 1.3em; text-align: center; max-width: 36ch; }
   a { color: var(--ink); }
@@ -91,6 +107,10 @@
   #qrwhat[hidden] { display: none; }
   #qrwhat b { color: var(--ink-bright); }
   .hint { font-size: 11px; color: var(--ink); text-align: center; max-width: 34ch; }
+  /* This line changes as you switch pens, and a line that changes HEIGHT moves
+     everything under it -- which is the mis-tap the palette was kept in place
+     to avoid. Pinned to one line, so both messages have to be short. */
+  #inkhint { min-height: 1.4em; }
   /* Sword or wand. Two buttons, each showing the thing itself, because the
      word "wand" and the word "sword" look alike to somebody still learning to
      read and the picture does not. */
@@ -121,15 +141,10 @@
 <canvas id="paper" width="320" height="320"></canvas>
 
 <div class="row" id="inks"></div>
-<div class="hint">pick a colour, then draw</div>
-
-<div class="row">
-  <span>change a colour</span>
-  <button id="slot1" class="on" aria-label="change the first colour">1</button>
-  <button id="slot2" aria-label="change the second colour">2</button>
-  <button id="slot3" aria-label="change the third colour">3</button>
-</div>
-<div id="swatches" hidden></div>
+<!-- One selection, not two. The palette below always belongs to whichever pen
+     is picked above -- see paintSwatches(). -->
+<div class="hint" id="inkhint">pick a colour, then draw</div>
+<div id="swatches"></div>
 
 <h2>what it swings</h2>
 <div id="weapons" role="group" aria-label="what your character swings"></div>
@@ -145,7 +160,12 @@
 </div>
 
 <div class="row">
-  <button id="clear">clear</button>
+  <button id="clear">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M8.5 18.5H21"/>
+      <path d="M14.8 4.7 4.7 14.8a2 2 0 0 0 0 2.8l2.2 2.2a2 2 0 0 0 2.8 0L19.8 9.7a2 2 0 0 0 0-2.8l-2.2-2.2a2 2 0 0 0-2.8 0Z"/>
+      <path d="M10 9.5 15 14.5"/>
+    </svg>rub it all out</button>
   <button id="go">play as this</button>
 </div>
 <div id="note"></div>

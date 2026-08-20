@@ -33,6 +33,7 @@ const paper = document.getElementById("paper") as HTMLCanvasElement;
 const context = paper.getContext("2d") as CanvasRenderingContext2D;
 const inks = document.getElementById("inks") as HTMLElement;
 const swatches = document.getElementById("swatches") as HTMLElement;
+const inkHint = document.getElementById("inkhint") as HTMLElement;
 const nameField = document.getElementById("name") as HTMLInputElement;
 const note = document.getElementById("note") as HTMLElement;
 const stats = document.getElementById("stats") as HTMLElement;
@@ -49,7 +50,6 @@ const saved = loadCharacter() ?? startingCharacter();
 let sprite: Sprite = saved.creature.sprite;
 const build: Record<string, number> = { ...saved.build };
 let ink = 1;
-let slot = 0;
 let weapon: Weapon = saved.creature.weapon;
 nameField.value = saved.creature.name;
 
@@ -125,17 +125,37 @@ for (const name of ["pointerup", "pointercancel", "pointerleave"]) {
 
 // --- the four inks ----------------------------------------------------------
 
+/**
+ * The rubber, drawn as a rubber.
+ *
+ * The see-through pen was a chequered square and nothing else, which reads as a
+ * colour that is MISSING rather than as the tool that takes colour away. The
+ * chequer stays -- it is what see-through looks like everywhere -- and the
+ * rubber sits on top of it.
+ */
+const RUBBER_ICON =
+  '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+  '<path d="M8.5 18.5H21"/>' +
+  '<path d="M14.8 4.7 4.7 14.8a2 2 0 0 0 0 2.8l2.2 2.2a2 2 0 0 0 2.8 0L19.8 9.7a2 2 0 0 0 0-2.8' +
+  'l-2.2-2.2a2 2 0 0 0-2.8 0Z"/>' +
+  '<path d="M10 9.5 15 14.5"/>' +
+  "</svg>";
+
 function paintInks(): void {
   inks.innerHTML = "";
   for (let value = 0; value <= 3; value++) {
     const button = document.createElement("button");
     button.className = value === ink ? "on" : "";
-    if (value === 0) button.classList.add("none");
-    else button.style.background = colourFor(sprite.sub, value) as string;
-    button.setAttribute("aria-label", value === 0 ? "see-through" : `colour ${value}`);
+    if (value === 0) {
+      button.classList.add("none");
+      button.innerHTML = RUBBER_ICON;
+    } else button.style.background = colourFor(sprite.sub, value) as string;
+    button.setAttribute("aria-label", value === 0 ? "rub out" : `colour ${value}`);
     button.addEventListener("click", () => {
       ink = value;
       paintInks();
+      // The palette belongs to the pen, so picking a pen re-points it.
+      paintSwatches();
     });
     inks.appendChild(button);
   }
@@ -143,51 +163,55 @@ function paintInks(): void {
 
 // --- the master palette -----------------------------------------------------
 
+/**
+ * The palette, always open, and always pointed at the pen you are drawing with.
+ *
+ * There used to be two selections over the same three colours: which pen you
+ * drew with, and -- on a separate row of buttons numbered 1, 2, 3 -- which
+ * colour the palette was editing. Nothing tied them together, so you could be
+ * drawing in one colour while the palette quietly changed another, and the page
+ * never said so. Reported as "it's too confusing picking the slots", which it
+ * was: it is a whole second idea to hold, for no gain.
+ *
+ * There is one selection now. Tap a pen; the palette IS that pen.
+ *
+ * It also stays open. It was folded away on day 15 with the note "fifty-four
+ * swatches is a wall, and it is only wanted for the two seconds somebody spends
+ * changing what one of the three colours IS" -- which is what a settings panel
+ * is, and this is not one. It is the paint box, and choosing colours is most of
+ * what a child comes here to do. Measured: open it costs 176px, the row of
+ * numbered buttons it replaces was 44, so about 130px net on a page already two
+ * screens long.
+ */
 function paintSwatches(): void {
   swatches.innerHTML = "";
+  // The rubber is a pen with no colour. The palette stays where it is rather
+  // than vanishing -- a page that changes height under a thumb gets mis-tapped
+  // -- but there is nothing for it to change.
+  const rubber = ink === 0;
+  swatches.classList.toggle("idle", rubber);
+  swatches.setAttribute("aria-disabled", String(rubber));
+  inkHint.textContent = rubber ? "rubbing out, not drawing" : "tap a colour below to change it";
+
   for (let index = 0; index < PALETTE.length; index++) {
     const button = document.createElement("button");
     button.style.background = PALETTE[index] as string;
-    button.className = sprite.sub[slot] === index ? "on" : "";
+    button.className = !rubber && sprite.sub[ink - 1] === index ? "on" : "";
     button.setAttribute("aria-label", `palette colour ${index}`);
     button.addEventListener("click", () => {
+      if (rubber) return;
       const sub = [...sprite.sub];
-      sub[slot] = index;
+      sub[ink - 1] = index;
       sprite = { pixels: sprite.pixels, sub: normaliseSubPalette(sub) };
+      // Changing a pen's colour repaints everything already drawn in it, which
+      // is the point: it is how you try a creature in green.
       paintSwatches();
       paintInks();
       paintCode();
       paint();
-      showSwatches(false);
     });
     swatches.appendChild(button);
   }
-}
-
-/**
- * Fifty-four swatches is a wall, and it is only wanted for the two seconds
- * somebody spends changing what one of the three colours IS. It stays shut
- * until a slot is tapped and shuts again on the way out, which takes a third of
- * the page back for the drawing.
- */
-function showSwatches(open: boolean): void {
-  swatches.hidden = !open;
-  for (const index of [0, 1, 2]) {
-    const button = document.getElementById(`slot${index + 1}`) as HTMLButtonElement;
-    button.className = open && index === slot ? "on" : "";
-  }
-}
-
-for (const index of [0, 1, 2]) {
-  const button = document.getElementById(`slot${index + 1}`) as HTMLButtonElement;
-  button.addEventListener("click", () => {
-    // Tapping the slot that is already open closes it, so there is a way out
-    // that is not "pick a colour you did not want".
-    const shut = !swatches.hidden && slot === index;
-    slot = index;
-    paintSwatches();
-    showSwatches(!shut);
-  });
 }
 
 // --- the rest ---------------------------------------------------------------
@@ -417,7 +441,6 @@ nameField.addEventListener("input", paintCode);
 
 paintInks();
 paintSwatches();
-showSwatches(false);
 paintStats();
 paintWeapons();
 paintCode();
