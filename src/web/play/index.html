@@ -97,11 +97,14 @@
   #trait { color: var(--ink); font-size: 12px; text-align: center; max-width: 34ch; }
 
   #stage { position: relative; }
+  /* The win screen covers the whole page, not just the board. Once there is a
+     QR code on it, it is taller than the grid and would otherwise spill over
+     the controls. Its own scroll, so a short phone can still reach the buttons. */
   #over {
-    position: absolute; inset: 0; display: none;
+    position: fixed; inset: 0; z-index: 10; display: none;
     flex-direction: column; align-items: center; justify-content: center; gap: 12px;
-    background: rgba(13, 16, 20, .86); border-radius: 3px; text-align: center;
-    padding: 12px;
+    background: rgba(13, 16, 20, .95); text-align: center;
+    padding: 20px 12px; overflow-y: auto;
   }
   #over.show { display: flex; }
   #verdict {
@@ -123,6 +126,18 @@
     font-weight: 600;
   }
   #sendit[hidden] { display: none; }
+  #over .row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  /* The QR code. Two kids in the same room with no messaging app between them
+     can still pass a level across: one holds up the screen, the other points a
+     camera at it. It needs a white quiet zone around it or nothing will read
+     it, which is why it is not simply drawn on the dark background. */
+  #qr {
+    display: block; image-rendering: pixelated; border-radius: 4px;
+    background: #ffffff; padding: 0;
+  }
+  #qr[hidden] { display: none; }
+  #qrhint { font-size: 11px; color: var(--ink); }
+  #qrhint[hidden] { display: none; }
   #reset {
     font: inherit; color: var(--ink); background: none;
     border: 1px solid var(--edge); border-radius: 6px; padding: 5px 10px;
@@ -160,8 +175,12 @@
       <div id="verdict"></div>
       <div id="saying"></div>
       <div id="tally"></div>
-      <button id="again">play again</button>
-      <button id="sendit" hidden>send it to a friend</button>
+      <canvas id="qr" hidden></canvas>
+      <div id="qrhint" hidden>point another phone's camera at this</div>
+      <div class="row">
+        <button id="again">play again</button>
+        <button id="sendit" hidden>send it to a friend</button>
+      </div>
     </div>
   </div>
   <nav id="pad">

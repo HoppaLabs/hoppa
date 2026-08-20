@@ -15,6 +15,7 @@ import { ROAM1_LEVEL_TEXT } from "../../core/fixtures.ts";
 import { PRESETS, SPENDABLE, capsToBuild, type Creature } from "../../core/creature.ts";
 import { CodecError, encodeLevel } from "../../core/codec.ts";
 import { levelFromHash, linkFor } from "./link.ts";
+import { encodeQr, QrError } from "../../core/qr.ts";
 import { loadCharacter } from "../stash.ts";
 import { parseLevel } from "../../core/level.ts";
 import { hashHex } from "../../core/hash.ts";
@@ -125,6 +126,8 @@ const stable = document.getElementById("stable") as HTMLElement;
 const said = document.getElementById("said") as HTMLElement;
 const shareButton = document.getElementById("share") as HTMLButtonElement;
 const sendIt = document.getElementById("sendit") as HTMLButtonElement;
+const qrCanvas = document.getElementById("qr") as HTMLCanvasElement;
+const qrHint = document.getElementById("qrhint") as HTMLElement;
 const levelname = document.getElementById("levelname") as HTMLElement;
 const trait = document.getElementById("trait") as HTMLElement;
 const verdict = document.getElementById("verdict") as HTMLElement;
@@ -136,6 +139,57 @@ let blockedUntil = 0;
 
 function finished(): boolean {
   return moving === null ? engine.finished() : moving.currentStatus() !== 0;
+}
+
+/**
+ * Draw the share link as a QR code on the win screen.
+ *
+ * Drawn once, when the level is first beaten, rather than every frame: it is a
+ * few thousand fills and the win screen is not the place to drop frames.
+ */
+let qrDrawn = false;
+
+function paintQr(): void {
+  if (qrDrawn) return;
+  const base = `${window.location.origin}${window.location.pathname}`;
+  const url = linkFor(level, levelName, base);
+
+  let code;
+  try {
+    code = encodeQr(url);
+  } catch (err) {
+    // A link too long for a QR is still a link. Say nothing and show the button.
+    if (!(err instanceof QrError)) throw err;
+    return;
+  }
+
+  // Four modules of white all the way round, or no camera will lock on.
+  const quiet = 4;
+  const modules = code.size + quiet * 2;
+  const scale = Math.max(2, Math.floor(Math.min(200, window.innerWidth - 80) / modules));
+  const side = modules * scale;
+
+  qrCanvas.width = side;
+  qrCanvas.height = side;
+  qrCanvas.style.width = `${side}px`;
+  qrCanvas.style.height = `${side}px`;
+
+  const ctx = qrCanvas.getContext("2d");
+  if (ctx === null) return;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, side, side);
+  ctx.fillStyle = "#000000";
+  for (let y = 0; y < code.size; y++) {
+    for (let x = 0; x < code.size; x++) {
+      if (code.modules[y * code.size + x] === 1) {
+        ctx.fillRect((x + quiet) * scale, (y + quiet) * scale, scale, scale);
+      }
+    }
+  }
+
+  qrCanvas.hidden = false;
+  qrHint.hidden = false;
+  qrDrawn = true;
 }
 
 /** Show or hide the two share buttons according to the gate. */
@@ -197,6 +251,7 @@ function paint(): void {
       rememberBeaten(levelCode);
       paintShareGate();
     }
+    if (won) paintQr();
     over.className = won ? "show" : "show lost";
     verdict.textContent = won ? "you win" : engine.wasCaught() ? "caught" : "oh no";
     saying.textContent = engine.message() ?? "";
@@ -244,6 +299,7 @@ function paintMovingHud(): void {
       rememberBeaten(levelCode);
       paintShareGate();
     }
+    if (won) paintQr();
     over.className = won ? "show" : "show lost";
     verdict.textContent = won ? "you win" : "oh no";
     saying.textContent = game.message() ?? "";
@@ -255,6 +311,10 @@ function paintMovingHud(): void {
 
 function reset(): void {
   if (loop !== null) loop.stop();
+  // The code is for this level, so it survives a replay -- but the panel is
+  // hidden again until the next win.
+  qrCanvas.hidden = true;
+  qrHint.hidden = true;
   raw = build();
   engine = new Readout(raw);
   moving = isRealtime(raw) ? (raw as unknown as Moving) : null;
