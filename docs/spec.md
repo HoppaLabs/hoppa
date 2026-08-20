@@ -208,6 +208,11 @@ biggest threat to the premise and it needs three mitigations, not one:
 3. **QR on screen.** Two kids in the same room photograph each other's screens.
    It's the most natural transfer mechanism at that age and it costs nothing.
 
+The 7-day counter applies to the **offline cache** as well (`docs/adr/0023`): the
+game plays with no network for a week at a time, and then the registration is
+evicted like everything else. Offline is a convenience. The creature code is the
+guarantee.
+
 ### Code format
 
 Level and result codes are base64url — always tapped, never typed.
@@ -712,7 +717,7 @@ alongside; they just stop dictating the order.
 | 11 | Send back a result: your time, and the creature that did it | Result links (252 chars); watching the run does not fit — a replay is 1,700–3,000 chars, `docs/adr/0021` |
 | 12 | **A second game.** Your heavy creature is suddenly the hero | Shove engine, reusing tick model |
 | 13 | Whatever the kids asked for, plus everything they broke | Red team: truncated URLs, retyped codes, unsolvable levels, zero-cap creatures, cycle abuse, oversized sprites |
-| 14 | The whole loop, offline, on a plane | Service worker, golden vectors, README |
+| 14 | The whole loop, offline, on a plane | Service worker, golden vectors, README. A fragment never reaches a server, so one cached shell plays **every level anybody will ever send** — `docs/adr/0023` |
 
 ### What this reordering revealed
 

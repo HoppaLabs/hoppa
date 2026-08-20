@@ -36,6 +36,7 @@ import {
   type Input,
 } from "../../engines/types.ts";
 import { GridRenderer } from "./renderer.ts";
+import { goOffline } from "../offline.ts";
 
 const BUILT_IN_NAME = "First Run";
 
@@ -938,3 +939,7 @@ if (moving !== null) {
   loop = new Loop(moving, buttons, paint, finished, (held) => recorder.push(held));
   loop.start();
 }
+
+// Everything above works with no network. This is what makes that true after
+// the first visit as well -- see src/web/sw.ts.
+goOffline("./");

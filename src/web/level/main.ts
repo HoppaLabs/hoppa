@@ -30,6 +30,7 @@ import {
   TILE_LADDER, TILE_TREASURE, TILE_WALL,
 } from "../../core/tiles.ts";
 import { loadDraft, saveDraft } from "../stash.ts";
+import { goOffline } from "../offline.ts";
 
 // --- what you can draw with ---------------------------------------------------
 //
@@ -630,3 +631,7 @@ review();
 
 window.addEventListener("resize", refit);
 window.addEventListener("orientationchange", refit);
+
+// Everything above works with no network. This is what makes that true after
+// the first visit as well -- see src/web/sw.ts.
+goOffline("../");

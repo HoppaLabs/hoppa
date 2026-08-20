@@ -89,6 +89,19 @@ never floats, and wall-clock time never reaches the engine. So a replay is still
 exact, and a share link still proves a win — see
 [`docs/adr/0009`](docs/adr/0009-real-time.md).
 
+## It works with the radio off
+
+A level lives in the URL *fragment*, and a fragment is never sent to a server. So
+the service worker does not cache "the app minus the levels" — it caches
+**every level anybody will ever send**, including ones that do not exist yet.
+Open the game once and a friend's link works in a car with no signal.
+
+The cache is named after a hash of the six files in it, so an unchanged build
+produces a byte-identical worker and a changed one can never be served from a
+stale cache. If a new build lands while you are looking at the page and have not
+touched it, the page quietly reloads into it; the moment you start playing, it
+does not. See [`docs/adr/0023`](docs/adr/0023-offline.md).
+
 ## Your character is a code
 
 Browsers throw storage away — Safari after 7 days without a visit. So a

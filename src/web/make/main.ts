@@ -27,6 +27,7 @@ import {
 import { loadCharacter, saveCharacter, startingCharacter } from "../stash.ts";
 import { ChrError, decodeCharacter, encodeCharacter } from "../../core/chr.ts";
 import { encodeQr, QrError } from "../../core/qr.ts";
+import { goOffline } from "../offline.ts";
 
 const paper = document.getElementById("paper") as HTMLCanvasElement;
 const context = paper.getContext("2d") as CanvasRenderingContext2D;
@@ -383,3 +384,7 @@ paintStats();
 paintWeapons();
 paintCode();
 paint();
+
+// Everything above works with no network. This is what makes that true after
+// the first visit as well -- see src/web/sw.ts.
+goOffline("../");
