@@ -157,13 +157,37 @@ test("a room that ships does not also show up as one you played before", () => {
   // Both lists are on the same screen. The same room in both is furniture, and
   // six shipped rooms would push out every level a friend actually sent.
   expect(play.includes("const shipped = new Set(PACK.map((room) => room.code));")).toBe(true);
-  expect(play.includes("if (shared !== null && !shipped.has(levelCode)) rememberPlayed(")).toBe(
-    true,
-  );
+  expect(play.includes("if (shared !== null && !isShipped) rememberPlayed(")).toBe(true);
 });
 
 test("the pack is shown as ordinary level links and nothing more", () => {
   // A pack with its own plumbing would be a second way to play a level. Tapping
   // one of these has to be the same act as tapping one in a message.
   expect(play.includes("link.href = `#p/${room.slug}/${room.code}`")).toBe(true);
+});
+
+test("beating one of the six offers the level, not a score to send back", () => {
+  // The six arrive as #p/ links like any other level, so the page could not
+  // tell "somebody sent me this" from "I tapped it in the list" -- and every
+  // one of them offered "send your score" on the win panel. There is nobody to
+  // send a score back to on a room the game ships with, and what you want to
+  // pass on is the room.
+  expect(play.includes("const isShipped = shipped.has(levelCode);")).toBe(true);
+  expect(
+    play.includes(
+      "const sendingBack = reply !== null || (shared !== null && !isShipped && !mine);",
+    ),
+  ).toBe(true);
+  expect(play.includes('sendIt.textContent = sendingBack ? "send your score" : "share level";')).toBe(
+    true,
+  );
+});
+
+test("a room that ships is a level to share, but it is not YOUR level", () => {
+  // The button is right either way, but the words around it were tied to the
+  // same flag: with sendingBack off, the QR line called one of the six "your
+  // level", which it is not.
+  expect(play.includes('qrHint.innerHTML = mine')).toBe(true);
+  expect(play.includes('`Play this level: ${levelName}`')).toBe(true);
+  expect(play.includes('`Play my level: ${levelName}`')).toBe(true);
 });

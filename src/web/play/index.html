@@ -42,6 +42,13 @@
              max(10px, env(safe-area-inset-bottom));
     touch-action: manipulation;
   }
+  /* The title stays centred on the page, so the sound icon is taken out of the
+     flow and hung on the right rather than allowed to push it off centre. It
+     costs the level no height at all: the row is as tall as the title was. */
+  #top {
+    position: relative; width: 100%; display: flex;
+    align-items: center; justify-content: center;
+  }
   h1 {
     margin: 0; font-size: 12px; font-weight: 400; letter-spacing: .14em;
     text-transform: uppercase; color: var(--ink);
@@ -207,19 +214,44 @@
   }
   #reset:active { background: var(--key); }
   #sound {
-    font: inherit; font-size: 12px; color: var(--ink); background: none;
-    border: 1px solid var(--edge); border-radius: 6px; padding: 5px 9px;
-    cursor: pointer;
+    position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+    color: var(--ink); background: none; border: 0; padding: 6px;
+    cursor: pointer; line-height: 0;
+    /* A 32px target on a 12px row. Smaller than the 44px a thumb wants, and
+       deliberately so -- it sits beside the title, and anything bigger makes
+       the header taller, which comes straight off the level. It is a setting
+       you touch once. */
+    -webkit-tap-highlight-color: transparent;
   }
-  #sound[aria-pressed="true"] { color: var(--gold); border-color: var(--gold); }
+  #sound svg { display: block; width: 20px; height: 20px; }
+  #sound .cone { fill: currentColor; }
+  #sound .on, #sound .off {
+    fill: none; stroke: currentColor; stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  /* Which half of the icon is drawn IS the state, so there is no wording to
+     get out of step with aria-pressed. */
+  #sound .on { display: none; }
+  #sound[aria-pressed="true"] .on { display: inline; }
+  #sound[aria-pressed="true"] .off { display: none; }
+  #sound[aria-pressed="true"] { color: var(--gold); }
+  /* Two doors, and neither is the one to press.
+     "edit character" wore a gold border and "make a level" an --edge one, so
+     the first looked permanently selected and the second barely looked like a
+     button at all: measured against the page background, gold is 11.8:1 and
+     --edge is 1.18:1, on a fill of only 1.32:1. The gold was never decoration
+     -- it was the only thing giving that button an outline.
+     Both wear it now. They are a pair and they are drawn as a pair; what the
+     gold no longer says is "press this one". */
   #draw, #build {
     font: inherit; color: var(--ink-bright); background: var(--key);
     border: 1px solid var(--gold); border-radius: 6px; padding: 6px 12px;
     cursor: pointer; text-decoration: none;
   }
-  /* The level editor is the other half of the point, so it is a peer of the
-     character editor rather than something tucked away below it. */
-  #build { border-color: var(--edge); }
+  #draw:active, #build:active { background: var(--key-lit); }
+  /* One row, always. They are a pair, and a pair that wraps reads as two
+     unrelated buttons. */
+  #edits { display: flex; gap: 10px; justify-content: center; flex-wrap: nowrap; }
   /* A moment's feedback over the board: what just happened, then gone. It sits
      on the level rather than under it so a thumb on the buttons still sees it. */
   #flash {
@@ -296,7 +328,20 @@
 </style>
 </head>
 <body>
-  <h1>hoppa &middot; <span id="levelname">delve</span></h1>
+  <header id="top">
+    <h1>hoppa &middot; <span id="levelname">delve</span></h1>
+    <!-- Off until asked for: a link gets opened on a bus. See src/web/play/sound.ts.
+         An icon rather than the words "sound off", because it is a setting you
+         touch once and then never again, and it was taking a place in the row
+         of things you actually came here to do. -->
+    <button id="sound" aria-pressed="false" aria-label="turn sound on">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path class="cone" d="M4 9h3.5L12 5v14L7.5 15H4z"/>
+        <path class="on" d="M15.5 9a4.5 4.5 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>
+        <path class="off" d="M16 9.5l5.5 5.5M21.5 9.5L16 15"/>
+      </svg>
+    </button>
+  </header>
   <!-- A reply from a friend: their time, and a nudge towards their creature.
        It sits above the picker because that is what it points at. -->
   <div id="boast" role="status" hidden></div>
@@ -337,11 +382,13 @@
   <footer>
     <span id="hud"></span>
     <button id="reset">start again</button>
-    <!-- Off until asked for: a link gets opened on a bus. See src/web/play/sound.ts. -->
-    <button id="sound" aria-pressed="false">sound off</button>
+  </footer>
+  <!-- The two things you can make, side by side and equal. Neither is the one
+       to press: see the note on #draw, #build. -->
+  <nav id="edits" aria-label="things you can make">
     <a id="draw" href="./make/">edit character</a>
     <a id="build" href="./level/">make a level</a>
-  </footer>
+  </nav>
   <!-- The last few levels you played. A level is only ever a link, so closing
        the tab used to be the end of it. See src/web/stash.ts. -->
   <nav id="pack" aria-label="the levels that come with the game"></nav>

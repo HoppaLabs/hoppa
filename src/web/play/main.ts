@@ -257,6 +257,19 @@ if (refusal !== null) {
   level = decodeLevel(FRONT_DOOR.code);
   levelName = FRONT_DOOR.name;
 }
+const levelCode = encodeLevel(level);
+
+/**
+ * One of the six the game ships with.
+ *
+ * They arrive as `#p/` links like any other level, which is the point -- but
+ * it means the page cannot tell "somebody sent me this" from "I tapped it in
+ * the list" by the URL alone. It matters, because a room the game ships with
+ * has nobody to send a score back TO.
+ */
+const shipped = new Set(PACK.map((room) => room.code));
+const isShipped = shipped.has(levelCode);
+
 /**
  * Is this a level I MADE, or one I was SENT?
  *
@@ -280,9 +293,14 @@ function levelIsMine(): boolean {
     return false;
   }
 }
+const mine = levelIsMine();
 // A reply is always sent back: somebody put a time on your level, and the
 // answer to that is your own time, not the level they have already played.
-const sendingBack = reply !== null || (shared !== null && !levelIsMine());
+//
+// One of the six is neither yours nor a friend's. There is nobody to send a
+// score back to, and what you actually want to pass on is the room -- so it
+// shares as a level, exactly as it did before the six existed.
+const sendingBack = reply !== null || (shared !== null && !isShipped && !mine);
 
 // engineFor returns the Engine contract; the play page also wants the delve
 // read-outs (turns, treasure), which is what this cast is for.
@@ -379,9 +397,9 @@ function paintQr(): void {
   // The square always carries the LEVEL, even on a run where the button sends
   // a score back -- somebody sitting next to you wants to play it, not read
   // about your time. But it is only "your level" when it actually is yours.
-  qrHint.innerHTML = sendingBack
-    ? "a friend's phone can scan this to play <b>this level</b>"
-    : "a friend's phone can scan this to play <b>your level</b>";
+  qrHint.innerHTML = mine
+    ? "a friend's phone can scan this to play <b>your level</b>"
+    : "a friend's phone can scan this to play <b>this level</b>";
   qrHint.hidden = false;
   qrDrawn = true;
 }
@@ -409,9 +427,15 @@ function paintShareGate(): void {
 const sounds = new Sounds(soundOn());
 const soundButton = document.getElementById("sound") as HTMLButtonElement;
 
+/**
+ * The icon IS the state: which half of the drawing is shown follows
+ * `aria-pressed` in CSS, so there is no second copy of "is it on" to get out
+ * of step with the first. All this sets is the pressed flag and what a screen
+ * reader hears, which has to say what tapping WILL do, not what is true now.
+ */
 function paintSoundButton(): void {
-  soundButton.textContent = sounds.isOn() ? "sound on" : "sound off";
   soundButton.setAttribute("aria-pressed", String(sounds.isOn()));
+  soundButton.setAttribute("aria-label", sounds.isOn() ? "turn sound off" : "turn sound on");
 }
 
 soundButton.addEventListener("click", () => {
@@ -1082,7 +1106,11 @@ async function share(): Promise<void> {
     try {
       await navigator.share({
         title: "hoppa",
-        text: sendingBack ? `I did it in ${myScore()}. Beat that.` : `Play my level: ${levelName}`,
+        text: sendingBack
+        ? `I did it in ${myScore()}. Beat that.`
+        : mine
+        ? `Play my level: ${levelName}`
+        : `Play this level: ${levelName}`,
         url,
       });
       say("sent");
@@ -1138,7 +1166,6 @@ if (loadError !== null) {
   said.textContent = "that link is broken — here is the usual level instead";
 }
 
-const levelCode = encodeLevel(level);
 
 /**
  * The six rooms the game ships with.
@@ -1266,8 +1293,7 @@ function paintPlayed(): void {
 // The six that ship have their own list, permanently, so remembering one here
 // would put the same room on screen twice -- and would push a level a friend
 // actually sent off the end of a list six long.
-const shipped = new Set(PACK.map((room) => room.code));
-if (shared !== null && !shipped.has(levelCode)) rememberPlayed(levelCode, shared.slug);
+if (shared !== null && !isShipped) rememberPlayed(levelCode, shared.slug);
 paintPack();
 paintPlayed();
 
