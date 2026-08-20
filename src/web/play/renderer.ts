@@ -203,8 +203,29 @@ export class GridRenderer {
 
     for (const enemy of enemies) {
       const size = Math.max(4, Math.floor(t * 0.72));
-      const x = px(enemy.x) - size / 2;
-      const y = px(enemy.y) - size / 2;
+
+      // A WADDLE, driven by where it is rather than by a clock: the phase comes
+      // from its own position, so it bounces as it walks and stands still when
+      // it stands still. A timer would have it jogging on the spot at the end
+      // of its patrol, which reads as agitated rather than bored.
+      //
+      // Chasing, it bounces faster and higher. That is a second way of saying
+      // "this one has seen you", for a child who has not noticed the colour.
+      const travelled = (enemy.x + enemy.y) / ONE;
+      const beat = enemy.chasing ? 2.6 : 1.6;
+      const wave = enemy.stunned ? 0 : Math.sin(travelled * beat * Math.PI);
+      const lift = enemy.chasing ? 0.16 : 0.1;
+
+      // Squashed at the bottom of the bounce, stretched at the top, the way
+      // anything with legs looks when it is moving.
+      const squash = 1 - wave * 0.12;
+      const drawW = size * squash;
+      const drawH = size / squash;
+      const x = px(enemy.x) - drawW / 2;
+      // Feet on the ground, so the bounce lifts it rather than sinking it.
+      const foot = px(enemy.y) + size / 2;
+      const y = foot - drawH - Math.abs(wave) * size * lift;
+
       // A wand freezes rather than stuns, and it should look like it: ice, not
       // seeing stars. Same state underneath -- this is only how it is drawn.
       const downColour = this.weapon === "wand" ? "#7fd8ee" : "#7a5c86";
@@ -215,12 +236,32 @@ export class GridRenderer {
       ctx.fillStyle = enemy.stunned
         ? (flickering ? "#ffffff" : downColour)
         : enemy.chasing ? "#ff8a3d" : (this.ink(TILE_GUARD));
-      ctx.fillRect(x, y, size, size);
+      ctx.fillRect(x, y, drawW, drawH);
+
       if (t >= 10 && !enemy.stunned) {
-        // An eye, pointing the way it is coming.
-        const eye = Math.max(1, Math.floor(size / 4));
+        // Two eyes, and they LOOK AT YOU once it is chasing. Being watched is
+        // the thing a child needs to feel, and a pair of eyes swinging round
+        // says it before any colour does.
+        const eye = Math.max(1, Math.round(size / 5));
+        const gap = Math.max(1, Math.round(size / 5));
+        let gazeX = 0;
+        let gazeY = 0;
+        if (enemy.chasing) {
+          const dx = actor.x - enemy.x;
+          const dy = actor.y - enemy.y;
+          const far = Math.max(1, Math.hypot(dx, dy));
+          gazeX = (dx / far) * eye * 0.6;
+          gazeY = (dy / far) * eye * 0.6;
+        }
+        const midX = x + drawW / 2;
+        const midY = y + drawH * 0.42;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(midX - gap - eye / 2, midY - eye / 2, eye, eye);
+        ctx.fillRect(midX + gap - eye / 2, midY - eye / 2, eye, eye);
+        const pupil = Math.max(1, Math.round(eye / 2));
         ctx.fillStyle = this.ink(TILE_VOID);
-        ctx.fillRect(x + size / 2 - eye / 2, y + size / 2 - eye / 2, eye, eye);
+        ctx.fillRect(midX - gap - pupil / 2 + gazeX, midY - pupil / 2 + gazeY, pupil, pupil);
+        ctx.fillRect(midX + gap - pupil / 2 + gazeX, midY - pupil / 2 + gazeY, pupil, pupil);
       }
     }
 
