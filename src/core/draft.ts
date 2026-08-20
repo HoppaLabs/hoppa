@@ -64,24 +64,72 @@ function firstOf(cells: readonly Glyph[], glyph: Glyph): number {
   return -1;
 }
 
+/** Side-on games are open sky with ground under them, not a box. */
+export function sideOn(engine: string): boolean {
+  return engine === "dash";
+}
+
 /**
- * An empty room: a wall all the way round, floor inside, and the two things
- * every level must have already placed.
+ * Put the right frame round a level, leaving everything inside it alone.
  *
- * Starting from a room rather than a blank sheet matters more than it looks.
+ * From above, a level is a ROOM: a wall all the way round, because the edge of
+ * the world has to look like something you cannot walk through.
+ *
+ * From the side, it is OUTSIDE: ground along the bottom and sky everywhere
+ * else. A border there would be a box in the air, and it is wrong twice over --
+ * it says nothing about where you can go (the engine already stops you leaving
+ * the grid) and it hides the one thing that matters, which is that the open
+ * space is air you fall through.
+ *
+ * The start and the exit are never overwritten: losing either to a reframe
+ * would break a level a child had already drawn.
+ */
+/** Is there something solid under this cell, or a ladder to hold on to? */
+function standsOn(cells: readonly Glyph[], cell: number): boolean {
+  if (cells[cell] === GLYPH_LADDER) return true;
+  const y = ((cell / GRID_W) | 0) | 0;
+  if (y + 1 >= GRID_H) return true;
+  const below = cells[(cell + GRID_W) | 0];
+  return below === GLYPH_WALL || below === GLYPH_LADDER;
+}
+
+function frame(cells: Glyph[], engine: string): void {
+  const ground = sideOn(engine);
+  for (let y = 0; y < GRID_H; y = (y + 1) | 0) {
+    for (let x = 0; x < GRID_W; x = (x + 1) | 0) {
+      const onRing = x === 0 || y === 0 || x === GRID_W - 1 || y === GRID_H - 1;
+      if (!onRing) continue;
+      const cell = idx(x, y);
+      if (cells[cell] === GLYPH_START || cells[cell] === GLYPH_EXIT) continue;
+      const wanted = ground ? y === GRID_H - 1 : true;
+      cells[cell] = wanted ? GLYPH_WALL : GLYPH_FLOOR;
+    }
+  }
+}
+
+/**
+ * An empty level, with the two things every level must have already placed.
+ *
+ * Starting from something rather than a blank sheet matters more than it looks.
  * A kid who taps "make a level" and sees nothing has to be told what a level
  * is; a kid who sees a room with a door in it just starts drawing.
  */
 export function blankDraft(engine: string, behaviourVersion: number): Draft {
   const cells: Glyph[] = new Array<Glyph>(GRID_AREA);
-  for (let y = 0; y < GRID_H; y = (y + 1) | 0) {
-    for (let x = 0; x < GRID_W; x = (x + 1) | 0) {
-      const edge = x === 0 || y === 0 || x === GRID_W - 1 || y === GRID_H - 1;
-      cells[idx(x, y)] = edge ? GLYPH_WALL : GLYPH_FLOOR;
-    }
+  for (let i = 0; i < GRID_AREA; i = (i + 1) | 0) cells[i] = GLYPH_FLOOR;
+  frame(cells, engine);
+
+  if (sideOn(engine)) {
+    // Bottom left, on the ground, with the whole level ahead of you. Anywhere
+    // else in a side-on level is either mid-air or already past something.
+    cells[idx(2, (GRID_H - 2) | 0)] = GLYPH_START;
+    cells[idx((GRID_W - 3) | 0, (GRID_H - 2) | 0)] = GLYPH_EXIT;
+  } else {
+    // From above there is no gravity and no "bottom", so the corner nearest
+    // where a right-handed child's eye starts is as good as anywhere.
+    cells[idx(1, 1)] = GLYPH_START;
+    cells[idx((GRID_W - 2) | 0, (GRID_H - 2) | 0)] = GLYPH_EXIT;
   }
-  cells[idx(1, 1)] = GLYPH_START;
-  cells[idx((GRID_W - 2) | 0, (GRID_H - 2) | 0)] = GLYPH_EXIT;
   return { engine, behaviourVersion, cells };
 }
 
@@ -191,11 +239,27 @@ export function draftFromLevel(level: {
 export function retarget(draft: Draft, engine: string, behaviourVersion: number): Draft {
   if (engine === draft.engine) return { ...draft, behaviourVersion };
   const cells = draft.cells.slice() as Glyph[];
-  if (engine !== "dash") {
+  if (!sideOn(engine)) {
     // Only side-on games climb. A ladder left in a top-down level would encode
     // as nothing and then vanish on the way back, which looks like a bug.
     for (let i = 0; i < cells.length; i = (i + 1) | 0) {
       if (cells[i] === GLYPH_LADDER) cells[i] = GLYPH_FLOOR;
+    }
+  }
+  // Swap the frame, keep the drawing. Switching game turns a room into the
+  // outdoors and back; what a child drew inside it is theirs either way.
+  frame(cells, engine);
+
+  // A start that made sense from above -- the top-left corner of a room -- is
+  // a start hanging in the sky once the level has gravity. Put it back on the
+  // ground at the bottom left. A start already standing on something was put
+  // there on purpose and is left alone.
+  if (sideOn(engine)) {
+    const at = firstOf(cells, GLYPH_START);
+    if (at >= 0 && !standsOn(cells, at)) {
+      cells[at] = GLYPH_FLOOR;
+      const ground = idx(2, (GRID_H - 2) | 0);
+      cells[ground] = GLYPH_START;
     }
   }
   return { engine, behaviourVersion, cells };

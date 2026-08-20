@@ -272,8 +272,8 @@ const WEAPON_ART: Record<Weapon, string> = {
  * the wrong one.
  */
 const WEAPON_SAYS: Record<Weapon, string> = {
-  sword: "gone for good, if you can land the hits",
-  wand: "frozen on the spot, every time",
+  sword: "enemies gone for good, if you land the hits",
+  wand: "enemies frozen on the spot, every time",
 };
 
 function paintWeapons(): void {

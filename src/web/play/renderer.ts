@@ -36,8 +36,28 @@ const COLOUR: Record<number, string> = {
   [TILE_LADDER]: "#9a6b38",
 };
 
+/**
+ * The side-on game gets a sky.
+ *
+ * Not decoration: it is the only thing on screen that says the rules just
+ * changed. From above, the dark ground is what you walk on and a wall is
+ * something you go round; from the side, the open space is AIR -- you fall
+ * through it, and a wall is something you stand on. A kid handed the same
+ * dark room twice has to work that out by dying in it.
+ *
+ * Only the three terrain colours move. Treasure, the exit, enemies and the
+ * ladder keep their meaning across both games, and they were picked to stay
+ * legible on either background.
+ */
+const SKY: Record<number, string> = {
+  [TILE_VOID]: "#8fc4e8",
+  [TILE_FLOOR]: "#a8d4f0",
+  [TILE_WALL]: "#5c7a4a",
+};
+
 const ACTOR_BLOCKED = "#ff5f4d";
 const FLOOR_DOT = "#222a35";
+
 
 export class GridRenderer {
   private readonly canvas: HTMLCanvasElement;
@@ -47,6 +67,12 @@ export class GridRenderer {
   private sprite: Sprite | null = null;
   /** Cosmetic, like the sprite: it never reaches the engine. */
   private weapon: string = "sword";
+  /** Which palette to paint the terrain in. Presentation only. */
+  private sideOn = false;
+  /** Frames of landing squash left to draw, and what we saw last frame. */
+  private squash = 0;
+  private wasAirborne = false;
+  private lastVy = 0;
   private stamp: HTMLCanvasElement | null = null;
 
   /**
@@ -56,6 +82,20 @@ export class GridRenderer {
    */
   setWeapon(weapon: string): void {
     this.weapon = weapon;
+  }
+
+  /** Side-on levels are painted against sky. Cosmetic; see SKY above. */
+  setSideOn(sideOn: boolean): void {
+    this.sideOn = sideOn;
+  }
+
+  /** The colour for a tile, in whichever world this level is. */
+  private ink(tile: number): string {
+    if (this.sideOn) {
+      const sky = SKY[tile];
+      if (sky !== undefined) return sky;
+    }
+    return COLOUR[tile] ?? (COLOUR[TILE_VOID] as string);
   }
 
   setSprite(sprite: Sprite | null): void {
@@ -114,6 +154,10 @@ export class GridRenderer {
       x: number; y: number; facing: number;
       swinging: boolean; blinking: boolean;
       swingLeft: number; swingLength: number;
+      /** Side-on only. Absent from above, where nothing leaves the ground. */
+      airborne?: boolean;
+      /** Subcells per tick, negative going up. Drives the squash and stretch. */
+      vy?: number;
     },
     enemies: ReadonlyArray<{ x: number; y: number; stunned: boolean; chasing: boolean }>,
     reach: number,
@@ -139,12 +183,12 @@ export class GridRenderer {
       const flickering = enemy.stunned && (Date.now() >> 7) % 2 === 0;
       ctx.fillStyle = enemy.stunned
         ? (flickering ? "#ffffff" : downColour)
-        : enemy.chasing ? "#ff8a3d" : (COLOUR[TILE_GUARD] as string);
+        : enemy.chasing ? "#ff8a3d" : (this.ink(TILE_GUARD));
       ctx.fillRect(x, y, size, size);
       if (t >= 10 && !enemy.stunned) {
         // An eye, pointing the way it is coming.
         const eye = Math.max(1, Math.floor(size / 4));
-        ctx.fillStyle = COLOUR[TILE_VOID] as string;
+        ctx.fillStyle = this.ink(TILE_VOID);
         ctx.fillRect(x + size / 2 - eye / 2, y + size / 2 - eye / 2, eye, eye);
       }
     }
@@ -216,15 +260,46 @@ export class GridRenderer {
     }
 
     const size = Math.max(4, Math.floor(t * 0.8));
-    const ax = px(actor.x) - size / 2;
-    const ay = px(actor.y) - size / 2;
+    // Squash and stretch, the oldest trick there is.
+    //
+    // A jump where the only thing that changes is the y coordinate reads as a
+    // sprite being slid upwards. Stretching it thin on the way up and through
+    // the fall, then flattening it on impact, is what makes it read as pushing
+    // off and landing. Both numbers come from the engine's own vy, so the
+    // animation tracks the real arc rather than a timer guessing at it.
+    let stretchX = 1;
+    let stretchY = 1;
+    if (actor.airborne !== undefined) {
+      const vy = actor.vy ?? 0;
+      if (this.squash > 0) {
+        // Just landed: wide and low for a few frames.
+        this.squash -= 1;
+        stretchX = 1.16;
+        stretchY = 0.8;
+      } else if (actor.airborne) {
+        const fast = Math.min(1, Math.abs(vy) / 60);
+        stretchX = 1 - 0.18 * fast;
+        stretchY = 1 + 0.24 * fast;
+      }
+      // Remember the impact for the frame it happens on.
+      if (this.wasAirborne && !actor.airborne && this.lastVy > 34) this.squash = 5;
+      this.wasAirborne = actor.airborne;
+      this.lastVy = vy;
+    }
+
+    const drawW = size * stretchX;
+    const drawH = size * stretchY;
+    const ax = px(actor.x) - drawW / 2;
+    // Anchored at the FEET, not the middle: a stretched sprite centred on its
+    // middle sinks into the floor it is standing on.
+    const ay = px(actor.y) + size / 2 - drawH;
     // Blink while the mercy window is open, the way every game of this shape does.
     if (!actor.blinking || (Date.now() >> 6) % 2 === 0) {
       if (this.stamp !== null) {
-        ctx.drawImage(this.stamp, ax, ay, size, size);
+        ctx.drawImage(this.stamp, ax, ay, drawW, drawH);
       } else {
-        ctx.fillStyle = COLOUR[TILE_ACTOR] as string;
-        ctx.fillRect(ax, ay, size, size);
+        ctx.fillStyle = this.ink(TILE_ACTOR);
+        ctx.fillRect(ax, ay, drawW, drawH);
       }
     }
   }
@@ -233,7 +308,7 @@ export class GridRenderer {
     const t = this.scale;
     const ctx = this.ctx;
 
-    ctx.fillStyle = COLOUR[TILE_VOID] as string;
+    ctx.fillStyle = this.ink(TILE_VOID);
     ctx.fillRect(0, 0, t * GRID_W, t * GRID_H);
 
     for (let y = 0; y < GRID_H; y++) {
@@ -249,12 +324,12 @@ export class GridRenderer {
         // Treasure is a diamond, not a square: shape carries the difference
         // from the actor even when the tiles are tiny or the screen is dim.
         if (tile === TILE_TREASURE) {
-          ctx.fillStyle = COLOUR[TILE_FLOOR] as string;
+          ctx.fillStyle = this.ink(TILE_FLOOR);
           ctx.fillRect(x * t, y * t, t, t);
           const cx = x * t + t / 2;
           const cy = y * t + t / 2;
           const r = Math.max(2, (t / 2) - Math.max(1, Math.floor(t / 5)));
-          ctx.fillStyle = COLOUR[TILE_TREASURE] as string;
+          ctx.fillStyle = this.ink(TILE_TREASURE);
           ctx.beginPath();
           ctx.moveTo(cx, cy - r);
           ctx.lineTo(cx + r, cy);
@@ -265,22 +340,73 @@ export class GridRenderer {
           continue;
         }
 
-        // A shut exit is a barred doorway; an open one glows and the bars are
-        // gone. The difference has to be obvious from across a room.
+        // The way out. It has to say two things at a glance: this is a DOOR,
+        // and it is LOCKED until you have everything.
+        //
+        // It used to be a square with two bars across it, which read as a
+        // grating. So: a door-shaped slab standing on the floor of its tile,
+        // with a handle, and a padlock hung on it while it is shut. When it
+        // opens the lock goes and the doorway becomes a lit gap you can walk
+        // into. A child should not have to be told which is which.
         if (tile === TILE_EXIT_LOCKED || tile === TILE_EXIT_OPEN) {
           const open = tile === TILE_EXIT_OPEN;
-          ctx.fillStyle = COLOUR[tile] as string;
-          ctx.fillRect(x * t, y * t, t, t);
-          const inset = Math.max(1, Math.floor(t / 5));
-          ctx.fillStyle = COLOUR[TILE_VOID] as string;
+          const left = x * t;
+          const top = y * t;
+
+          ctx.fillStyle = this.ink(TILE_FLOOR);
+          ctx.fillRect(left, top, t, t);
+
+          // The doorway: taller than it is wide, and standing on the ground.
+          const pad = Math.max(1, Math.round(t * 0.14));
+          const dx = left + pad;
+          const dy = top + Math.max(1, Math.round(t * 0.08));
+          const dw = t - pad * 2;
+          const dh = t - (dy - top);
+
+          ctx.fillStyle = open ? "#6fe08a" : "#8a6f9e";
+          ctx.fillRect(dx, dy, dw, dh);
+
           if (open) {
-            // A way through.
-            ctx.fillRect(x * t + inset, y * t + inset, t - inset * 2, t - inset * 2);
-          } else if (t >= 10) {
-            // Two bars across the doorway.
-            const bar = Math.max(1, Math.floor(t / 8));
-            ctx.fillRect(x * t + inset, y * t + Math.floor(t / 3), t - inset * 2, bar);
-            ctx.fillRect(x * t + inset, y * t + Math.floor((t * 2) / 3), t - inset * 2, bar);
+            // A lit way through, so it reads as somewhere to walk rather than
+            // as a green door you still have to open.
+            const inset = Math.max(1, Math.round(t * 0.16));
+            ctx.fillStyle = "#d8ffe6";
+            ctx.fillRect(dx + inset, dy + inset, dw - inset * 2, dh - inset);
+          } else {
+            // Panelling, so it is a door and not a coloured block.
+            ctx.fillStyle = "#6f5681";
+            const gap = Math.max(1, Math.round(t * 0.1));
+            ctx.fillRect(dx + gap, dy + gap, dw - gap * 2, Math.max(1, Math.round(t * 0.06)));
+
+            if (t >= 12) {
+              // The padlock. A shackle on top of a body, in brass, because a
+              // lock is the one shape everybody already reads as "shut".
+              const bodyW = Math.max(3, Math.round(t * 0.34));
+              const bodyH = Math.max(3, Math.round(t * 0.26));
+              const bx = left + Math.round((t - bodyW) / 2);
+              const by = top + Math.round(t * 0.44);
+              const ring = Math.max(1, Math.round(t * 0.08));
+
+              ctx.strokeStyle = "#ffc23d";
+              ctx.lineWidth = ring;
+              ctx.beginPath();
+              ctx.arc(left + t / 2, by, Math.max(2, bodyW * 0.32), Math.PI, 0);
+              ctx.stroke();
+
+              ctx.fillStyle = "#ffc23d";
+              ctx.fillRect(bx, by, bodyW, bodyH);
+              ctx.fillStyle = "#6f5681";
+              ctx.fillRect(
+                left + Math.round(t / 2) - Math.max(1, Math.round(ring / 2)),
+                by + Math.round(bodyH * 0.3),
+                Math.max(1, ring),
+                Math.max(1, Math.round(bodyH * 0.45)),
+              );
+            } else {
+              // Too small for a lock; a brass bar still says "shut".
+              ctx.fillStyle = "#ffc23d";
+              ctx.fillRect(dx, top + Math.round(t * 0.5), dw, Math.max(1, Math.round(t * 0.16)));
+            }
           }
           continue;
         }
@@ -289,14 +415,14 @@ export class GridRenderer {
         // never the actor's colour -- "am I about to touch that" has to be
         // answerable at a glance and at arm's length.
         if (tile === TILE_GUARD) {
-          ctx.fillStyle = COLOUR[TILE_FLOOR] as string;
+          ctx.fillStyle = this.ink(TILE_FLOOR);
           ctx.fillRect(x * t, y * t, t, t);
           const pad = Math.max(1, Math.floor(t / 8));
-          ctx.fillStyle = COLOUR[TILE_GUARD] as string;
+          ctx.fillStyle = this.ink(TILE_GUARD);
           ctx.fillRect(x * t + pad, y * t + pad, t - pad * 2, t - pad * 2);
           if (t >= 10) {
             const eye = Math.max(1, Math.floor(t / 5));
-            ctx.fillStyle = COLOUR[TILE_VOID] as string;
+            ctx.fillStyle = this.ink(TILE_VOID);
             ctx.fillRect(
               x * t + ((t - eye) >> 1),
               y * t + ((t - eye) >> 1),
@@ -310,11 +436,11 @@ export class GridRenderer {
         // A ladder: two rails and rungs, so it reads as climbable rather than
         // as a differently-coloured wall.
         if (tile === TILE_LADDER) {
-          ctx.fillStyle = COLOUR[TILE_FLOOR] as string;
+          ctx.fillStyle = this.ink(TILE_FLOOR);
           ctx.fillRect(x * t, y * t, t, t);
           const rail = Math.max(1, Math.floor(t / 8));
           const inset = Math.max(1, Math.floor(t / 5));
-          ctx.fillStyle = COLOUR[TILE_LADDER] as string;
+          ctx.fillStyle = this.ink(TILE_LADDER);
           ctx.fillRect(x * t + inset, y * t, rail, t);
           ctx.fillRect(x * t + t - inset - rail, y * t, rail, t);
           if (t >= 8) {
@@ -328,7 +454,7 @@ export class GridRenderer {
         }
 
         if (tile === TILE_ACTOR) {
-          ctx.fillStyle = COLOUR[TILE_FLOOR] as string;
+          ctx.fillStyle = this.ink(TILE_FLOOR);
           ctx.fillRect(x * t, y * t, t, t);
 
           if (this.stamp !== null && !blocked) {
@@ -341,16 +467,18 @@ export class GridRenderer {
           // No sprite yet, or a refused move: the day 1 square still says
           // "this is you" perfectly well.
           const pad = Math.max(1, Math.floor(t / 8));
-          ctx.fillStyle = blocked ? ACTOR_BLOCKED : (COLOUR[TILE_ACTOR] as string);
+          ctx.fillStyle = blocked ? ACTOR_BLOCKED : (this.ink(TILE_ACTOR));
           ctx.fillRect(x * t + pad, y * t + pad, t - pad * 2, t - pad * 2);
           continue;
         }
 
-        ctx.fillStyle = COLOUR[tile] ?? (COLOUR[TILE_VOID] as string);
+        ctx.fillStyle = this.ink(tile);
         ctx.fillRect(x * t, y * t, t, t);
 
         // A faint dot on floor so open space reads as walkable, not empty.
-        if (tile === TILE_FLOOR && t >= 10) {
+        // Skipped against sky: open space there is AIR, and telling a player it
+        // is walkable is the opposite of what this game needs them to know.
+        if (tile === TILE_FLOOR && t >= 10 && !this.sideOn) {
           ctx.fillStyle = FLOOR_DOT;
           ctx.fillRect(x * t + (t >> 1), y * t + (t >> 1), 1, 1);
         }

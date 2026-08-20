@@ -221,6 +221,9 @@ function paint(): void {
         blinking: moving.merciful(),
         swingLeft: moving.swingLeft(),
         swingLength: moving.swingLength(),
+        // Side-on engines know about the ground and about falling; the ones
+        // seen from above have neither idea, and get no jump animation.
+        ...(airborneOf(moving)),
       },
       moving.enemyPositions(),
       reachFor(chosen),
@@ -312,6 +315,23 @@ function flashMessage(text: string | null): void {
   }
 }
 
+/**
+ * Whether this engine has a notion of being off the ground, and how fast it is
+ * moving through it. Read off the engine rather than guessed from the level, so
+ * a future side-on build gets the animation by exposing the same two things.
+ */
+function airborneOf(game: Moving): { airborne?: boolean; vy?: number } {
+  const maybe = game as unknown as {
+    onGround?: () => boolean;
+    falling?: () => number;
+    onLadder?: () => boolean;
+  };
+  if (typeof maybe.onGround !== "function" || typeof maybe.falling !== "function") return {};
+  // A ladder is not a jump: hanging on one should not stretch you.
+  const climbing = typeof maybe.onLadder === "function" && maybe.onLadder();
+  return { airborne: !maybe.onGround() && !climbing, vy: maybe.falling() };
+}
+
 /** The HUD for a real-time run: hearts, treasure, and a clock that ticks. */
 function paintMovingHud(): void {
   const game = moving as Moving;
@@ -358,6 +378,7 @@ function reset(): void {
   // difference between smooth and not on a cheap phone.
   renderer.setSprite(chosen.sprite);
   renderer.setWeapon(chosen.weapon);
+  renderer.setSideOn(level.engine === "dash");
   // A creature that swings a wand needs the wand on the button, not a sword.
   paintActionButton();
   paintStable();
@@ -658,6 +679,7 @@ paintShareGate();
 
 renderer.setSprite(chosen.sprite);
 renderer.setWeapon(chosen.weapon);
+renderer.setSideOn(level.engine === "dash");
 paintActionButton();
 paintStable();
 resize();

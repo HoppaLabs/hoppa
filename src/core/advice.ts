@@ -12,10 +12,14 @@
 // beaten -- and this is here to save a kid the wasted attempt, not to replace
 // it. See docs/adr/0013.
 
-import { GRID_W } from "./grid.ts";
+import { GRID_W, idx } from "./grid.ts";
 import { encodeLevel } from "./codec.ts";
-import { parseLevel } from "./level.ts";
+import { parseLevel, type Level } from "./level.ts";
 import { verifyLevelText } from "./verify.ts";
+import {
+  BEST_STEP_UP, TYPICAL_STEP_UP, landingFrom, reachableWithGravity,
+} from "./playable.ts";
+import { sideOn } from "./draft.ts";
 
 /** Above this a link starts getting awkward in a group chat. Spec S13's L7. */
 export const CODE_WARN = 150;
@@ -92,6 +96,14 @@ export function adviceFor(text: string): Advice {
     });
   }
 
+  // Gravity. From above, "connected through open space" is the whole story;
+  // from the side it is not, and a flood fill will happily promise you a ledge
+  // nobody can jump to. Only side-on levels get this, because it is the only
+  // place the question is different.
+  if (sideOn(result.level.engine)) {
+    for (const note of jumpNotes(result.level)) notes.push(note);
+  }
+
   let codeLength = -1;
   try {
     codeLength = encodeLevel(parseLevel(text)).length;
@@ -104,6 +116,54 @@ export function adviceFor(text: string): Advice {
 
   const fatal = notes.some((n) => n.fatal);
   return { playable: !fatal, notes, codeLength };
+}
+
+/** What is out of reach once you have to jump to it rather than walk. */
+function jumpNotes(level: Level): Note[] {
+  const notes: Note[] = [];
+  const start = landingFrom(level, level.startX, level.startY);
+
+  const best = reachableWithGravity(level, start.x, start.y, BEST_STEP_UP);
+  const typical = reachableWithGravity(level, start.x, start.y, TYPICAL_STEP_UP);
+
+  const targets: Array<{ cell: number; what: string }> = [];
+  if (level.exitX >= 0) targets.push({ cell: idx(level.exitX, level.exitY), what: "door" });
+  for (let i = 0; i < level.treasureCells.length; i = (i + 1) | 0) {
+    targets.push({ cell: level.treasureCells[i] as number, what: "treasure" });
+  }
+
+  const unreachable = targets.filter((t) => best[t.cell] !== 1);
+  const hardOnly = targets.filter((t) => best[t.cell] === 1 && typical[t.cell] !== 1);
+
+  // Nobody can get there, however they are built. The level cannot be finished.
+  if (unreachable.some((t) => t.what === "door")) {
+    notes.push({
+      fatal: true,
+      text: "nothing can jump up to the door -- add a ladder, or a step to climb on",
+    });
+  }
+  const gems = unreachable.filter((t) => t.what === "treasure").length;
+  if (gems > 0) {
+    notes.push({
+      fatal: true,
+      text:
+        gems === 1
+          ? "one treasure is too high to jump to, so the door can never open"
+          : `${gems} treasures are too high to jump to, so the door can never open`,
+    });
+  }
+
+  // Reachable, but only by a strong creature. Worth saying, not worth blocking:
+  // a level that rewards being built one way is the whole point of sending it
+  // to a friend who is built the other.
+  if (unreachable.length === 0 && hardOnly.length > 0) {
+    notes.push({
+      fatal: false,
+      text: "only a strong character will get up there -- a fast one will not make the jump",
+    });
+  }
+
+  return notes;
 }
 
 /** One line for the editor's status strip. Empty when there is nothing to say. */

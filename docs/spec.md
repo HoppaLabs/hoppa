@@ -496,9 +496,15 @@ on a level somebody sent you the editor link reads **change this level** and
 opens it for editing.
 
 The editor enforces only what keeps a draft drawable (one start, one door, the
-treasure and enemy caps). Everything else is advice in plain sentences, because
-**the share gate is the real filter** — a flood fill knows about walls and
-nothing about jumping, so it cannot prove a level winnable and does not claim to.
+treasure and enemy caps). Everything else is advice in plain sentences.
+
+Side-on levels get a **gravity-aware** reachability check (`docs/adr/0017`):
+you cannot walk upwards, so a flood fill will promise a ledge nothing can jump
+to. The jump heights it uses are measured from `dash/1` itself and re-measured
+by the tests. It is deliberately generous — unreachable means unreachable for
+certain, reachable might still be hard — because a false alarm on a good level
+is worse than a missed problem. **The share gate is still the real filter**: you
+cannot send a level you have not beaten.
 
 ---
 

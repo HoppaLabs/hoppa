@@ -39,6 +39,11 @@ interface Tool {
   readonly glyph: Glyph;
   readonly label: string;
   readonly colour: string;
+  /**
+   * The swatch for the side-on game, where the terrain palette changes. A
+   * button showing dark grey that paints green is a button that lies.
+   */
+  readonly skyColour?: string;
   /** Only offered for the games that have it. */
   readonly engines?: readonly string[];
   /** Shows "3 of 8" under the button when there is a limit worth knowing. */
@@ -46,8 +51,8 @@ interface Tool {
 }
 
 const TOOLS: readonly Tool[] = [
-  { glyph: GLYPH_WALL, label: "wall", colour: "#39485c" },
-  { glyph: GLYPH_FLOOR, label: "clear", colour: "#222a35" },
+  { glyph: GLYPH_WALL, label: "wall", colour: "#39485c", skyColour: "#5c7a4a" },
+  { glyph: GLYPH_FLOOR, label: "clear", colour: "#222a35", skyColour: "#a8d4f0" },
   { glyph: GLYPH_START, label: "start", colour: "#e8b76a" },
   { glyph: GLYPH_EXIT, label: "door / exit", colour: "#b07acb" },
   { glyph: GLYPH_TREASURE, label: "treasure", colour: "#5fd3f3", limit: 8 },
@@ -141,6 +146,9 @@ function repaint(): void {
   for (let i = 0; i < tiles.length; i = (i + 1) | 0) {
     tiles[i] = TILE_OF[draft.cells[i] as string] ?? TILE_FLOOR;
   }
+  // Sky for the side-on game, so tapping "from the side" visibly changes the
+  // world rather than only changing which tools are on offer.
+  renderer.setSideOn(draft.engine === "dash");
   renderer.draw(tiles, false);
 }
 
@@ -217,7 +225,8 @@ function paintTools(): void {
 
     const chip = document.createElement("span");
     chip.className = "chip";
-    chip.style.background = entry.colour;
+    chip.style.background =
+      draft.engine === "dash" && entry.skyColour !== undefined ? entry.skyColour : entry.colour;
 
     const label = document.createElement("span");
     label.textContent = entry.label;
