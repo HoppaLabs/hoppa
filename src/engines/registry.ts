@@ -83,6 +83,28 @@ export function knownBuilds(): string[] {
   return [...BUILDS.keys()];
 }
 
+/**
+ * The newest behaviour version shipped for an engine, or 0 if it has none.
+ *
+ * Anything that AUTHORS a level should ask this rather than carry its own
+ * table. The level editor used to hold a hardcoded `behaviour: 2` for the
+ * side-on game; dash/3 shipped, the table was not bumped, and every level
+ * drawn after that was still made under the old rules -- which meant the sword
+ * a child had just been given did not work in the levels they made with it.
+ *
+ * Reading it from the registry means adding a build is the only step there is.
+ */
+export function newestBehaviour(engine: string): number {
+  let newest = 0;
+  for (const key of BUILDS.keys()) {
+    const cut = key.lastIndexOf("/");
+    if (key.slice(0, cut) !== engine) continue;
+    const version = Number.parseInt(key.slice(cut + 1), 10);
+    if (Number.isFinite(version) && version > newest) newest = version;
+  }
+  return newest;
+}
+
 /** The engine build a level pins, or a refusal that names what is on offer. */
 export function engineFor(level: Level, creature?: Creature): Engine {
   const key = `${level.engine}/${level.behaviourVersion}`;

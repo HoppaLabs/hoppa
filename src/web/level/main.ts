@@ -21,6 +21,7 @@ import {
   type Draft, type Glyph,
 } from "../../core/draft.ts";
 import { adviceFor } from "../../core/advice.ts";
+import { newestBehaviour } from "../../engines/registry.ts";
 import { decodeLevel, encodeLevel } from "../../core/codec.ts";
 import { slugify } from "../play/link.ts";
 import { GridRenderer } from "../play/renderer.ts";
@@ -60,10 +61,23 @@ const TOOLS: readonly Tool[] = [
   { glyph: GLYPH_LADDER, label: "ladder", colour: "#c8a26a", engines: ["dash"] },
 ];
 
+/**
+ * The two games, and the rules a NEW level is drawn under.
+ *
+ * The version comes from the registry, never from a number written here. A
+ * hardcoded one went stale the moment dash/3 shipped, and every level drawn
+ * afterwards was quietly still dash/2 -- so the sword a child had just been
+ * given did nothing in the levels they made with it.
+ */
 const GAMES = [
-  { engine: "roam", behaviour: 3, label: "from above" },
-  { engine: "dash", behaviour: 3, label: "from the side" },
+  { engine: "roam", label: "from above" },
+  { engine: "dash", label: "from the side" },
 ] as const;
+
+function currentBuild(engine: string): number {
+  const newest = newestBehaviour(engine);
+  return newest > 0 ? newest : newestBehaviour(GAMES[0].engine);
+}
 
 const TILE_OF: Record<string, number> = {
   [GLYPH_WALL]: TILE_WALL,
@@ -99,18 +113,33 @@ const tiles = new Uint8Array(GRID_W * GRID_H);
  * friend's room, your walls, your creature -- and it is why the level lives in
  * the link rather than on a server.
  */
+/**
+ * Bring a draft up to the rules a new level is drawn under.
+ *
+ * A LINK pins its version forever -- that is what makes a shared level replay
+ * as it was beaten. A DRAFT is not a link: it is unfinished work, and it should
+ * follow the current rules. Without this, a level half-drawn last week is still
+ * made under last week's engine, and so is anything remixed from an old link.
+ */
+function freshen(draft: Draft): Draft {
+  // An engine this build does not offer -- a retired one from an old link --
+  // becomes the default game rather than an unplayable header.
+  const engine = newestBehaviour(draft.engine) > 0 ? draft.engine : GAMES[0].engine;
+  return retarget(draft, engine, currentBuild(engine));
+}
+
 function opening(): { draft: Draft; name: string } {
   if (window.location.hash.startsWith("#from/")) {
     try {
       const level = decodeLevel(window.location.hash.slice("#from/".length));
-      return { draft: draftFromLevel(level), name: "my version" };
+      return { draft: freshen(draftFromLevel(level)), name: "my version" };
     } catch {
       // A broken code is not worth an error page: fall through to the draft.
     }
   }
   const saved = loadDraft();
-  if (saved !== null) return saved;
-  return { draft: blankDraft(GAMES[0].engine, GAMES[0].behaviour), name: "my level" };
+  if (saved !== null) return { ...saved, draft: freshen(saved.draft) };
+  return { draft: blankDraft(GAMES[0].engine, currentBuild(GAMES[0].engine)), name: "my level" };
 }
 
 const start = opening();
@@ -528,7 +557,7 @@ function paintGames(): void {
     button.setAttribute("aria-pressed", on ? "true" : "false");
     button.addEventListener("click", () => {
       if (game.engine === draft.engine) return;
-      draft = retarget(draft, game.engine, game.behaviour);
+      draft = retarget(draft, game.engine, currentBuild(game.engine));
       // A ladder tool with no ladders in this game would be a dead button.
       if (tool === GLYPH_LADDER && game.engine !== "dash") tool = GLYPH_WALL;
       saying = "";
@@ -585,7 +614,7 @@ playButton.addEventListener("click", () => {
 });
 
 clearButton.addEventListener("click", () => {
-  draft = blankDraft(draft.engine, draft.behaviourVersion);
+  draft = blankDraft(draft.engine, currentBuild(draft.engine));
   saying = "";
   repaint();
   review();
