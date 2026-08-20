@@ -21,6 +21,7 @@ import { parseLevel } from "../../core/level.ts";
 import { hashHex } from "../../core/hash.ts";
 import { engineFor } from "../../engines/registry.ts";
 import { Readout } from "./readout.ts";
+import { Recorder, beats, proofKey, type Replayable } from "../../core/proof.ts";
 import { Buttons, KEY_BITS, Loop, type Moving } from "./realtime.ts";
 import { HELD_ACT, HELD_DOWN, HELD_LEFT, HELD_RIGHT, HELD_SWING, HELD_UP } from "../../engines/types.ts";
 import { reachFor } from "../../engines/roam/v3.ts";
@@ -41,41 +42,95 @@ const BUILT_IN_NAME = "First Run";
  * The share gate. Spec S12: **you cannot share a level you have not beaten.**
  *
  * It is a quality filter, a difficulty signal and a piece of trash talk in one
- * mechanic -- and it is nearly free, because beating it is what proves the level
- * is beatable at all. Nobody can send a friend something impossible.
+ * mechanic -- and it is nearly free, because beating it is what proves the
+ * level is beatable at all. Nobody can send a friend something impossible.
  *
- * Beating a level is remembered, so coming back tomorrow does not take the
- * ability away. Day 9 replaces this with the real thing: the input log is
- * verified before a link is produced.
+ * It used to take your word for it: the page believed it had seen you win, and
+ * that belief was what opened the button. Now every input is kept, and when
+ * you win the whole run is REPLAYED into a fresh engine. The button appears
+ * only if that replay also wins and lands on the same stateHash.
+ *
+ * That is the difference between "the page thinks you won" and "here is a
+ * sequence of button presses that finishes this level" -- and it is the second
+ * one that makes a link worth trusting. The proof stays here and never travels
+ * (spec S10 has no room for it in the URL, and the sender is who it is for).
  */
-const BEATEN_KEY = "hoppa.beaten.v1";
+const BEATEN_KEY = "hoppa.proof.v1";
 
-function beatenLevels(): string[] {
+interface StoredProof {
+  readonly level: string;
+  readonly creature: string;
+  readonly log: number[];
+  readonly key: number;
+}
+
+function storedProofs(): StoredProof[] {
   try {
     const raw = window.localStorage.getItem(BEATEN_KEY);
     const list = raw === null ? [] : (JSON.parse(raw) as unknown);
-    return Array.isArray(list) ? list.filter((v): v is string => typeof v === "string") : [];
+    if (!Array.isArray(list)) return [];
+    return list.filter(
+      (p): p is StoredProof =>
+        typeof p === "object" && p !== null &&
+        typeof (p as StoredProof).level === "string" &&
+        typeof (p as StoredProof).creature === "string" &&
+        Array.isArray((p as StoredProof).log),
+    );
   } catch {
     return [];
   }
 }
 
-function rememberBeaten(code: string): void {
+function keepProof(proof: StoredProof): void {
   try {
-    const list = beatenLevels();
-    if (!list.includes(code)) {
-      // Keep the list short; it is a convenience, not a record.
-      window.localStorage.setItem(BEATEN_KEY, JSON.stringify([code, ...list].slice(0, 40)));
-    }
+    const kept = storedProofs().filter(
+      (p) => !(p.level === proof.level && p.creature === proof.creature),
+    );
+    // A handful is plenty; this is a convenience, not a record.
+    window.localStorage.setItem(BEATEN_KEY, JSON.stringify([proof, ...kept].slice(0, 24)));
   } catch {
     // No storage is fine: you simply have to beat it again in this sitting.
   }
 }
 
-let beatenNow = false;
+/** The run in progress, and whether a replay of it has actually won. */
+let recorder = new Recorder();
+let proven = false;
 
 function hasBeatenThis(): boolean {
-  return beatenNow;
+  return proven;
+}
+
+/** Replay what was just played. Only a win here opens the button. */
+function proveIt(): boolean {
+  const log = recorder.log();
+  if (!beats(log, () => engineFor(level, chosen) as unknown as Replayable, STATUS_WON)) {
+    return false;
+  }
+  keepProof({
+    level: levelCode,
+    creature: chosen.id,
+    log: [...log],
+    key: proofKey(levelCode, chosen.id, log),
+  });
+  return true;
+}
+
+/**
+ * A proof kept from an earlier visit, re-checked rather than trusted.
+ *
+ * Storage is not evidence: it is re-replayed on load, so an edited entry or one
+ * from a build whose rules have changed simply does not open the button.
+ */
+function provenBefore(): boolean {
+  for (const proof of storedProofs()) {
+    if (proof.level !== levelCode || proof.creature !== chosen.id) continue;
+    if (proof.key !== proofKey(levelCode, chosen.id, proof.log)) continue;
+    if (beats(proof.log, () => engineFor(level, chosen) as unknown as Replayable, STATUS_WON)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -261,9 +316,9 @@ function paint(): void {
 
   if (finished()) {
     const won = engine.currentStatus() === STATUS_WON;
-    if (won && !beatenNow) {
-      beatenNow = true;
-      rememberBeaten(levelCode);
+    if (won && !proven) {
+      // Not "the page saw a win", but "these presses, replayed cold, win".
+      proven = proveIt();
       paintShareGate();
     }
     if (won) paintQr();
@@ -281,6 +336,8 @@ function paint(): void {
 
 function move(input: Input): void {
   if (finished()) return;
+  // Recorded before it is played, so the log is exactly what the engine saw.
+  recorder.push(input);
   engine.step(input);
   if (engine.didBump()) {
     blockedUntil = performance.now() + 140;
@@ -348,9 +405,9 @@ function paintMovingHud(): void {
 
   if (finished()) {
     const won = game.currentStatus() === STATUS_WON;
-    if (won && !beatenNow) {
-      beatenNow = true;
-      rememberBeaten(levelCode);
+    if (won && !proven) {
+      // Not "the page saw a win", but "these presses, replayed cold, win".
+      proven = proveIt();
       paintShareGate();
     }
     if (won) paintQr();
@@ -374,6 +431,13 @@ function reset(): void {
   moving = isRealtime(raw) ? (raw as unknown as Moving) : null;
   buttons.clear();
   blockedUntil = 0;
+  // A new run needs a new log. Keeping the old one would let a losing attempt
+  // inherit the presses of a winning one.
+  recorder = new Recorder();
+  // ...but a proof already earned still stands, including one from a previous
+  // visit. Switching creature is a different run, so it is re-checked.
+  proven = provenBefore();
+  paintShareGate();
   // Only when the creature changes: stamping 256 pixels every frame is the
   // difference between smooth and not on a cheap phone.
   renderer.setSprite(chosen.sprite);
@@ -388,7 +452,7 @@ function reset(): void {
   paint();
 
   if (moving !== null) {
-    loop = new Loop(moving, buttons, paint, finished);
+    loop = new Loop(moving, buttons, paint, finished, (held) => recorder.push(held));
     loop.start();
   }
 }
@@ -697,7 +761,8 @@ if (loadError !== null) {
 }
 
 const levelCode = encodeLevel(level);
-beatenNow = beatenLevels().includes(levelCode);
+// Re-checked, not trusted: a stored proof is replayed before it counts.
+proven = provenBefore();
 paintShareGate();
 
 renderer.setSprite(chosen.sprite);
@@ -714,6 +779,6 @@ resize();
 // not wait for a first press. This is the whole difference from the turn-based
 // builds, so it must not be left to reset() to switch on.
 if (moving !== null) {
-  loop = new Loop(moving, buttons, paint, finished);
+  loop = new Loop(moving, buttons, paint, finished, (held) => recorder.push(held));
   loop.start();
 }

@@ -527,10 +527,11 @@ cannot send a level you have not beaten.
 
 ## 12. The share gate
 
-**You cannot share a level you haven't beaten.** *Implemented — the button does
-not exist until you win, and beating a level is remembered so coming back
-tomorrow does not take the right away. Day 9 replaces the honour system with the
-real thing: the input log is verified before a link is produced.*
+**You cannot share a level you haven't beaten.** *Implemented, and proved
+(`docs/adr/0020`): every input is kept, and on a win the whole run is replayed
+into a fresh engine. The button appears only if that replay also wins. A proof
+kept from an earlier visit is re-replayed before it counts, so storage is never
+taken at its word.*
 
 The most valuable mechanic here, and nearly free once you have deterministic
 replay. Beat your own level → input log verified locally → only then does the

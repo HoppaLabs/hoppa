@@ -21,7 +21,7 @@ import {
   type Draft, type Glyph,
 } from "../../core/draft.ts";
 import { adviceFor } from "../../core/advice.ts";
-import { newestBehaviour } from "../../engines/registry.ts";
+import { newestBuild } from "../../core/builds.ts";
 import { decodeLevel, encodeLevel } from "../../core/codec.ts";
 import { slugify } from "../play/link.ts";
 import { GridRenderer } from "../play/renderer.ts";
@@ -75,8 +75,8 @@ const GAMES = [
 ] as const;
 
 function currentBuild(engine: string): number {
-  const newest = newestBehaviour(engine);
-  return newest > 0 ? newest : newestBehaviour(GAMES[0].engine);
+  const newest = newestBuild(engine);
+  return newest > 0 ? newest : newestBuild(GAMES[0].engine);
 }
 
 const TILE_OF: Record<string, number> = {
@@ -124,7 +124,7 @@ const tiles = new Uint8Array(GRID_W * GRID_H);
 function freshen(draft: Draft): Draft {
   // An engine this build does not offer -- a retired one from an old link --
   // becomes the default game rather than an unplayable header.
-  const engine = newestBehaviour(draft.engine) > 0 ? draft.engine : GAMES[0].engine;
+  const engine = newestBuild(draft.engine) > 0 ? draft.engine : GAMES[0].engine;
   return retarget(draft, engine, currentBuild(engine));
 }
 

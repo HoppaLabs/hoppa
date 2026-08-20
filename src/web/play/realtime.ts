@@ -88,6 +88,8 @@ export class Loop {
     private readonly buttons: Buttons,
     private readonly onFrame: () => void,
     private readonly finished: () => boolean,
+    /** Every input handed to the engine, for the share gate's proof. */
+    private readonly onInput: (held: number) => void = () => {},
   ) {}
 
   start(): void {
@@ -103,7 +105,9 @@ export class Loop {
       if (!this.finished()) {
         const ticks = this.pump.pump(elapsed);
         for (let i = 0; i < ticks; i++) {
-          this.engine.step(this.buttons.mask());
+          const held = this.buttons.mask();
+          this.onInput(held);
+          this.engine.step(held);
           this.buttons.afterTick();
           // A message belongs to the TICK it happened on, and several ticks
           // can pass between two frames. Read after the loop and "Got it."

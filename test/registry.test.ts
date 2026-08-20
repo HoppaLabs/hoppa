@@ -4,6 +4,7 @@ import { parseLevel } from "../src/core/level.ts";
 import { DelveV1 } from "../src/engines/delve/v1.ts";
 import { DelveV2 } from "../src/engines/delve/v2.ts";
 import { engineFor, knownBuilds, newestBehaviour, UnknownBehaviourError } from "../src/engines/registry.ts";
+import { NEWEST_BUILD, newestBuild } from "../src/core/builds.ts";
 
 // E11: a pinned behaviour version always routes to that engine build.
 test("a level pinning behaviour=1 gets the day 1 build, forever", () => {
@@ -60,4 +61,21 @@ test("newestBehaviour finds the newest build, so nothing has to keep its own tab
   }
   expect(newestBehaviour("shove")).toBe(0);
   expect(newestBehaviour("")).toBe(0);
+});
+
+
+test("the authoring table matches the registry, so it cannot go stale", () => {
+  // The level editor reads NEWEST_BUILD instead of importing the registry --
+  // pulling eleven engine builds into that page to read one integer tripled
+  // its size. This is what keeps the shortcut honest: register a build and
+  // forget this table, and the suite fails here rather than shipping levels
+  // under last week's rules.
+  for (const key of knownBuilds()) {
+    const engine = key.slice(0, key.lastIndexOf("/"));
+    expect(newestBuild(engine)).toBe(newestBehaviour(engine));
+  }
+  // ...and nothing in the table names an engine that does not exist.
+  for (const engine of Object.keys(NEWEST_BUILD)) {
+    expect(knownBuilds()).toContain(`${engine}/${newestBuild(engine)}`);
+  }
 });
