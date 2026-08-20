@@ -45,7 +45,25 @@
     font: inherit; color: var(--ink-bright); background: var(--key);
     border: 1px solid var(--edge); border-radius: 8px; padding: 8px 12px; cursor: pointer;
   }
-  input { cursor: text; width: 9em; text-align: center; }
+  /* A box you type in must not look like a button you press.
+     These shared every one of the rules above -- same raised fill, same border,
+     same corners, text centred like a label -- so "Me" read as something to
+     tap. A field is a HOLE: it sits below the page rather than on it, its edge
+     is drawn rather than implied, and the text starts at the left where a
+     caret would be. */
+  input {
+    cursor: text; width: 9em; text-align: left;
+    background: var(--bg); border: 1px solid var(--key-lit);
+    border-radius: 6px; box-shadow: inset 0 1px 2px rgb(0 0 0 / .5);
+  }
+  input:focus {
+    outline: none; border-color: var(--gold);
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / .5), 0 0 0 2px rgb(255 194 61 / .25);
+  }
+  input::placeholder { color: var(--ink); opacity: .7; }
+  /* ...and it says what it is, rather than relying on the box to say it. */
+  .field { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+  .field label { font-size: 11px; color: var(--ink); }
   button.on { border-color: var(--gold); }
   /* The four inks. The swatch IS the colour, so it needs no label. */
   #inks button { width: 52px; height: 44px; padding: 0; position: relative; }
@@ -156,7 +174,10 @@
 <div class="hint">you cannot be both strong and fast</div>
 
 <div class="row">
-  <input id="name" maxlength="12" value="Me" aria-label="what your character is called">
+  <span class="field">
+    <label for="name">what it is called</label>
+    <input id="name" maxlength="12" value="Me" placeholder="give it a name">
+  </span>
 </div>
 
 <div class="row">
@@ -181,7 +202,10 @@
 
 <h2>bring one back</h2>
 <div class="row">
-  <input id="paste" placeholder="HOPPA-..." aria-label="paste a character code">
+  <span class="field">
+    <label for="paste">paste a code</label>
+    <input id="paste" placeholder="HOPPA-...">
+  </span>
   <button id="load">use it</button>
 </div>
 <div id="loaded"></div>
