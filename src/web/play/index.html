@@ -144,16 +144,6 @@
     cursor: pointer;
   }
   #reset:active { background: var(--key); }
-  #share {
-    font: inherit; color: var(--bg); background: var(--gold);
-    border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer;
-    font-weight: 600;
-  }
-  #share:active { opacity: .8; }
-  #share[hidden] { display: none; }
-  /* The share button appears on the win screen too, because that is the moment
-     you actually want to send it. */
-  #over #share { position: static; }
   #draw {
     font: inherit; color: var(--ink-bright); background: var(--key);
     border: 1px solid var(--gold); border-radius: 6px; padding: 6px 12px;
@@ -193,7 +183,6 @@
   <footer>
     <span id="hud"></span>
     <button id="reset">start again</button>
-    <button id="share" hidden>send it</button>
     <a id="draw" href="./make/">edit character</a>
   </footer>
   <div id="said"></div>

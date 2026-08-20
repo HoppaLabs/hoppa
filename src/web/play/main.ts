@@ -124,7 +124,6 @@ const stage = document.getElementById("stage") as HTMLElement;
 const over = document.getElementById("over") as HTMLElement;
 const stable = document.getElementById("stable") as HTMLElement;
 const said = document.getElementById("said") as HTMLElement;
-const shareButton = document.getElementById("share") as HTMLButtonElement;
 const sendIt = document.getElementById("sendit") as HTMLButtonElement;
 const qrCanvas = document.getElementById("qr") as HTMLCanvasElement;
 const qrHint = document.getElementById("qrhint") as HTMLElement;
@@ -192,11 +191,14 @@ function paintQr(): void {
   qrDrawn = true;
 }
 
-/** Show or hide the two share buttons according to the gate. */
+/**
+ * Sharing lives in exactly one place: the win screen, next to the QR code and
+ * the score. A second button in the footer was redundant once the win screen
+ * existed, and it lingered after a reload, which read as "you can share this"
+ * at a moment the player had not just earned anything.
+ */
 function paintShareGate(): void {
-  const allowed = hasBeatenThis();
-  shareButton.hidden = !allowed;
-  sendIt.hidden = !allowed;
+  sendIt.hidden = !hasBeatenThis();
 }
 
 function paint(): void {
@@ -575,7 +577,6 @@ async function share(): Promise<void> {
   }
 }
 
-shareButton.addEventListener("click", share);
 sendIt.addEventListener("click", (ev) => {
   ev.stopPropagation();
   void share();
