@@ -6,7 +6,6 @@ const manifest = JSON.parse(await Bun.file("dist/manifest.webmanifest").text()) 
   string,
   unknown
 >;
-const install = await Bun.file("src/web/install.ts").text();
 const worker = await Bun.file("dist/sw.js").text();
 
 test("the manifest says what a phone needs to keep the game on a home screen", () => {
@@ -64,32 +63,4 @@ test("the home screen copy is kept offline too, or it works once and never again
   for (const name of ["manifest.webmanifest", "icon-180.png", "icon-192.png", "icon-512.png"]) {
     expect({ name, cached: worker.includes(`"${name}"`) }).toEqual({ name, cached: true });
   }
-});
-
-test("the offer is made once, and never when it cannot be acted on", () => {
-  // Spec §5b says "prompt once, after a creature is made, when the value is
-  // obvious" -- so all three conditions, not just the last one.
-  expect(install.includes("if (!earned) return false;")).toBe(true);
-  expect(install.includes("if (alreadyInstalled()) return false;")).toBe(true);
-  expect(install.includes("if (offeredBefore()) return false;")).toBe(true);
-});
-
-test("a phone already running it as an app is not asked", () => {
-  expect(install.includes('matchMedia("(display-mode: standalone)")')).toBe(true);
-  // iOS predates the standard and answers only to its own property.
-  expect(install.includes("standalone?: boolean")).toBe(true);
-});
-
-test("no user-agent sniffing decides which offer to make", () => {
-  // The browser handing over a prompt IS the test for whether it has one.
-  // Sniffing would be wrong the day either vendor changes anything.
-  expect(install.includes("userAgent")).toBe(false);
-  expect(install.includes("beforeinstallprompt")).toBe(true);
-});
-
-test("storage refusing to remember never breaks the page", () => {
-  // Private browsing throws on localStorage. Asking twice is a much smaller
-  // failure than a page that will not load.
-  const guards = install.split("} catch {").length - 1;
-  expect(guards).toBeGreaterThanOrEqual(2);
 });

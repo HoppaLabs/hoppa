@@ -24,7 +24,7 @@ import {
   type Build,
   type Weapon,
 } from "../../core/creature.ts";
-import { loadCharacter, rememberJustMade, saveCharacter, startingCharacter } from "../stash.ts";
+import { loadCharacter, saveCharacter, startingCharacter } from "../stash.ts";
 import { ChrError, decodeCharacter, encodeCharacter } from "../../core/chr.ts";
 import { encodeQr, QrError } from "../../core/qr.ts";
 import { goOffline } from "../offline.ts";
@@ -240,9 +240,6 @@ function paintStats(): void {
   const name = nameField.value.trim().slice(0, 12) || "Me";
   const made = creatureFromBuild("yours", name, "@", build as Build, sprite, weapon);
   saveCharacter(name, build as Build, made);
-  // The play page asks about the home screen, because "keep this safe" only
-  // means anything once you can see the thing you made moving about.
-  rememberJustMade();
   note.textContent = "saved";
   window.location.href = "../";
 });

@@ -1,6 +1,8 @@
 # 0024 — Ask for the home screen, once
 
-**Status:** accepted (day 15)
+**Status:** the prompt was **removed the same day** — see `docs/adr/0025`.
+The icon, the PNG encoder and the manifest described here all still ship. Kept as
+the record of what was built and what it cost.
 
 ## The threat this exists for
 

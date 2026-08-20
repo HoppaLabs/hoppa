@@ -206,10 +206,12 @@ biggest threat to the premise and it needs three mitigations, not one:
    7-day counter and keep their own use timer. Prompt once, after a creature is
    made, when the value is obvious.
 
-   *Implemented — see `docs/adr/0024`.* Asked on the play page, over the top of
-   the level so it costs no space, with the clock held while it is read. Once
-   ever, never when already installed. Chrome gets a button that does it;
-   Safari, which has no install prompt, is told where its own button is.
+   ***Not implemented, deliberately — see `docs/adr/0025`.*** It was built and
+   then removed: a prompt is an interruption between a child finishing a drawing
+   and seeing it run about, in service of a storage policy that is not their
+   problem. The game is still installable by hand — manifest and icon ship — but
+   nothing asks. **Mitigations 1 and 3 carry this on their own**, and the spec
+   already says which one is the real guarantee: the code is the save file.
 3. **QR on screen.** Two kids in the same room photograph each other's screens.
    It's the most natural transfer mechanism at that age and it costs nothing.
 
