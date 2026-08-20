@@ -137,3 +137,38 @@ test("a level whose link carried no name still gets one on the chip", async () =
   // A link that does name the level is untouched.
   expect(levelFromHash(`#p/pit-of-doom/${code}`)?.slug).toBe("pit-of-doom");
 });
+
+// --- how the row is drawn ---------------------------------------------------
+
+test("the levels you played before are a list, not a row of chips", async () => {
+  const main = await Bun.file("src/web/play/main.ts").text();
+  const html = await Bun.file("src/web/play/index.html").text();
+  // As a wrapping row every name was cut to fifteen characters to make them fit
+  // each other, and each was a 24px tap target.
+  expect(html.includes("#played .levels {")).toBe(true);
+  expect(html.includes("flex-direction: column")).toBe(true);
+  expect(html.includes("max-width: 15ch")).toBe(false);
+  // Whole names: the storage cap is the only thing that shortens one now.
+  expect(main.includes("was.name.replace(/-/g, \" \")")).toBe(true);
+});
+
+test("...behind one line, because a list open costs the level a third of itself", async () => {
+  const main = await Bun.file("src/web/play/main.ts").text();
+  const html = await Bun.file("src/web/play/index.html").text();
+  // Measured: three rows is 111px of a 664px phone and took the play area from
+  // 360x210 to its 140px floor. Shut it costs a single line.
+  expect(main.includes('header.className = "heading";')).toBe(true);
+  expect(main.includes("list.hidden = !list.hidden;")).toBe(true);
+  // The level is measured for the screen, so opening it has to re-measure.
+  const at = main.indexOf("header.addEventListener");
+  expect(main.slice(at, main.indexOf("});", at)).includes("resize();")).toBe(true);
+  // Six levels down a column is 246px, so the list itself is bounded too.
+  expect(html.includes("max-height: 112px")).toBe(true);
+});
+
+test("a tampered name cannot put markup on the page or rubbish in the URL", async () => {
+  const main = await Bun.file("src/web/play/main.ts").text();
+  // Both halves come out of localStorage, which spec §5b says to assume lies.
+  expect(main.includes("link.href = `#p/${slugify(was.name)}/${encodeURIComponent(was.code)}`;")).toBe(true);
+  expect(main.includes("name.textContent = was.name.replace")).toBe(true);
+});

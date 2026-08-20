@@ -1141,6 +1141,19 @@ const levelCode = encodeLevel(level);
  * Only levels that came from a link. The built-in one is always here, and a
  * list whose first entry is "the level you are already on" is furniture.
  */
+/**
+ * The levels you have played before, as a list you can open.
+ *
+ * A list is the right shape -- a wrapping row of chips cut every name to
+ * fifteen characters to make them fit each other, and gave each one a 24px tap
+ * target. But a list is expensive down a phone: three rows is 111px, six is
+ * 246px, and the level pays for every one of them. Open, it took the play area
+ * from 360x210 to its 140px floor.
+ *
+ * So it is a list behind one line. Shut it costs a single row; open it is a
+ * proper list with whole names, and the level shrinks only while you are
+ * actually looking at it.
+ */
 function paintPlayed(): void {
   const row = document.getElementById("played") as HTMLElement;
   const others = playedBefore().filter((was) => was.code !== levelCode);
@@ -1149,10 +1162,27 @@ function paintPlayed(): void {
     row.hidden = true;
     return;
   }
-  // Without this the entries read as two more buttons with no explanation.
-  const label = document.createElement("span");
-  label.textContent = "played before";
-  row.appendChild(label);
+
+  const list = document.createElement("div");
+  list.className = "levels";
+  list.hidden = true;
+
+  const header = document.createElement("button");
+  header.className = "heading";
+  header.setAttribute("aria-expanded", "false");
+  const say = (): void => {
+    header.textContent = `played before · ${others.length}`;
+    header.setAttribute("aria-expanded", String(!list.hidden));
+    header.classList.toggle("open", !list.hidden);
+  };
+  header.addEventListener("click", () => {
+    list.hidden = !list.hidden;
+    say();
+    // The list was not there when the level was measured for the screen.
+    resize();
+  });
+  say();
+
   for (const was of others) {
     const link = document.createElement("a");
     // The same shape the link arrived as, so tapping one is exactly the same
@@ -1161,11 +1191,14 @@ function paintPlayed(): void {
     // record must not be able to put markup on the page or anything but a
     // slug in the URL.
     link.href = `#p/${slugify(was.name)}/${encodeURIComponent(was.code)}`;
-    const label = document.createElement("b");
-    label.textContent = was.name.replace(/-/g, " ");
-    link.appendChild(label);
-    row.appendChild(link);
+    const name = document.createElement("b");
+    name.textContent = was.name.replace(/-/g, " ");
+    link.appendChild(name);
+    list.appendChild(link);
   }
+
+  row.appendChild(header);
+  row.appendChild(list);
   row.hidden = false;
 }
 
