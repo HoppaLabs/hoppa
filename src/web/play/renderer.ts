@@ -63,19 +63,23 @@ const COLOUR: Record<number, string> = {
 type Cloud = readonly string[];
 
 const CLOUD_WIDE: Cloud = [
-  ".....XXXXX......",
-  "...XXXXXXXXX....",
-  "..XXXXXXXXXXXX..",
-  ".XXXXXXXXXXXXXX.",
-  "XXXXXXXXXXXXXXXX",
-  ".ssssssssssssss.",
+  "......XXXXXX........",
+  "....XXXXXXXXXX......",
+  "...XXXXXXXXXXXXX....",
+  "..XXXXXXXXXXXXXXX.XX",
+  ".XXXXXXXXXXXXXXXXXXX",
+  "XXXXXXXXXXXXXXXXXXXX",
+  "XXXXXXXXXXXXXXXXXXXX",
+  ".ssssssssssssssssss.",
 ];
 
 const CLOUD_SMALL: Cloud = [
-  "...XXX....",
-  ".XXXXXXX..",
-  "XXXXXXXXXX",
-  ".ssssssss.",
+  "....XXXX......",
+  "..XXXXXXXX....",
+  ".XXXXXXXXXXX..",
+  "XXXXXXXXXXXXXX",
+  "XXXXXXXXXXXXXX",
+  ".ssssssssssss.",
 ];
 
 /**
@@ -86,10 +90,9 @@ const CLOUD_SMALL: Cloud = [
  * already has enough.
  */
 const CLOUDS: readonly { at: Cloud; x: number; y: number; drift: number }[] = [
-  { at: CLOUD_WIDE, x: 1, y: 1, drift: 260 },
-  { at: CLOUD_SMALL, x: 11, y: 0, drift: 170 },
-  { at: CLOUD_WIDE, x: 16, y: 3, drift: 330 },
-  { at: CLOUD_SMALL, x: 6, y: 4, drift: 210 },
+  { at: CLOUD_WIDE, x: 0, y: 0, drift: 300 },
+  { at: CLOUD_SMALL, x: 13, y: 2, drift: 190 },
+  { at: CLOUD_WIDE, x: 8, y: 4, drift: 380 },
 ];
 
 /** The gem's shape: a diamond, so a spin is a change of width and nothing else. */
@@ -292,7 +295,10 @@ export class GridRenderer {
    */
   private paintClouds(ctx: CanvasRenderingContext2D, t: number): void {
     if (!this.sideOn) return;
-    const step = Math.max(1, Math.round(t / 8));
+    // A third of a tile per cloud pixel rather than an eighth, so a cloud is
+    // four tiles across rather than two. Reported as wanting them bigger, and
+    // they were: at two tiles they read as specks rather than as weather.
+    const step = Math.max(1, Math.round(t / 5));
     if (step < 2) return;
 
     const wide = t * GRID_W;
