@@ -69,6 +69,12 @@ export class GridRenderer {
   private weapon: string = "sword";
   /** Which palette to paint the terrain in. Presentation only. */
   private sideOn = false;
+  /**
+   * Whether anything is animating. The game redraws every frame and wants the
+   * spin; the level editor redraws only when you change something, so an
+   * animated gem would be frozen at whatever angle the last edit caught it at.
+   */
+  private spinning = true;
   /** Frames of landing squash left to draw, and what we saw last frame. */
   private squash = 0;
   private wasAirborne = false;
@@ -87,6 +93,11 @@ export class GridRenderer {
   /** Side-on levels are painted against sky. Cosmetic; see SKY above. */
   setSideOn(sideOn: boolean): void {
     this.sideOn = sideOn;
+  }
+
+  /** Turn the spinning treasure off, for a view that is not redrawn each frame. */
+  setSpinning(spinning: boolean): void {
+    this.spinning = spinning;
   }
 
   /** The colour for a tile, in whichever world this level is. */
@@ -343,18 +354,37 @@ export class GridRenderer {
 
         // Treasure is a diamond, not a square: shape carries the difference
         // from the actor even when the tiles are tiny or the screen is dim.
+        //
+        // And it SPINS -- narrow, gone edge-on, wide again, the way a coin does
+        // in every game a child has ever seen. It is the only thing on a
+        // top-down screen that moves when nothing else is happening, which is
+        // what makes a still room look like a place rather than a picture.
+        //
+        // Each one starts at its own point in the turn, from its cell number,
+        // so a row of them ripples instead of pulsing in lockstep.
         if (tile === TILE_TREASURE) {
           ctx.fillStyle = this.ink(TILE_FLOOR);
           ctx.fillRect(x * t, y * t, t, t);
           const cx = x * t + t / 2;
           const cy = y * t + t / 2;
           const r = Math.max(2, (t / 2) - Math.max(1, Math.floor(t / 5)));
-          ctx.fillStyle = this.ink(TILE_TREASURE);
+
+          // A full turn every 1.6 seconds. Frozen mid-face when nothing is
+          // animating, so the level editor never draws one as a sliver.
+          const phase = this.spinning
+            ? ((Date.now() / 1600) + (y * GRID_W + x) * 0.13) * Math.PI * 2
+            : 0;
+          const wide = Math.abs(Math.cos(phase));
+          // Never quite vanishes: a gem you cannot see is a gem you cannot find.
+          const rx = Math.max(1, r * wide);
+
+          // Edge-on it catches less light, which is what sells the turn.
+          ctx.fillStyle = wide > 0.35 ? this.ink(TILE_TREASURE) : "#3fa7c9";
           ctx.beginPath();
           ctx.moveTo(cx, cy - r);
-          ctx.lineTo(cx + r, cy);
+          ctx.lineTo(cx + rx, cy);
           ctx.lineTo(cx, cy + r);
-          ctx.lineTo(cx - r, cy);
+          ctx.lineTo(cx - rx, cy);
           ctx.closePath();
           ctx.fill();
           continue;

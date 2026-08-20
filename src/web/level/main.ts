@@ -226,6 +226,9 @@ function repaint(): void {
   // Sky for the side-on game, so tapping "from the side" visibly changes the
   // world rather than only changing which tools are on offer.
   renderer.setSideOn(draft.engine === "dash");
+  // The editor redraws only when something changes, so a spinning gem would sit
+  // frozen at whatever angle the last tap caught it at.
+  renderer.setSpinning(false);
   renderer.draw(tiles, false);
 }
 

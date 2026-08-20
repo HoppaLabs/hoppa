@@ -379,6 +379,9 @@ function reset(): void {
   renderer.setSprite(chosen.sprite);
   renderer.setWeapon(chosen.weapon);
   renderer.setSideOn(level.engine === "dash");
+  // Only the real-time engines redraw every frame. A turn-based level redraws
+  // when you press something, so a spinning gem would freeze between moves.
+  renderer.setSpinning(moving !== null);
   // A creature that swings a wand needs the wand on the button, not a sword.
   paintActionButton();
   paintStable();
@@ -700,6 +703,9 @@ paintShareGate();
 renderer.setSprite(chosen.sprite);
 renderer.setWeapon(chosen.weapon);
 renderer.setSideOn(level.engine === "dash");
+// Only the real-time engines redraw every frame. A turn-based level redraws
+// when you press something, so a spinning gem would freeze between moves.
+renderer.setSpinning(moving !== null);
 paintActionButton();
 paintStable();
 resize();
