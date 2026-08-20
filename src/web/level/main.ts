@@ -24,7 +24,9 @@ import { adviceFor } from "../../core/advice.ts";
 import { newestBuild } from "../../core/builds.ts";
 import { decodeLevel, encodeLevel } from "../../core/codec.ts";
 import { slugify } from "../play/link.ts";
-import { GridRenderer } from "../play/renderer.ts";
+import { GridRenderer, tileChip } from "../play/renderer.ts";
+import { RUBBER_ICON } from "../icons.ts";
+import { ask } from "../ask.ts";
 import { PACK } from "../../core/pack.ts";
 import {
   TILE_FIRE,
@@ -42,12 +44,12 @@ import { goOffline } from "../offline.ts";
 interface Tool {
   readonly glyph: Glyph;
   readonly label: string;
-  readonly colour: string;
   /**
-   * The swatch for the side-on game, where the terrain palette changes. A
-   * button showing dark grey that paints green is a button that lies.
+   * Drawn with a rubber over its tile, the way the character editor draws its
+   * see-through pen. Clearing a cell paints floor, so the tile underneath is
+   * honest -- but "the tool that takes things away" is what it IS.
    */
-  readonly skyColour?: string;
+  readonly rubber?: boolean;
   /**
    * What it is called in the side-on game.
    *
@@ -63,17 +65,20 @@ interface Tool {
 }
 
 const TOOLS: readonly Tool[] = [
-  { glyph: GLYPH_WALL, label: "wall", colour: "#39485c", skyColour: "#5c7a4a" },
-  { glyph: GLYPH_FLOOR, label: "clear", colour: "#222a35", skyColour: "#a8d4f0" },
-  { glyph: GLYPH_START, label: "start", colour: "#e8b76a" },
-  { glyph: GLYPH_EXIT, label: "door / exit", colour: "#b07acb" },
-  { glyph: GLYPH_TREASURE, label: "treasure", colour: "#5fd3f3", limit: 8 },
-  { glyph: GLYPH_GUARD, label: "enemy", colour: "#ff5f4d", limit: 10 },
-  { glyph: GLYPH_LADDER, label: "ladder", colour: "#c8a26a", engines: ["dash"] },
+  // The rubber first, the way it is first on the character editor. It is the
+  // tool you reach for most and the one you want before you have decided what
+  // you are drawing, and it was sitting second behind the wall.
+  { glyph: GLYPH_FLOOR, label: "clear", rubber: true },
+  { glyph: GLYPH_WALL, label: "wall" },
+  { glyph: GLYPH_START, label: "start" },
+  { glyph: GLYPH_EXIT, label: "door / exit" },
+  { glyph: GLYPH_TREASURE, label: "treasure", limit: 8 },
+  { glyph: GLYPH_GUARD, label: "enemy", limit: 10 },
+  { glyph: GLYPH_LADDER, label: "ladder", engines: ["dash"] },
   // One tool, two names. It is the same entity either way -- what changes is
   // what the world draws, because a flame standing on grass looks like a
   // mistake and spikes in a cave look like a floor. See src/core/tileset.ts.
-  { glyph: GLYPH_FIRE, label: "fire", skyLabel: "spikes", colour: "#ff9f3d", limit: 10 },
+  { glyph: GLYPH_FIRE, label: "fire", skyLabel: "spikes", limit: 10 },
 ];
 
 /**
@@ -280,6 +285,7 @@ function repaint(): void {
 // --- somewhere to start from -------------------------------------------------
 
 const examplesBox = document.getElementById("examples") as HTMLElement;
+const askBox = document.getElementById("ask") as HTMLElement;
 const took = document.getElementById("took") as HTMLElement;
 
 /**
@@ -346,18 +352,13 @@ function offer(name: string, theirs: Draft): void {
     take(name, theirs);
     return;
   }
-  const asks = document.createElement("span");
-  asks.textContent = `replace what you have drawn with ${name}? `;
-  const yes = document.createElement("button");
-  yes.className = "yes";
-  yes.textContent = "yes";
-  yes.addEventListener("click", () => take(name, theirs));
-  const no = document.createElement("button");
-  no.textContent = "keep mine";
-  no.addEventListener("click", () => {
-    took.innerHTML = "";
+  // Over the middle of the screen, not under the thumbnails: see src/web/ask.ts.
+  ask(askBox, {
+    question: `Replace the level you have drawn with ${name}?`,
+    confirm: `use ${name}`,
+    cancel: "keep mine",
+    onConfirm: () => take(name, theirs),
   });
-  took.append(asks, yes, no);
 }
 
 function take(name: string, theirs: Draft): void {
@@ -631,10 +632,20 @@ function paintTools(): void {
     button.className = entry.glyph === tool ? "on" : "";
     button.setAttribute("aria-pressed", entry.glyph === tool ? "true" : "false");
 
+    // The button shows the tile the game will draw, from the same code the game
+    // draws it with -- so a wall looks like stonework, spikes look like spikes,
+    // and switching to the side-on game changes the buttons because it changes
+    // the world. They used to be flat colours written out a second time here,
+    // and they had already drifted from the room.
     const chip = document.createElement("span");
     chip.className = "chip";
-    chip.style.background =
-      draft.engine === "dash" && entry.skyColour !== undefined ? entry.skyColour : entry.colour;
+    chip.appendChild(tileChip(TILE_OF[entry.glyph] as number, draft.engine === "dash", 22));
+    if (entry.rubber === true) {
+      const rubber = document.createElement("span");
+      rubber.className = "rubber";
+      rubber.innerHTML = RUBBER_ICON;
+      chip.appendChild(rubber);
+    }
 
     const label = document.createElement("span");
     label.textContent =

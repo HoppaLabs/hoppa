@@ -86,8 +86,13 @@ test("it asks before it destroys, and only when there is something to destroy", 
   // every time is a toll on the child this feature exists for, who has drawn
   // nothing yet.
   expect(make.includes("if (inkedCount(sprite) === 0) {")).toBe(true);
-  expect(make.includes("replace what you have drawn with the")).toBe(true);
-  expect(make.includes('no.textContent = "keep mine";')).toBe(true);
+  // ...and the question goes over the middle of the screen. Inline, under the
+  // strip of thumbnails you had just tapped, it was below the fold on a phone
+  // and easy to miss -- and the answer to a question nobody sees is "nothing
+  // happened".
+  expect(make.includes("Replace the character you have drawn with the")).toBe(true);
+  expect(make.includes("ask(askBox, {")).toBe(true);
+  expect(make.includes('cancel: "keep mine",')).toBe(true);
 });
 
 test("a thumbnail is drawn from the sprite, never from a picture of one", () => {

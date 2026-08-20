@@ -17,7 +17,7 @@ export const PACK: readonly PackLevel[] = [
     slug: "first-steps",
     name: "first steps",
     teaches: "pick the gems up, then the door opens",
-    code: "ESGEAAOpJwekOkOkOkKGCMKA4MKA4MKSLDpDpDpDpQZYWI2RoiGk0g4",
+    code: "ESGEAAOpJwekOkOkOk4OGiDhog4PpDpDIgQMOkOlBohYjZGiIiKifrLcesBp",
   },
   {
     slug: "the-long-way",

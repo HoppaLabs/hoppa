@@ -5,6 +5,8 @@
 // written to be lifted out on day 10 rather than rewritten.
 
 import { PALETTE, colourFor, normaliseSubPalette } from "../../core/palette.ts";
+import { RUBBER_ICON } from "../icons.ts";
+import { ask } from "../ask.ts";
 import {
   SPRITE_H,
   SPRITE_W,
@@ -34,6 +36,7 @@ import { GALLERY } from "../../core/gallery.ts";
 const paper = document.getElementById("paper") as HTMLCanvasElement;
 const context = paper.getContext("2d") as CanvasRenderingContext2D;
 const inks = document.getElementById("inks") as HTMLElement;
+const askBox = document.getElementById("ask") as HTMLElement;
 const swatches = document.getElementById("swatches") as HTMLElement;
 const inkHint = document.getElementById("inkhint") as HTMLElement;
 const nameField = document.getElementById("name") as HTMLInputElement;
@@ -128,22 +131,6 @@ for (const name of ["pointerup", "pointercancel", "pointerleave"]) {
 }
 
 // --- the four inks ----------------------------------------------------------
-
-/**
- * The rubber, drawn as a rubber.
- *
- * The see-through pen was a chequered square and nothing else, which reads as a
- * colour that is MISSING rather than as the tool that takes colour away. The
- * chequer stays -- it is what see-through looks like everywhere -- and the
- * rubber sits on top of it.
- */
-const RUBBER_ICON =
-  '<svg viewBox="0 0 24 24" aria-hidden="true">' +
-  '<path d="M8.5 18.5H21"/>' +
-  '<path d="M14.8 4.7 4.7 14.8a2 2 0 0 0 0 2.8l2.2 2.2a2 2 0 0 0 2.8 0L19.8 9.7a2 2 0 0 0 0-2.8' +
-  'l-2.2-2.2a2 2 0 0 0-2.8 0Z"/>' +
-  '<path d="M10 9.5 15 14.5"/>' +
-  "</svg>";
 
 function paintInks(): void {
   inks.innerHTML = "";
@@ -267,18 +254,14 @@ function offer(name: string, chosen: Sprite): void {
     take(name, chosen);
     return;
   }
-  const asks = document.createElement("span");
-  asks.textContent = `replace what you have drawn with the ${name}? `;
-  const yes = document.createElement("button");
-  yes.className = "yes";
-  yes.textContent = "yes";
-  yes.addEventListener("click", () => take(name, chosen));
-  const no = document.createElement("button");
-  no.textContent = "keep mine";
-  no.addEventListener("click", () => {
-    took.innerHTML = "";
+  // The same moment on the other editor, so the same question in the same
+  // place: see src/web/ask.ts.
+  ask(askBox, {
+    question: `Replace the character you have drawn with the ${name}?`,
+    confirm: `use the ${name}`,
+    cancel: "keep mine",
+    onConfirm: () => take(name, chosen),
   });
-  took.append(asks, yes, no);
 }
 
 function take(name: string, chosen: Sprite): void {

@@ -264,6 +264,15 @@ if (drawLink !== null && shared !== null) {
 }
 // A character you made wins over the ready-made ones: it is yours, and it is
 // the reason the spec says never to cut the drawing day.
+const another = document.getElementById("another") as HTMLButtonElement | null;
+if (another !== null) {
+  another.addEventListener("click", () => {
+    const where = anotherRoom();
+    // hashchange reloads the page, exactly as arriving on a link does.
+    if (where !== null) window.location.hash = where.slice(1);
+  });
+}
+
 const saved = loadCharacter();
 // Whoever beat your level comes with the reply, so you can try their creature
 // against your own level. That is the point of sending one back.
@@ -299,6 +308,30 @@ const levelCode = encodeLevel(level);
  * the list" by the URL alone. It matters, because a room the game ships with
  * has nobody to send a score back TO.
  */
+/**
+ * Another one of the nine, at random, never the one you are on.
+ *
+ * The rooms used to be a list under the game and are now the level editor's
+ * examples, which is the right place for them to be things you EDIT -- but it
+ * left the play page with no way to reach room two, let alone room nine. A
+ * player who tapped the link and never opened the editor saw one room, forever,
+ * and reported not being able to find the fire.
+ *
+ * It hands out an ordinary #p/ link, so tapping this is the same act as tapping
+ * one in a message. Nothing new is reachable this way.
+ *
+ * Random by the clock, which is fine here and would not be anywhere else: this
+ * picks what you look at next, it is not part of any run, and no engine is ever
+ * told about it. Shuffling from the CURRENT room means it can never hand you
+ * the one you are already on, so every tap is a change.
+ */
+function anotherRoom(): string | null {
+  const others = PACK.filter((room) => room.code !== levelCode);
+  if (others.length === 0) return null;
+  const pick = others[Date.now() % others.length] as (typeof PACK)[number];
+  return `#p/${pick.slug}/${pick.code}`;
+}
+
 const shipped = new Set(PACK.map((room) => room.code));
 const isShipped = shipped.has(levelCode);
 

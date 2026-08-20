@@ -56,3 +56,43 @@ test("patternIsSound catches a malformed tile", () => {
   expect(patternIsSound(new Array(8).fill("11111119"))).toBe(false); // bad character
   expect(patternIsSound(new Array(8).fill("...11223"))).toBe(true);
 });
+
+test("a flame frame index is never negative, however long the game has run", async () => {
+  // `| 0` is the house style for integer arithmetic and it was wrong here.
+  // Date.now() / 160 is about eleven billion; `| 0` truncates to 32 bits and
+  // eleven billion wraps NEGATIVE, so the frame lookup missed and the cell fell
+  // through to the flat orange square that exists for when a stamp fails to
+  // build. On screen: a row of hazards, some flames and some plain blocks,
+  // flickering between the two.
+  const frames = 3;
+  const pick = (cell: number, now: number): number => {
+    const step = Math.floor(now / 160) + cell;
+    return ((step % frames) + frames) % frames;
+  };
+  // The value that broke it, plus a spread across the next century.
+  for (const now of [0, 1, 1787000000000, 1787227946392, 2_000_000_000_000, 4_102_444_800_000]) {
+    for (const cell of [0, 1, 47, 335]) {
+      const at = pick(cell, now);
+      expect({ now, cell, sound: at >= 0 && at < frames }).toEqual({ now, cell, sound: true });
+    }
+    // ...and the old arithmetic really did wrap, or this proves nothing. It is
+    // the truncation that goes negative; the modulo of it then lands on a
+    // negative index, or on -0, and both miss the array.
+    if (now > 1_000_000_000_000) {
+      expect((now / 160) | 0).toBeLessThan(0);
+      expect(((now / 160) | 0) % frames).toBeLessThanOrEqual(0);
+    }
+  }
+});
+
+test("fire flickers and spikes do not", async () => {
+  const { UNDERGROUND, OUTSIDE, patternIsSound } = await import("../src/core/tileset.ts");
+  // A flame that held still would be the only thing in the room that should
+  // move and doesn't. A spike is metal.
+  expect((UNDERGROUND.fireFrames ?? []).length).toBeGreaterThan(1);
+  expect(OUTSIDE.fireFrames).toBeUndefined();
+  for (const frame of UNDERGROUND.fireFrames ?? []) expect(patternIsSound(frame)).toBe(true);
+  // Only the tip moves: a base that wandered reads as the whole fire sliding.
+  const bases = new Set((UNDERGROUND.fireFrames ?? []).map((f) => f.slice(5).join("|")));
+  expect(bases.size).toBe(1);
+});

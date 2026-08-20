@@ -139,10 +139,30 @@ const dash = (seed: string) => `hoppa/1 dash seed=${seed} tiles=1 behaviour=6`;
 /** 1. An empty room with two gems. Nothing can go wrong here. */
 function firstSteps(): string {
   const room = new Room().border();
-  room.box(6, 5, 15, 8, WALL).box(7, 6, 14, 7, OPEN);
-  // ...with a way into the middle, so the block reads as a room and not a lump.
-  room.put(10, 5, OPEN);
-  room.put(4, 2, "$").put(19, 2, "$").put(10, 6, "$");
+  // A wall across the middle with two ways through, both of them clear.
+  for (const y of [5, 6, 7]) room.wallRow(y, [7, 16]);
+  // A guard pacing in the OPEN, not standing in a doorway.
+  //
+  // Two things decide where a guard can go. L5 refuses a patrol longer than
+  // eight turns, and a patrol runs along whichever of its two openings is
+  // LONGER -- so the usual answer is a one-cell gap through a thick band, which
+  // gives a run of five. But that makes the guard a GATE: it fills the only way
+  // past, and you have to time it. The bot walks straight at everything the way
+  // a child does the first time, and on the slowest creature it died here every
+  // single attempt, even with the gap widened to two cells.
+  //
+  // The floor below the band is five rows deep, which is already the longest
+  // run L5 allows. So a guard standing in it is short-cycled for free, and two
+  // blocks either side keep its sideways run shorter still. It paces up and
+  // down in the middle of a room twenty cells wide: impossible to miss, and
+  // impossible to be trapped by.
+  room.put(11, 10, WALL).put(15, 10, WALL);
+  room.put(13, 10, "G");
+  // ...and the first thing that hurts and never moves. Both sit in open floor
+  // with room either side, so they are something you SEE before they are ever
+  // something you learn.
+  room.put(5, 10, "^").put(19, 3, "^");
+  room.put(4, 2, "$").put(20, 2, "$").put(12, 3, "$");
   room.put(3, 11, "@").put(19, 11, ">");
   return room.text(roam("1aa1"));
 }

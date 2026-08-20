@@ -250,12 +250,14 @@
      -- it was the only thing giving that button an outline.
      Both wear it now. They are a pair and they are drawn as a pair; what the
      gold no longer says is "press this one". */
-  #draw, #build {
+  /* Same shape as the two doors beside it: it is a third thing you can do from
+     here, not a control on the game above it. */
+  #another, #draw, #build {
     font: inherit; color: var(--ink-bright); background: var(--key);
     border: 1px solid var(--gold); border-radius: 6px; padding: 6px 12px;
     cursor: pointer; text-decoration: none;
   }
-  #draw:active, #build:active { background: var(--key-lit); }
+  #another:active, #draw:active, #build:active { background: var(--key-lit); }
   /* One row, always. They are a pair, and a pair that wraps reads as two
      unrelated buttons. */
   #edits { display: flex; gap: 10px; justify-content: center; flex-wrap: nowrap; }
@@ -353,6 +355,7 @@
   <!-- The two things you can make, side by side and equal. Neither is the one
        to press: see the note on #draw, #build. -->
   <nav id="edits" aria-label="things you can make">
+    <button id="another">another level</button>
     <a id="draw" href="./make/">edit character</a>
     <a id="build" href="./level/">make a level</a>
   </nav>

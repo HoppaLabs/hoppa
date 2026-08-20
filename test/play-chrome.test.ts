@@ -15,10 +15,23 @@ test("the two things you can make are drawn the same, because they are peers", (
   // the first read as permanently selected. Measured against the page
   // background gold is 11.8:1 and --edge is 1.18:1 on a fill of 1.32:1 -- so
   // the gold was never decoration, it was the only outline that button had.
-  expect(rule("#draw, #build")).toContain("border: 1px solid var(--gold)");
+  expect(rule("#another, #draw, #build")).toContain("border: 1px solid var(--gold)");
   // ...and nothing may quietly take it off one of them again.
   expect(html).not.toMatch(/#build\s*\{\s*border-color/);
   expect(html).not.toMatch(/#draw\s*\{\s*border-color/);
+});
+
+test("there is a way to reach the other rooms from the game", () => {
+  // The rooms moved to the level editor, which is right for editing them and
+  // left the play page opening on room one with no way to reach room two. A
+  // player who never opened the editor saw one room and reported not being
+  // able to find the fire.
+  expect(html.includes('<button id="another">another level</button>')).toBe(true);
+  // An ordinary #p/ link, so tapping it is the same act as tapping one in a
+  // message -- nothing new is reachable this way.
+  expect(main.includes("return `#p/${pick.slug}/${pick.code}`;")).toBe(true);
+  // Never the room you are already on, so every tap is a change.
+  expect(main.includes("PACK.filter((room) => room.code !== levelCode)")).toBe(true);
 });
 
 test("...and they sit together on one row that cannot wrap", () => {

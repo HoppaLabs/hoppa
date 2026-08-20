@@ -196,7 +196,11 @@ test("the level editor offers them instead, the way the drawing page does", () =
   expect(levelMain.includes("const small = new GridRenderer(thumb);")).toBe(true);
   // Same bargain as the characters: ask only when there is something to lose.
   expect(levelMain.includes("if (!drawnOn()) {")).toBe(true);
-  expect(levelMain.includes("replace what you have drawn with")).toBe(true);
+  // ...and it asks over the middle of the screen, the same way and in the same
+  // words as the drawing page. Inline it sat under the strip of thumbnails you
+  // had just tapped, below the fold on a phone.
+  expect(levelMain.includes("Replace the level you have drawn with")).toBe(true);
+  expect(levelMain.includes("ask(askBox, {")).toBe(true);
 });
 
 test("beating one of the six offers the level, not a score to send back", () => {

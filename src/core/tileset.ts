@@ -109,6 +109,14 @@ export interface Tileset {
    * look hot.
    */
   readonly fireSub: SubPalette;
+  /**
+   * Extra frames for the hazard, if it is the kind of thing that moves.
+   *
+   * Fire flickers; spikes are metal and do not. A tileset that leaves this out
+   * gets one still frame, which is the right answer for a spike and would be
+   * the wrong one for a flame.
+   */
+  readonly fireFrames?: readonly Pattern[];
   /** Painted behind everything, for the parts a pattern leaves transparent. */
   readonly ground: string;
 }
@@ -139,20 +147,70 @@ const FLAME: Pattern = [
 ];
 
 /**
+ * The same flame, a moment later, and a moment after that.
+ *
+ * Fire is the one thing in the room that should never hold still. Three frames
+ * rather than a filter, because this is pixel art: a flame flickers by
+ * CHANGING SHAPE, and scaling or fading one drawing just makes it throb.
+ *
+ * Only the tip moves. The base is where the fire is anchored and a base that
+ * wandered would read as the whole thing sliding about, so the bottom three
+ * rows are identical in all three and the top four do the work.
+ *
+ * Presentation, and only presentation. Hard rule 4: no engine may ever be told
+ * which frame is showing, and a run replays identically in a still window and
+ * a moving one.
+ */
+const FLAME_FRAMES: readonly Pattern[] = [
+  FLAME,
+  [
+    "...3....",
+    "..33....",
+    "..3323..",
+    ".332233.",
+    ".322123.",
+    "3221123.",
+    "3211123.",
+    "33222233",
+  ],
+  [
+    "....3...",
+    "....33..",
+    "...3323.",
+    "..332233",
+    ".3221233",
+    "3221123.",
+    "3211123.",
+    "33222233",
+  ],
+];
+
+/**
  * The same hazard for the side-on world: spikes coming up out of the ground.
  *
  * A flame standing on a grass ledge reads as a mistake -- fire belongs in a
  * cave. Spikes are what a side-on game puts on a floor, and they sit on the
  * ground rather than floating over it, so the shape says which way is down.
+ *
+ * ONE spike, not two. A tile is eight pattern pixels across, so two spikes get
+ * four each -- and a point needs its width to fall away every row it climbs,
+ * which four columns cannot do. The old pair went from two wide to three and
+ * stopped: rendered at the size it is actually played at, a row of them read
+ * as battlements. Reported as "they don't look sharp enough", which was right.
+ *
+ * The whole tile buys a taper of 2, 4, 6, 8 over seven rows, and the pale
+ * flank down the left is what sells it: the silhouette still steps in twos,
+ * and a lit edge reads as the diagonal the steps are approximating. Drawn out
+ * at fourteen pixels and looked at before it went in, next to four others.
  */
 const SPIKES: Pattern = [
-  "..1..1..",
-  "..2..2..",
-  ".222.222",
-  ".222.222",
+  "...11...",
+  "...22...",
+  "..1222..",
+  "..2222..",
+  ".122222.",
+  ".222222.",
   "22222222",
-  "22222222",
-  "33333333",
   "33333333",
 ];
 
@@ -164,6 +222,7 @@ export const UNDERGROUND: Tileset = {
   floor: GROUND,
   ladder: LADDER,
   fire: FLAME,
+  fireFrames: FLAME_FRAMES,
   // Pale core, orange body, red edge: hot, and nothing else down here is warm.
   fireSub: [29, 34, 40], // #ffe9a3, #ff9f3d, #ff5f4d
   ground: PALETTE[0] as string, // #0d1014

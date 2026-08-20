@@ -42,6 +42,96 @@ const COLOUR: Record<number, string> = {
 };
 
 /**
+ * Which flame frame this cell is showing.
+ *
+ * `| 0` is the house style for integer arithmetic and it is WRONG here.
+ * `Date.now() / 160` is about eleven billion, `| 0` truncates to 32 bits, and
+ * eleven billion wraps to a NEGATIVE number -- so the frame index went
+ * negative, the lookup missed, and the cell fell through to the flat orange
+ * square that exists for when a stamp fails to build. On screen: a row of
+ * hazards where some were flames and some were plain blocks, flickering
+ * between the two. Caught by looking at a screenshot, not by the test, which
+ * was happily reporting six distinct frames a second.
+ *
+ * Math.floor, and a modulo that cannot go negative whatever it is handed.
+ */
+function flameFrame(cell: number, frames: number): number {
+  const step = Math.floor(Date.now() / 160) + cell;
+  return ((step % frames) + frames) % frames;
+}
+
+/**
+ * One tile, drawn the way the game draws it, at whatever size you ask for.
+ *
+ * This exists so the level editor's buttons cannot lie. They used to be
+ * hand-picked coloured squares written out a second time in the editor, and
+ * they had already drifted: treasure was #5fd3f3 on the button and #7fe3ff in
+ * the room. Worse, a wall is a PATTERN in the game and was a flat block on the
+ * button, so the thing you painted with looked nothing like the thing you got.
+ *
+ * Terrain comes from the tileset, exactly as the stamps do. Everything else is
+ * a flat fill in the same COLOUR table the renderer uses, because that is
+ * honestly what the game draws for it -- if a gem ever gets a shape, it gets
+ * one here and on the button at the same moment.
+ */
+export function tileChip(tile: number, sideOn: boolean, size: number): HTMLCanvasElement {
+  const set = tilesetFor(sideOn);
+  const canvas = document.createElement("canvas");
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  canvas.width = Math.max(1, Math.round(size * dpr));
+  canvas.height = Math.max(1, Math.round(size * dpr));
+  canvas.style.width = `${size}px`;
+  canvas.style.height = `${size}px`;
+  const ctx = canvas.getContext("2d");
+  if (ctx === null) return canvas;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const pattern: Pattern | null =
+    tile === TILE_WALL ? set.wall
+    : tile === TILE_FLOOR ? set.floor
+    : tile === TILE_LADDER ? set.ladder
+    : tile === TILE_FIRE ? set.fire
+    : null;
+
+  // The ground goes down first: a ladder and a hazard both have gaps in them,
+  // and a shape cut out of nothing reads as a hole rather than as a thing.
+  ctx.fillStyle = sideOn ? set.ground : (COLOUR[TILE_FLOOR] as string);
+  ctx.fillRect(0, 0, size, size);
+  if (tile === TILE_LADDER || tile === TILE_FIRE) {
+    paintPattern(ctx, set.floor, set.sub, set, size);
+  }
+
+  if (pattern !== null) {
+    const sub = tile === TILE_FIRE ? set.fireSub : set.sub;
+    paintPattern(ctx, pattern, sub, set, size);
+    return canvas;
+  }
+
+  ctx.fillStyle = (COLOUR[tile] ?? COLOUR[TILE_FLOOR]) as string;
+  ctx.fillRect(0, 0, size, size);
+  return canvas;
+}
+
+function paintPattern(
+  ctx: CanvasRenderingContext2D,
+  pattern: Pattern,
+  sub: Tileset["sub"],
+  set: Tileset,
+  size: number,
+): void {
+  const step = size / TILE_PX;
+  for (let y = 0; y < TILE_PX; y++) {
+    const row = pattern[y] as string;
+    for (let x = 0; x < TILE_PX; x++) {
+      const ink = inkOf(set, row[x] as string, sub);
+      if (ink === null) continue;
+      ctx.fillStyle = ink;
+      ctx.fillRect(Math.floor(x * step), Math.floor(y * step), Math.ceil(step), Math.ceil(step));
+    }
+  }
+}
+
+/**
  * The side-on game gets a sky.
  *
  * Not decoration: it is the only thing on screen that says the rules just
@@ -124,6 +214,9 @@ export class GridRenderer {
     this.sideOn = sideOn;
   }
 
+  /** One stamp per flame frame, in order. Empty until the stamps are built. */
+  private flames: HTMLCanvasElement[] = [];
+
   /** Turn the spinning treasure off, for a view that is not redrawn each frame. */
   setSpinning(spinning: boolean): void {
     this.spinning = spinning;
@@ -156,6 +249,10 @@ export class GridRenderer {
       [TILE_FIRE, set.fire, set.fireSub],
     ];
 
+    // Fire gets one stamp per frame. Everything else gets one.
+    const frames = set.fireFrames ?? [set.fire];
+    const flames: HTMLCanvasElement[] = [];
+
     for (const [tile, pattern, sub] of patterns) {
       const canvas = document.createElement("canvas");
       canvas.width = Math.max(1, Math.round(t * dpr));
@@ -181,6 +278,18 @@ export class GridRenderer {
       }
       made.set(tile, canvas);
     }
+
+    for (const frame of frames) {
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(t * dpr));
+      canvas.height = Math.max(1, Math.round(t * dpr));
+      const ctx = canvas.getContext("2d");
+      if (ctx === null) continue;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      paintPattern(ctx, frame, set.fireSub, set, t);
+      flames.push(canvas);
+    }
+    this.flames = flames;
 
     this.stamps = made;
     this.stampedAt = t;
@@ -661,7 +770,16 @@ export class GridRenderer {
         // behind it reads as a hole rather than as a thing in the room.
         if (tile === TILE_FIRE) {
           const floor = this.stamps?.get(TILE_FLOOR);
-          const flame = this.stamps?.get(TILE_FIRE);
+          // Six frames a second, and each fire starts at its own point in the
+          // cycle from its cell number -- so a row of them crackles instead of
+          // blinking in unison, the same trick the spinning gems use.
+          //
+          // Frozen on frame nothing when nothing else is animating, so the
+          // level editor draws a still flame rather than whichever one it
+          // happened to catch.
+          const flame = this.flames.length === 0
+            ? this.stamps?.get(TILE_FIRE)
+            : this.flames[this.spinning ? flameFrame(y * GRID_W + x, this.flames.length) : 0];
           if (floor !== undefined) ctx.drawImage(floor, x * t, y * t, t, t);
           if (flame !== undefined) {
             ctx.drawImage(flame, x * t, y * t, t, t);
