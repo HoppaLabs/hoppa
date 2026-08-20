@@ -5,7 +5,7 @@
   "behaviourVersion": 5,
   "creature": {
     "id": "01J8XK4M2P7Q",
-    "name": "Bruk",
+    "name": "Bash",
     "caps": {
       "MOVE_GROUND": 0,
       "MOVE_AIR": 0,

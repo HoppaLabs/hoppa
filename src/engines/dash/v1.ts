@@ -74,11 +74,18 @@ export function runFor(creature: Creature): number {
 export function jumpFor(creature: Creature): number {
   return JUMP_BY_PIP[pipOf(creature.caps.FORCE)] as number;
 }
+/**
+ * Hearts come from STRENGTH now. Toughness used to be its own characteristic
+ * and nobody could tell the two words apart, so being strong covers standing up
+ * to a hit as well as landing one -- which is what most people assumed it meant
+ * in the first place. See docs/adr/0012.
+ */
 export function heartsFor(creature: Creature): number {
-  return (2 + pipOf(creature.caps.GUARD)) | 0;
+  return (2 + pipOf(creature.caps.FORCE)) | 0;
 }
-export function reachFor(creature: Creature): number {
-  return (BODY + (ONE >> 2) + pipOf(creature.caps.REACH) * (ONE >> 1)) | 0;
+/** The same for everyone; see the note on hearts. */
+export function reachFor(_creature: Creature): number {
+  return (BODY + (ONE >> 2) + 2 * (ONE >> 1)) | 0;
 }
 
 interface Walker {

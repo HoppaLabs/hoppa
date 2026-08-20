@@ -59,21 +59,29 @@ export const CAP_MAX = 255;
 // underneath are still 0-255, so nothing about the wire format changes.
 
 export const PIP_MAX = 5;
-export const PIP_BUDGET = 8;
+/**
+ * Six points across two characteristics. Six rather than ten so the choice is
+ * real: you can have five of one and one of the other, or three and three, but
+ * never both.
+ */
+export const PIP_BUDGET = 6;
 
 /**
  * The four a player spends on, and what they are called out loud.
  *
  * `compare` is the word the picker uses. Plain comparatives on purpose: "most
  * nerve" meant nothing to the first person who read it, and a six-year-old is
- * not going to do better. Stronger, faster, tougher — words a child already
- * owns.
+ * not going to do better.
+ *
+ * There were four of these. "Stronger" and "Tougher" turned out to be the same
+ * word to most people, and "Longer arms" was a mechanic nobody asked for, so
+ * they folded into the two that a child can hold in their head at once. Being
+ * strong now covers taking a hit as well as landing one, which is what most
+ * people assumed it meant anyway.
  */
 export const SPENDABLE = [
-  { key: "FORCE", label: "strength", compare: "Stronger", blurb: "hit harder, jump higher" },
-  { key: "HASTE", label: "speed", compare: "Faster", blurb: "move quicker" },
-  { key: "GUARD", label: "toughness", compare: "Tougher", blurb: "take more hits" },
-  { key: "REACH", label: "reach", compare: "Longer arms", blurb: "grab things further away" },
+  { key: "FORCE", label: "strength", compare: "Stronger", blurb: "hit harder, jump higher, take more hits" },
+  { key: "HASTE", label: "speed", compare: "Faster", blurb: "move quicker, jump further" },
 ] as const;
 
 export type SpendKey = (typeof SPENDABLE)[number]["key"];
@@ -240,8 +248,8 @@ export const BRUK = creatureFromBuild(
   "01J8XK4M2P7Q",
   "Bash",
   "@",
-  // All the strength there is, some nerve, and nothing left over.
-  { FORCE: 5, HASTE: 0, GUARD: 3, REACH: 0 },
+  // Everything on hitting hard and standing up to things.
+  { FORCE: 5, HASTE: 1 },
   spriteFromRows(BRUK_ROWS, [51, 53, 41]),
 )
 
@@ -250,8 +258,8 @@ export const NIM = creatureFromBuild(
   "01J8XK6R4T2B",
   "Nim",
   "%",
-  // Everything on being quick, and it shows the moment anything hears it.
-  { FORCE: 0, HASTE: 5, GUARD: 1, REACH: 2 },
+  // Everything on being quick, and it shows the moment anything lands.
+  { FORCE: 1, HASTE: 5 },
   spriteFromRows(NIM_ROWS, [22, 23, 5]),
 )
 
@@ -260,8 +268,8 @@ export const PELL = creatureFromBuild(
   "01J8XK8W6Y5N",
   "Pell",
   "&",
-  // Steady and long-armed. Never hurries, rarely needs to.
-  { FORCE: 0, HASTE: 0, GUARD: 4, REACH: 4 },
+  // Splits the difference: nothing spectacular, nothing hopeless.
+  { FORCE: 3, HASTE: 3 },
   spriteFromRows(PELL_ROWS, [45, 47, 5]),
 )
 

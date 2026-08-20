@@ -32,6 +32,14 @@ const V4_PELL = creatureFromCaps("01J8XK8W6Y5N", "Pell", {
   MOVE_GROUND: 120, MOVE_AIR: 20, REACH: 200, FORCE: 90,
   GUARD: 240, HASTE: 30, MASS: 110, SPARK: 40,
 });
+
+// The day 7 vectors were made when a character spent points across FOUR
+// characteristics. The set later shrank to two, so these are pinned for the
+// same reason as the day 4 set: a vector is (level, CREATURE, log) -> hash, and
+// the creature is part of the fixture.
+const V5_BASH = creatureFromCaps("01J8XK4M2P7Q", "Bash", { FORCE: 255, GUARD: 153 });
+const V5_NIM = creatureFromCaps("01J8XK6R4T2B", "Nim", { HASTE: 255, GUARD: 51, REACH: 102 });
+const V5_PELL = creatureFromCaps("01J8XK8W6Y5N", "Pell", { GUARD: 204, REACH: 204 });
 import { CODEC_VERSION, encodeLevel } from "../src/core/codec.ts";
 import { parseLevel } from "../src/core/level.ts";
 import { hashHex } from "../src/core/hash.ts";
@@ -105,21 +113,21 @@ const VECTORS: ReadonlyArray<{
     file: "test/golden/day7-bruk.json",
     level: "levels/day7.lvl",
     text: DAY7_LEVEL_TEXT,
-    creature: BRUK,
+    creature: V5_BASH,
     log: "..RRRRRRRRRDDDDLLLDDDDLLLLLRRRDDDRRRRRRRRRRRRRUUURRRUUUURLDDDDLLLDDDRRRR",
   },
   {
     file: "test/golden/day7-nim.json",
     level: "levels/day7.lvl",
     text: DAY7_LEVEL_TEXT,
-    creature: NIM,
+    creature: V5_NIM,
     log: "...RRRRRRRRRDDDDLLLDDDDLLLLLRRRDDDRRRRRRRRRRRRRUUURRRUUUURLDDDDLLLDDDRRRR",
   },
   {
     file: "test/golden/day7-pell.json",
     level: "levels/day7.lvl",
     text: DAY7_LEVEL_TEXT,
-    creature: PELL,
+    creature: V5_PELL,
     log: "RRRRRRRRRDDDDLLLDDDDLLLLRRRRRRRRRRRRRRRRRRUUUDDDLLLDDDLLLRRRRRRR",
   },
 ];

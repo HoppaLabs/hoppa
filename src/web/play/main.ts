@@ -339,7 +339,7 @@ function reset(): void {
 /**
  * What this creature is good and bad at, in one line a kid can act on.
  *
- * The four characteristics carry between engines, but the VERB does not:
+ * Strength and speed carry between engines, but the VERB does not:
  * strength is how hard you hit from above and how high you jump from the side.
  * Saying "hits hard" on a platformer would be a small lie, and the whole point
  * of the budget is that a kid can predict what their creature will do.
@@ -353,11 +353,13 @@ function traitLine(creature: Creature): string {
   const build = capsToBuild(creature.caps);
   const words = STRENGTH_WORDS[level.engine] ?? (STRENGTH_WORDS.default as readonly string[]);
   const strength = build.FORCE >= 4 ? words[0] : build.FORCE >= 2 ? words[1] : words[2];
+  // Hearts follow strength -- see heartsFor() in both engines. Saying it out
+  // loud is the only way a kid finds out that spending on strength buys more
+  // than a harder hit.
   return [
     strength,
     build.HASTE >= 4 ? "quick on its feet" : build.HASTE >= 2 ? "steady" : "slow",
-    `${2 + build.GUARD} hearts`,
-    build.REACH >= 4 ? "long arms" : build.REACH >= 2 ? "fair reach" : "short arms",
+    `${2 + build.FORCE} hearts`,
   ].join(" · ");
 }
 
@@ -386,16 +388,26 @@ function paintActionButton(): void {
 
 /**
  * The one thing this creature is best at, for the button face -- as a plain
- * comparative. "Most nerve" was jargon; "Tougher" is a word a child already
- * owns. The full picture goes in the trait line underneath.
+ * comparative, "Stronger" or "Faster". The full picture goes in the trait line
+ * underneath.
+ *
+ * An even split is not "Stronger": with only two characteristics a tie is a
+ * shape a kid will actually build (three and three is the obvious first try),
+ * and labelling it with either word is a lie they can feel in the first room.
  */
 function bestAt(creature: Creature): string {
   const build = capsToBuild(creature.caps);
   let best = SPENDABLE[0] as (typeof SPENDABLE)[number];
+  let tied = false;
   for (const spend of SPENDABLE) {
-    if (build[spend.key] > build[best.key]) best = spend;
+    if (build[spend.key] > build[best.key]) {
+      best = spend;
+      tied = false;
+    } else if (spend !== best && build[spend.key] === build[best.key]) {
+      tied = true;
+    }
   }
-  return best.compare;
+  return tied ? "A bit of both" : best.compare;
 }
 
 function paintStable(): void {

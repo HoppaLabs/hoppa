@@ -267,51 +267,75 @@ with nothing behind it — a kid could not see why their creature was heavy. And
 in Delve it only ever made a creature *worse*: there was nothing heavy was good
 at, so it was a penalty rather than a trade.
 
-**What replaced it is a budget.** Four characteristics, five pips each, **eight
+**What replaced it is a budget.** Two characteristics, five pips each, **six
 pips to spend**:
 
 | Characteristic | Axis | What it always means |
 |---|---|---|
-| strength | `FORCE` | how hard you hit, and how long what you hit stays down |
-| speed | `HASTE` | how fast you move |
-| nerve | `GUARD` | how many hits you can take |
-| reach | `REACH` | how far your swing lands, and how far you can grab |
+| **Stronger** | `FORCE` | hit harder, jump higher, take more hits |
+| **Faster** | `HASTE` | move quicker, jump further |
 
-You cannot be strong and fast and hardy and long-armed. **Deciding what to give
-up is the design**, and it is what makes one kid's creature different from
-another's — not a number that means opposite things in different rooms.
+It started as four — strength, speed, nerve, reach. Nerve and strength turned out
+to be the same word to most people ("stronger" and "tougher" pick out the same
+creature), and reach was a number nobody could see. Two axes make the trade
+legible in one glance: see `docs/adr/0012`.
 
-These four mean **the same thing in every engine**, which is what makes a
-creature worth carrying between them. A creature is not good or bad; it is good
-at *some levels*.
+You cannot be strong *and* fast. **Deciding what to give up is the design**, and
+it is what makes one kid's creature different from another's — not a number that
+means opposite things in different rooms.
 
-`MOVE_GROUND`, `MOVE_AIR`, `SPARK` and `MASS` remain in the vocabulary because
-engine builds up to `delve/4` read them and every link pinning those builds must
-keep playing identically. Nothing from `delve/5` on looks at `MASS`.
+Both mean **the same thing in every engine**, which is what makes a creature
+worth carrying between them. The noun is fixed, the verb is the engine's:
+strength is a harder sword from above and a higher jump from the side. A
+creature is not good or bad; it is good at *some levels*.
+
+`MOVE_GROUND`, `MOVE_AIR`, `SPARK`, `MASS`, `GUARD` and `REACH` remain in the
+vocabulary because engine builds up to `delve/5` read them and every link pinning
+those builds must keep playing identically. A build can no longer *spend* on
+`GUARD` or `REACH`; the axes stay, so old links replay byte-identically.
 
 ---
 
 ## 7. Engines
 
-### Delve — build first
+Two engines ship. Both are **real time** — the world runs on its own clock at 30
+ticks a second and does not wait for you (see §2). Both read the same two
+characteristics; the noun is fixed, the verb is the engine's.
 
-Top-down, turn-based. Explore, collect treasure, avoid guards, reach the exit.
-Consumes `REACH`, `GUARD`, `HASTE`, `MASS`.
+A level's engine is pinned in its link, so both live in the same bundle forever.
 
-- `REACH` — grab treasure without stepping into the open
-- `GUARD` — how many spottings you survive
-- `HASTE` — occasional extra move, to outpace a patrol
-- `MASS` — noise radius, and whether a raft carries you
+### Roam — from above
 
-### Shove — build second
+Zelda-shaped. You look down on a room, walk in eight directions, swing a sword at
+enemies that see you and come after you. Collect what's there, find the way out.
 
-Top-down, turn-based block pushing. Consumes `MASS`, `FORCE`, `REACH`. Shares
-Delve's tick model and solver. Exists primarily to **invert `MASS`**. Until both
-run, the core premise is unproven.
+- **Stronger** — the sword hits harder, and you have more hearts
+- **Faster** — you move quicker, so you can outrun what you cannot beat
 
-### Run — stretch, probably post-trip
+### Dash — from the side
 
-Side-scroller, real-time motion, fixed-point physics. First thing to cut.
+Donkey-Kong-shaped. Platforms, ladders, gravity. You run, jump, and land on
+enemies from above to squash them. Fall too far and it costs you.
+
+- **Stronger** — you jump higher, and you have more hearts
+- **Faster** — you run quicker, so a jump carries you further
+
+The same creature plays both. A strong creature muscles through Roam and reaches
+platforms a fast one has to route around; a fast one outruns Roam's enemies and
+clears long gaps in Dash. **Neither is better** — that is the point of sending a
+level to a friend whose creature is built the other way.
+
+### Delve — retired, still shipped
+
+Turn-based, `delve/1` … `delve/5`. Superseded by Roam when the game went real
+time (`docs/adr/0009`). Every build stays in the bundle and stays byte-identical:
+links that pinned them are permanent. Nothing new targets Delve.
+
+### Shove, Run — not built
+
+Block pushing and a side-scroller. Both existed to give `MASS` something to
+invert; `MASS` is gone (`docs/adr/0008`) and Dash covers side-on play. Out of
+scope.
 
 ---
 

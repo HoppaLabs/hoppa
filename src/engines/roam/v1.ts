@@ -79,12 +79,24 @@ function pipOf(value: number): number {
 export function speedFor(creature: Creature): number {
   return SPEED_BY_PIP[pipOf(creature.caps.HASTE)] as number;
 }
+/**
+ * Hearts come from STRENGTH now. Toughness used to be its own characteristic
+ * and nobody could tell the two words apart, so being strong covers standing up
+ * to a hit as well as landing one -- which is what most people assumed it meant
+ * in the first place. See docs/adr/0012.
+ */
 export function heartsFor(creature: Creature): number {
-  return (2 + pipOf(creature.caps.GUARD)) | 0;
+  return (2 + pipOf(creature.caps.FORCE)) | 0;
 }
-/** How far the sword lands, measured from the body's centre. */
-export function reachFor(creature: Creature): number {
-  return (BODY + (ONE >> 2) + pipOf(creature.caps.REACH) * (ONE >> 1)) | 0;
+/**
+ * How far the sword lands, measured from the body's centre. The same for
+ * everyone: reach was a fourth characteristic that nobody asked for, and two
+ * things to spend points on is as much as a child should have to weigh.
+ */
+export const REACH = (BODY + (ONE >> 2) + 2 * (ONE >> 1)) | 0;
+
+export function reachFor(_creature: Creature): number {
+  return REACH;
 }
 /** How long a struck enemy stays down. */
 export function stunFor(creature: Creature): number {

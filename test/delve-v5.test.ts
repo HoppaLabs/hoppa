@@ -37,6 +37,15 @@ import { INPUT_WAIT, STATUS_LOST, STATUS_PLAYING, STATUS_WON } from "../src/engi
 const level = parseLevel(DAY7_LEVEL_TEXT);
 const MOVES: Record<string, number> = { U: 1, R: 2, D: 3, L: 4, ".": 0 };
 
+// v5's rules are frozen, so its INPUTS are pinned here too. These are the caps
+// the presets had when a character spent points across four characteristics;
+// the set later shrank to two (docs/adr/0012), and a frozen engine must never
+// be tested against a moving target.
+const V5_BASH = creatureFromCaps("01J8XK4M2P7Q", "Bash", { FORCE: 255, GUARD: 153 });
+const V5_NIM = creatureFromCaps("01J8XK6R4T2B", "Nim", { HASTE: 255, GUARD: 51, REACH: 102 });
+const V5_PELL = creatureFromCaps("01J8XK8W6Y5N", "Pell", { GUARD: 204, REACH: 204 });
+const V5_PRESETS = [V5_BASH, V5_NIM, V5_PELL] as const;
+
 const WINS = {
   Bash: "..RRRRRRRRRDDDDLLLDDDDLLLLLRRRDDDRRRRRRRRRRRRRUUURRRUUUURLDDDDLLLDDDRRRR",
   Nim: "...RRRRRRRRRDDDDLLLDDDDLLLLLRRRDDDRRRRRRRRRRRRRUUURRRUUUURLDDDDLLLDDDRRRR",
@@ -85,7 +94,7 @@ function walkIntoAGuard(engine: DelveV5, limit = 200): number {
   return status;
 }
 
-function play(creature: typeof BRUK, log: string) {
+function play(creature: typeof V5_BASH, log: string) {
   const engine = new DelveV5(level, creature);
   let status: number = STATUS_PLAYING;
   for (const ch of log) status = engine.step(MOVES[ch] as number);
@@ -99,7 +108,7 @@ test("you cannot be everything: the budget is smaller than the axes", () => {
   console.log(`\n  ${SPENDABLE.length} characteristics, ${PIP_MAX} pips each, ${PIP_BUDGET} to spend`);
 });
 
-test("every preset is a legal build, spending exactly the budget", () => {
+test("every preset is a legal build, inside the budget", () => {
   const rows = PRESETS.map((c) => {
     const build = capsToBuild(c.caps);
     const bars = SPENDABLE.map((s) => `${s.label} ${"*".repeat(build[s.key])}${".".repeat(PIP_MAX - build[s.key])}`);
@@ -122,16 +131,17 @@ test("a preset can never be better than something a kid may build", () => {
 
 test("pips convert to axes and back without drifting", () => {
   for (let pips = 0; pips <= PIP_MAX; pips++) {
-    const build = { FORCE: pips, HASTE: pips, GUARD: pips, REACH: pips };
-    expect(capsToBuild(buildToCaps(build))).toEqual(build);
+    const build: Record<string, number> = {};
+    for (const spend of SPENDABLE) build[spend.key] = pips;
+    expect(capsToBuild(buildToCaps(build as never))).toEqual(build);
   }
   expect(pipToCap(0)).toBe(0);
   expect(pipToCap(PIP_MAX)).toBe(255);
 });
 
 test("an over-budget or nonsense build is caught rather than trusted", () => {
-  expect(withinBudget({ FORCE: 5, HASTE: 5, GUARD: 5, REACH: 5 })).toBe(false);
-  expect(spent({ FORCE: 99, HASTE: 0, GUARD: 0, REACH: 0 })).toBe(PIP_MAX);
+  expect(withinBudget({ FORCE: 5, HASTE: 5 } as never)).toBe(false);
+  expect(spent({ FORCE: 99, HASTE: 0 } as never)).toBe(PIP_MAX);
   expect(clampPip(-3)).toBe(0);
   expect(clampPip(99)).toBe(PIP_MAX);
 });
@@ -139,7 +149,7 @@ test("an over-budget or nonsense build is caught rather than trusted", () => {
 // --- MASS is gone -------------------------------------------------------------
 
 test("MASS is not read: a creature carrying it plays the same as one without", () => {
-  const build = { FORCE: 2, HASTE: 2, GUARD: 2, REACH: 2 };
+  const build = { FORCE: 2, HASTE: 2 } as never;
   const light = creatureFromBuild("a", "Light", "?", build, starterSprite());
   const heavy = creatureFromCaps("b", "Heavy", { ...buildToCaps(build), MASS: 255 }, starterSprite());
   expect(heavy.caps.MASS).toBe(255);
@@ -153,11 +163,11 @@ test("MASS is not read: a creature carrying it plays the same as one without", (
 
 test("everybody makes the same amount of noise now", () => {
   expect(NOISE_RADIUS).toBe(1);
-  for (const creature of PRESETS) expect(new DelveV5(level, creature).noise()).toBe(NOISE_RADIUS);
+  for (const creature of V5_PRESETS) expect(new DelveV5(level, creature).noise()).toBe(NOISE_RADIUS);
 });
 
 test("the engine declares the four it actually reads, and MASS is not one", () => {
-  const engine = new DelveV5(level, BRUK);
+  const engine = new DelveV5(level, V5_BASH);
   expect([...engine.consumes].sort()).toEqual(["FORCE", "GUARD", "HASTE", "REACH"]);
   expect([...engine.consumes]).not.toContain("MASS");
 });
@@ -165,13 +175,13 @@ test("the engine declares the four it actually reads, and MASS is not one", () =
 // --- strength -----------------------------------------------------------------
 
 test("strength decides whether walking into a guard is a barge or a death", () => {
-  expect(bargeStunFor(BRUK)).toBeGreaterThan(0);
-  expect(bargeStunFor(NIM)).toBe(0);
-  expect(bargeStunFor(PELL)).toBe(0);
+  expect(bargeStunFor(V5_BASH)).toBeGreaterThan(0);
+  expect(bargeStunFor(V5_NIM)).toBe(0);
+  expect(bargeStunFor(V5_PELL)).toBe(0);
 });
 
 test("a strong creature barges a guard, holds its ground, and walks on", () => {
-  const engine = new DelveV5(level, BRUK);
+  const engine = new DelveV5(level, V5_BASH);
   const before = engine.position();
   const status = walkIntoAGuard(engine);
 
@@ -187,7 +197,7 @@ test("a strong creature barges a guard, holds its ground, and walks on", () => {
 });
 
 test("a weak creature walking into the same guard is caught", () => {
-  const engine = new DelveV5(level, PELL); // no strength at all
+  const engine = new DelveV5(level, V5_PELL); // no strength at all
   const status = walkIntoAGuard(engine);
   expect(status).toBe(STATUS_LOST);
   expect(engine.wasCaught()).toBe(true);
@@ -195,7 +205,10 @@ test("a weak creature walking into the same guard is caught", () => {
 });
 
 test("a barged guard is stunned for exactly as long as strength says", () => {
-  const strong = creatureFromBuild("s", "Strong", "?", { FORCE: 5, HASTE: 0, GUARD: 3, REACH: 0 }, starterSprite());
+  // Pinned caps, not a build: v5 reads GUARD, and a build can no longer spend
+  // points on it. A creature with GUARD 0 loses to the alarm before the stun
+  // has run its course, which would measure the alarm, not the stun.
+  const strong = creatureFromCaps("s", "Strong", { FORCE: 255, GUARD: 255 }, starterSprite());
   const engine = new DelveV5(level, strong);
   expect(engine.bargePower()).toBe(4);
 
@@ -206,9 +219,28 @@ test("a barged guard is stunned for exactly as long as strength says", () => {
   // not a plan: barging knocks it down, it does not make you quiet, so standing
   // there fills the alarm and ends the run. That is the intended behaviour, and
   // it is why this walks away rather than waiting.
+  // Back away from the guard we just shoved -- walking into it again would
+  // reset the stun and measure nothing. The direction has to be computed:
+  // whichever way is away depends on where the encounter happened.
+  const me = engine.position();
+  const reeling0 = guardsOnScreen(engine).find(
+    (g) => Math.abs(g.x - me.x) + Math.abs(g.y - me.y) <= 1,
+  );
+  const away =
+    reeling0 === undefined
+      ? (MOVES.U as number)
+      : reeling0.x > me.x
+        ? (MOVES.L as number)
+        : reeling0.x < me.x
+          ? (MOVES.R as number)
+          : reeling0.y > me.y
+            ? (MOVES.U as number)
+            : (MOVES.D as number);
+
   let reelingTurns = 0;
-  for (let i = 0; i < 10; i++) {
-    engine.step(MOVES.U as number);
+  for (let i = 0; i < 12; i++) {
+    if (engine.step(away) !== STATUS_PLAYING) break;
+    if (engine.didBarge()) break;
     let reeling = 0;
     for (const tile of engine.render()) if (tile === TILE_GUARD_REELING) reeling++;
     if (reeling === 0) break;
@@ -219,7 +251,7 @@ test("a barged guard is stunned for exactly as long as strength says", () => {
 });
 
 test("shoving a guard does not make you quiet: the alarm still fills", () => {
-  const engine = new DelveV5(level, BRUK);
+  const engine = new DelveV5(level, V5_BASH);
   walkIntoAGuard(engine);
   expect(engine.didBarge()).toBe(true);
 
@@ -244,8 +276,8 @@ test("barging is something you do, not a shield: a guard can still walk onto you
 });
 
 test("guard phase and stun are hashed, because barging moves them off cycle", () => {
-  const quiet = new DelveV5(level, BRUK);
-  const shover = new DelveV5(level, BRUK);
+  const quiet = new DelveV5(level, V5_BASH);
+  const shover = new DelveV5(level, V5_BASH);
   // Same creature, same number of turns, but one of them shoved a guard.
   for (const ch of "RR") quiet.step(MOVES[ch] as number);
   for (const ch of "RR") shover.step(MOVES[ch] as number);
@@ -258,7 +290,7 @@ test("guard phase and stun are hashed, because barging moves them off cycle", ()
 
 // --- the runs -----------------------------------------------------------------
 
-test.each(PRESETS.map((c) => [c.name, c] as const))(
+test.each(V5_PRESETS.map((c) => [c.name, c] as const))(
   "%s beats the level on its own build",
   (name, creature) => {
     const { engine, status } = play(creature, WINS[name as keyof typeof WINS]);
@@ -269,26 +301,26 @@ test.each(PRESETS.map((c) => [c.name, c] as const))(
 );
 
 test("speed still buys turns, not steps", () => {
-  const bruk = play(BRUK, WINS.Bash).engine;
-  const nim = play(NIM, WINS.Nim).engine;
+  const bruk = play(V5_BASH, WINS.Bash).engine;
+  const nim = play(V5_NIM, WINS.Nim).engine;
   expect(nim.turns()).toBeLessThan(bruk.turns());
 });
 
 test("reach still lifts a gem from the next cell", () => {
-  expect(reachFor(PELL)).toBe(1);
-  expect(reachFor(BRUK)).toBe(0);
+  expect(reachFor(V5_PELL)).toBe(1);
+  expect(reachFor(V5_BASH)).toBe(0);
 });
 
 test("nerve still buys spottings, capped at the alert ceiling", () => {
-  expect(alertCeilingFor(PELL)).toBe(ALERT_MAX);
-  expect(alertCeilingFor(NIM)).toBeLessThan(ALERT_MAX);
+  expect(alertCeilingFor(V5_PELL)).toBe(ALERT_MAX);
+  expect(alertCeilingFor(V5_NIM)).toBeLessThan(ALERT_MAX);
 });
 
 // --- the usual guarantees ------------------------------------------------------
 
 test("E3: three replays of one log produce identical hashes", () => {
   const log = WINS.Bash.slice(0, 30);
-  const hashes = [0, 1, 2].map(() => hashHex(play(BRUK, log).engine.stateHash()));
+  const hashes = [0, 1, 2].map(() => hashHex(play(V5_BASH, log).engine.stateHash()));
   expect(new Set(hashes).size).toBe(1);
 });
 
@@ -304,9 +336,9 @@ test("E7: render() returns exactly w*h valid tile indices", () => {
 test("E10: cosmetics still do not reach stateHash()", () => {
   const restyled = parseLevel(DAY7_LEVEL_TEXT.replace("tiles=1", "tiles=7"));
   const log = WINS.Pell.slice(0, 20);
-  const themed = new DelveV5(restyled, PELL);
+  const themed = new DelveV5(restyled, V5_PELL);
   for (const ch of log) themed.step(MOVES[ch] as number);
-  expect(hashHex(themed.stateHash())).toBe(hashHex(play(PELL, log).engine.stateHash()));
+  expect(hashHex(themed.stateHash())).toBe(hashHex(play(V5_PELL, log).engine.stateHash()));
 });
 
 test("E1/E2/E4: uniform creatures play and terminate", () => {
@@ -332,7 +364,7 @@ test("E5-ish: seeded random logs never crash and always terminate", () => {
     return (state >>> 0) % 5;
   };
   for (let run = 0; run < 150; run++) {
-    const creature = PRESETS[run % PRESETS.length] as typeof BRUK;
+    const creature = V5_PRESETS[run % V5_PRESETS.length] as typeof V5_BASH;
     const engine = new DelveV5(level, creature);
     let status: number = STATUS_PLAYING;
     for (let i = 0; i < 400 && status === STATUS_PLAYING; i++) status = engine.step(next());
@@ -342,7 +374,7 @@ test("E5-ish: seeded random logs never crash and always terminate", () => {
 });
 
 test("guards render as guards, reeling or not", () => {
-  const tiles = new DelveV5(level, BRUK).render();
+  const tiles = new DelveV5(level, V5_BASH).render();
   let guards = 0;
   for (const tile of tiles) if (tile === TILE_GUARD || tile === TILE_GUARD_REELING) guards++;
   expect(guards).toBe(3);

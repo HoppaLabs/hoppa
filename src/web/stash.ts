@@ -102,12 +102,12 @@ export function forgetCharacter(): void {
 /**
  * A blank character to start from, for a first visit.
  *
- * Nothing is spent. A starter with the budget already used up shows a kid four
+ * Nothing is spent. A starter with the budget already used up shows a kid two
  * disabled buttons and teaches them nothing; starting at zero makes every plus
  * button live and the choice obvious.
  */
 export function startingCharacter(): Saved {
-  const build = legalBuild({ FORCE: 0, HASTE: 0, GUARD: 0, REACH: 0 });
+  const build = legalBuild({ FORCE: 0, HASTE: 0 });
   return {
     creature: creatureFromBuild("yours", "Mine", "@", build, starterSprite()),
     build,

@@ -12,7 +12,7 @@ import {
 import { BRUK, NIM, PELL, capsToBuild, type Build } from "../src/core/creature.ts";
 import { pixelsToText, spriteFromRows, starterSprite } from "../src/core/sprite.ts";
 
-const BUILD: Build = { FORCE: 5, HASTE: 0, GUARD: 3, REACH: 0 };
+const BUILD: Build = { FORCE: 5, HASTE: 1 };
 const CODE = encodeCharacter("Bash", BUILD, BRUK.sprite);
 
 // --- C1: it round-trips ----------------------------------------------------------
