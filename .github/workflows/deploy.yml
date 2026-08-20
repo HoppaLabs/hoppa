@@ -21,9 +21,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # PINNED, not "latest".
+      #
+      # With latest, the toolchain that builds what ships can change with no
+      # commit -- and it did: app.js came back from Pages 20 bytes longer than
+      # the same commit built here, because a newer Bun minifies slightly
+      # differently. The site was correct, but two things stopped being true.
+      #
+      # First, deploying is verified by comparing the bytes on Pages against
+      # the bytes built here (docs/adr/0001). That check silently became
+      # meaningless.
+      #
+      # Second, and worse: hard rule 6 says golden vectors are sacred, and the
+      # engines are a determinism zone. A toolchain that can change underneath
+      # a project making those promises is the wrong kind of surprise. Bump
+      # this deliberately, in a commit, with the tests run against it.
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: "1.3.11"
 
       # Never ship a build that fails the determinism check.
       - run: bun run check:determinism

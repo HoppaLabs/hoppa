@@ -84,3 +84,25 @@ Day 5 brings share links and day 11 brings result links. If Open Graph preview
 *images* (§3, open question 2) turn out to matter before the trip ends, that
 needs an edge function, and Cloudflare Pages becomes the better host. Moving is
 cheap — the build output is plain static files.
+
+## Addendum, day 16: the build toolchain is pinned
+
+Deploying is verified by fetching what Pages serves and comparing it, byte for
+byte, against what `bun run build` produced here. That is the whole point of the
+check: not "did the workflow go green" but "are the bytes a child downloads the
+bytes that were tested".
+
+It quietly stopped meaning anything. The workflow asked for `bun-version:
+latest`, so on day 16 Pages started serving an `app.js` **20 bytes longer** than
+the same commit built locally — a newer Bun, minifying slightly differently. The
+HTML matched, because HTML is copied rather than minified, which is exactly the
+sort of partial match that makes a broken check look like a working one.
+
+The site was correct. The check was not, and it had been the gate on every
+deploy.
+
+The version is pinned now. The reason is bigger than reproducible bytes: hard
+rule 6 says golden vectors are sacred and `src/core` and `src/engines` are a
+determinism zone. A project making those promises should not have a toolchain
+that can change under it without a commit. Bumping Bun is a deliberate act, with
+the tests run against the new one.
