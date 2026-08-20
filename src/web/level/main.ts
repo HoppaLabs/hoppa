@@ -316,9 +316,17 @@ paper.addEventListener("pointerdown", (event) => {
 
   const cell = cellAt(event);
   if (cell === null) return;
-  paper.setPointerCapture(event.pointerId);
   drawing = true;
   lastCell = cell.y * GRID_W + cell.x;
+  // Capture keeps the events coming if the finger slides off the level while
+  // aiming. It is a convenience, not a requirement, and it can refuse -- so it
+  // happens AFTER the state is set. Doing it first meant one refusal threw the
+  // whole gesture away and nothing was ever placed.
+  try {
+    paper.setPointerCapture(event.pointerId);
+  } catch {
+    // No capture: aiming still works, it just stops at the edge of the level.
+  }
   paintAim(cell);
   if (draggable(tool)) put(cell.x, cell.y);
 });
@@ -383,9 +391,14 @@ zoomButton.addEventListener("click", () => {
 
 // --- pinching -----------------------------------------------------------------------
 //
-// The gesture everybody already has. The button is kept because it needs no
-// gesture at all, works with a mouse, and gets you straight to a size worth
-// drawing at -- but pinching is how you actually settle on one.
+// The gesture everybody already has. The button is kept because a seven-year-old
+// may not think to try pinching on a level they have just started drawing, and
+// one tap gets them straight to a size worth drawing at -- but pinching is how
+// you actually settle on one.
+//
+// This runs on phones and tablets. There is no mouse to design for, so nothing
+// here depends on hover, and nothing is laid out for a pointer that can be
+// precise.
 
 const down = new Map<number, { x: number; y: number }>();
 let pinch: { gap: number; tile: number; cellX: number; cellY: number } | null = null;
