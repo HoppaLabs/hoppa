@@ -11,7 +11,7 @@
 // The engine is chosen by the level's behaviour= field, never hardcoded here.
 // That is what lets a link from day 5 onwards pin the rules it was beaten under.
 
-import { ROAM3_LEVEL_TEXT } from "../../core/fixtures.ts";
+import { ROAM4_LEVEL_TEXT } from "../../core/fixtures.ts";
 import { PRESETS, SPENDABLE, capsToBuild, spent, type Creature } from "../../core/creature.ts";
 import { CodecError, encodeLevel } from "../../core/codec.ts";
 import { levelFromHash, linkFor } from "./link.ts";
@@ -24,7 +24,7 @@ import { Readout } from "./readout.ts";
 import { Recorder, beats, proofKey, type Replayable } from "../../core/proof.ts";
 import { Buttons, KEY_BITS, Loop, type Moving } from "./realtime.ts";
 import { HELD_ACT, HELD_DOWN, HELD_LEFT, HELD_RIGHT, HELD_SWING, HELD_UP } from "../../engines/types.ts";
-import { reachFor } from "../../engines/roam/v3.ts";
+import { reachFor } from "../../engines/roam/v4.ts";
 import {
   INPUT_DOWN,
   INPUT_LEFT,
@@ -153,7 +153,7 @@ try {
   loadError = err instanceof CodecError ? err.message : String(err);
 }
 
-let level = shared === null ? parseLevel(ROAM3_LEVEL_TEXT) : shared.level;
+let level = shared === null ? parseLevel(ROAM4_LEVEL_TEXT) : shared.level;
 let levelName = shared === null ? BUILT_IN_NAME : shared.slug.replace(/-/g, " ");
 
 /**
@@ -203,7 +203,7 @@ const refusal = refuses(level, chosen);
 if (refusal !== null) {
   loadError = refusal;
   shared = null;
-  level = parseLevel(ROAM3_LEVEL_TEXT);
+  level = parseLevel(ROAM4_LEVEL_TEXT);
   levelName = BUILT_IN_NAME;
 }
 // engineFor returns the Engine contract; the play page also wants the delve
@@ -510,13 +510,18 @@ function traitLine(creature: Creature): string {
   const build = capsToBuild(creature.caps);
   const words = STRENGTH_WORDS[level.engine] ?? (STRENGTH_WORDS.default as readonly string[]);
   const strength = build.FORCE >= 4 ? words[0] : build.FORCE >= 2 ? words[1] : words[2];
-  // Hearts follow strength -- see heartsFor() in both engines. Saying it out
-  // loud is the only way a kid finds out that spending on strength buys more
-  // than a harder hit.
+  // Hearts follow strength, and saying so is the only way a kid finds out that
+  // spending on strength buys more than a harder hit.
+  //
+  // Asked, never copied. This line used to compute "2 + strength" itself, which
+  // was two separate lies: roam/4 hands out "3 + strength", so the picker
+  // promised three hearts while the HUD drew four -- and a turn-based level has
+  // no hearts at all, so it was promising hearts that were never there.
+  const hearts = moving === null ? null : (moving as Moving).health().max;
   return [
     strength,
     build.HASTE >= 4 ? "quick on its feet" : build.HASTE >= 2 ? "steady" : "slow",
-    `${2 + build.FORCE} hearts`,
+    ...(hearts === null ? [] : [`${hearts} hearts`]),
   ].join(" · ");
 }
 

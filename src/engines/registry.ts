@@ -14,6 +14,7 @@ import { DelveV5, DELVE_V5_BEHAVIOUR } from "./delve/v5.ts";
 import { RoamV1, ROAM_V1_BEHAVIOUR } from "./roam/v1.ts";
 import { RoamV2, ROAM_V2_BEHAVIOUR } from "./roam/v2.ts";
 import { RoamV3, ROAM_V3_BEHAVIOUR } from "./roam/v3.ts";
+import { RoamV4, ROAM_V4_BEHAVIOUR } from "./roam/v4.ts";
 import { DashV1, DASH_V1_BEHAVIOUR } from "./dash/v1.ts";
 import { DashV2, DASH_V2_BEHAVIOUR } from "./dash/v2.ts";
 import { DashV3, DASH_V3_BEHAVIOUR } from "./dash/v3.ts";
@@ -57,6 +58,12 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
     `roam/${ROAM_V3_BEHAVIOUR}`,
     (level, creature) =>
       creature === undefined ? new RoamV3(level) : new RoamV3(level, creature),
+  ],
+  // v4: enemies slower than every build, so no creature is trapped once seen.
+  [
+    `roam/${ROAM_V4_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new RoamV4(level) : new RoamV4(level, creature),
   ],
   // From the side, one screen, everything falls.
   [

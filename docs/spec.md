@@ -332,9 +332,16 @@ attempt, and the room is full again when you start over — the Zelda/Mario rule
 not a timer. A **wand** never kills; one wave freezes an enemy where it stands
 for several seconds.
 
-`roam/1` and `roam/2` are retired but still shipped. v1's enemies could walk
-through walls (`docs/adr/0013`); in v2 the wand was still a costume
-(`docs/adr/0016`).
+**Every creature you can build is faster than an enemy** — the slowest by a
+little, the fastest by more than double. Speed decides *how easily* you get
+away, never *whether* you can. Under `roam/3` the strongest build was slower
+than the guards chasing it, so strength bought hearts and removed every way of
+using them: three of the six builds died to a single mistake. Fixed in `roam/4`
+(`docs/adr/0022`).
+
+`roam/1`, `roam/2` and `roam/3` are retired but still shipped. v1's enemies
+could walk through walls (`docs/adr/0013`); in v2 the wand was still a costume
+(`docs/adr/0016`); v3's enemies were faster than you (`docs/adr/0022`).
 
 ### Dash — from the side
 
