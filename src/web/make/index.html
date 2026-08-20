@@ -45,6 +45,20 @@
   #go { background: var(--open); color: var(--bg); font-weight: 600; border: 0; }
   #note { min-height: 1.3em; text-align: center; max-width: 36ch; }
   a { color: var(--ink); }
+  h2 {
+    margin: 4px 0 0; font-size: 12px; font-weight: 400; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--ink);
+  }
+  #points b { color: var(--gold); }
+  #points.none b { color: var(--ink); }
+  /* One row per thing you can be good at: a name, five dots, and two buttons.
+     No numbers to interpret and no words a child has to be taught. */
+  #stats { display: flex; flex-direction: column; gap: 6px; width: min(320px, 100%); }
+  .stat { display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; align-items: center; }
+  .stat .name { color: var(--ink-bright); font-size: 13px; }
+  .stat .dots { letter-spacing: .18em; color: var(--gold); font-size: 15px; }
+  .stat button { padding: 6px 12px; font-size: 15px; line-height: 1; }
+  .stat button:disabled { opacity: .3; cursor: default; }
   .hint { font-size: 11px; color: var(--ink); text-align: center; max-width: 34ch; }
 </style>
 
@@ -53,24 +67,27 @@
 <canvas id="paper" width="320" height="320"></canvas>
 
 <div class="row" id="inks"></div>
-<div class="hint">pick an ink, then draw. three colours and see-through — that is the whole box.</div>
+<div class="hint">pick a colour, then draw. three colours and see-through — that is the whole box.</div>
 
 <div class="row">
-  <span>colour <b id="slotname">1</b>:</span>
+  <span>change colour</span>
   <button id="slot1" class="on">1</button>
   <button id="slot2">2</button>
   <button id="slot3">3</button>
 </div>
 <div id="swatches"></div>
 
-<div class="row">
-  <input id="name" maxlength="12" value="Mine" aria-label="creature name">
-  <button id="build">body: Bruk</button>
-</div>
-<div class="hint">the body decides what it can <i>do</i>. what you draw never changes that.</div>
+<h2>what it is good at</h2>
+<div id="points">you have <b id="left">8</b> points to spend</div>
+<div id="stats"></div>
+<div class="hint">you cannot be good at everything — spend the points where you want them.</div>
 
 <div class="row">
-  <button id="clear">clear</button>
+  <input id="name" maxlength="12" value="Mine" aria-label="what your character is called">
+</div>
+
+<div class="row">
+  <button id="clear">rub it out</button>
   <button id="go">play as this</button>
 </div>
 <div id="note"></div>

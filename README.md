@@ -9,8 +9,10 @@ their own clock, notice you, and chase. Swing a sword, grab the treasure, get
 out — then send the level to a friend, who plays it with *their* creature.
 
 Two shapes of game, both on the same grid and both in the same link: **from
-above** (Zelda-shaped, shipped) and **from the side** (Donkey Kong-shaped,
-next).
+above** (Zelda-shaped — walk anywhere, swing a sword) and **from the side**
+(Donkey Kong-shaped — platforms, ladders, jump on things). The same character
+plays both, and its strength means "hit harder" in one and "jump higher" in the
+other.
 
 ## Commands
 
@@ -66,6 +68,7 @@ politely rather than guessing — spec §13's E11.
 | `delve/4` | v3's rules, with MASS, GUARD, HASTE and REACH read from a creature instead of fixed. |
 | `delve/5` | v4's rules, minus MASS, plus barging a guard with strength. |
 | `roam/1` | **Real time, from above.** Enemies patrol and chase on a clock; you walk and swing a sword. |
+| `dash/1` | **Real time, from the side.** One screen: platforms, ladders, gravity, and enemies you beat by landing on them. |
 
 Adding a rule means adding the next version, never editing the last one — see
 [`0003`](docs/adr/0003-delve-v2-and-the-day-2-rules.md),
@@ -73,8 +76,9 @@ Adding a rule means adding the next version, never editing the last one — see
 [`0005`](docs/adr/0005-capabilities-and-the-three-presets.md),
 [`0006`](docs/adr/0006-share-links-and-the-wire-format.md),
 [`0007`](docs/adr/0007-drawing-your-own-creature.md),
-[`0008`](docs/adr/0008-mass-out-budget-in.md) and
-[`0009`](docs/adr/0009-real-time.md).
+[`0008`](docs/adr/0008-mass-out-budget-in.md),
+[`0009`](docs/adr/0009-real-time.md) and
+[`0010`](docs/adr/0010-the-side-on-game.md).
 
 ## Real time, still deterministic
 

@@ -14,30 +14,32 @@ import {
   withPixel,
   type Sprite,
 } from "../../core/sprite.ts";
-import { PRESETS, reskin, type Creature } from "../../core/creature.ts";
-import { loadCreature, saveCreature, buildNameOf } from "../stash.ts";
+import {
+  PIP_BUDGET,
+  PIP_MAX,
+  SPENDABLE,
+  creatureFromBuild,
+  spent,
+  type Build,
+} from "../../core/creature.ts";
+import { loadCharacter, saveCharacter, startingCharacter } from "../stash.ts";
 
 const paper = document.getElementById("paper") as HTMLCanvasElement;
 const context = paper.getContext("2d") as CanvasRenderingContext2D;
 const inks = document.getElementById("inks") as HTMLElement;
 const swatches = document.getElementById("swatches") as HTMLElement;
 const nameField = document.getElementById("name") as HTMLInputElement;
-const buildButton = document.getElementById("build") as HTMLButtonElement;
-const slotName = document.getElementById("slotname") as HTMLElement;
 const note = document.getElementById("note") as HTMLElement;
+const stats = document.getElementById("stats") as HTMLElement;
+const pointsLeft = document.getElementById("left") as HTMLElement;
+const points = document.getElementById("points") as HTMLElement;
 
-const saved = loadCreature();
-let sprite: Sprite = saved === null ? starterSprite() : saved.sprite;
+const saved = loadCharacter() ?? startingCharacter();
+let sprite: Sprite = saved.creature.sprite;
+const build: Record<string, number> = { ...saved.build };
 let ink = 1;
 let slot = 0;
-let buildIndex = 0;
-
-if (saved !== null) {
-  nameField.value = saved.name;
-  const name = buildNameOf(saved);
-  buildIndex = Math.max(0, PRESETS.findIndex((p) => p.name === name));
-}
-buildButton.textContent = `body: ${(PRESETS[buildIndex] as Creature).name}`;
+nameField.value = saved.creature.name;
 
 // --- drawing ----------------------------------------------------------------
 
@@ -151,7 +153,6 @@ for (const index of [0, 1, 2]) {
   const button = document.getElementById(`slot${index + 1}`) as HTMLButtonElement;
   button.addEventListener("click", () => {
     slot = index;
-    slotName.textContent = String(index + 1);
     for (const other of [0, 1, 2]) {
       (document.getElementById(`slot${other + 1}`) as HTMLButtonElement).className =
         other === index ? "on" : "";
@@ -162,11 +163,56 @@ for (const index of [0, 1, 2]) {
 
 // --- the rest ---------------------------------------------------------------
 
-buildButton.addEventListener("click", () => {
-  buildIndex = (buildIndex + 1) % PRESETS.length;
-  buildButton.textContent = `body: ${(PRESETS[buildIndex] as Creature).name}`;
-  note.textContent = "";
-});
+// --- spending the points -----------------------------------------------------
+
+function remaining(): number {
+  return (PIP_BUDGET - spent(build as Build)) | 0;
+}
+
+function paintStats(): void {
+  const left = remaining();
+  pointsLeft.textContent = String(left);
+  points.className = left === 0 ? "none" : "";
+  points.lastChild!.textContent = left === 1 ? " point to spend" : " points to spend";
+
+  stats.innerHTML = "";
+  for (const spend of SPENDABLE) {
+    const value = build[spend.key] as number;
+
+    const row = document.createElement("div");
+    row.className = "stat";
+
+    const name = document.createElement("span");
+    name.className = "name";
+    name.textContent = spend.compare;
+
+    const dots = document.createElement("span");
+    dots.className = "dots";
+    dots.textContent = "\u25cf".repeat(value) + "\u25cb".repeat(PIP_MAX - value);
+
+    const less = document.createElement("button");
+    less.textContent = "\u2212";
+    less.disabled = value <= 0;
+    less.setAttribute("aria-label", `less ${spend.label}`);
+    less.addEventListener("click", () => {
+      build[spend.key] = Math.max(0, value - 1);
+      paintStats();
+    });
+
+    const more = document.createElement("button");
+    more.textContent = "+";
+    more.disabled = value >= PIP_MAX || left <= 0;
+    more.setAttribute("aria-label", `more ${spend.label}`);
+    more.addEventListener("click", () => {
+      if (remaining() <= 0) return;
+      build[spend.key] = Math.min(PIP_MAX, value + 1);
+      paintStats();
+    });
+
+    row.append(name, dots, less, more);
+    stats.appendChild(row);
+  }
+}
 
 (document.getElementById("clear") as HTMLButtonElement).addEventListener("click", () => {
   sprite = { pixels: emptySprite(sprite.sub).pixels, sub: sprite.sub };
@@ -175,12 +221,13 @@ buildButton.addEventListener("click", () => {
 
 (document.getElementById("go") as HTMLButtonElement).addEventListener("click", () => {
   const name = nameField.value.trim().slice(0, 12) || "Mine";
-  const base = PRESETS[buildIndex] as Creature;
-  saveCreature(name, base.name, reskin(base, name, sprite));
-  note.textContent = "saved — off to the dungeon";
+  const made = creatureFromBuild("yours", name, "@", build as Build, sprite);
+  saveCharacter(name, build as Build, made);
+  note.textContent = "saved";
   window.location.href = "../";
 });
 
 paintInks();
 paintSwatches();
+paintStats();
 paint();

@@ -10,6 +10,7 @@ import { ONE } from "../../core/fixed.ts";
 import {
   TILE_ACTOR,
   TILE_GUARD_REELING,
+  TILE_LADDER,
   TILE_EXIT_LOCKED,
   TILE_EXIT_OPEN,
   TILE_FLOOR,
@@ -32,6 +33,7 @@ const COLOUR: Record<number, string> = {
   [TILE_EXIT_OPEN]: "#6fe08a",
   [TILE_GUARD]: "#ff5f4d",
   [TILE_GUARD_REELING]: "#7a5c86",
+  [TILE_LADDER]: "#9a6b38",
 };
 
 const ACTOR_BLOCKED = "#ff5f4d";
@@ -255,6 +257,26 @@ export class GridRenderer {
               eye,
               eye,
             );
+          }
+          continue;
+        }
+
+        // A ladder: two rails and rungs, so it reads as climbable rather than
+        // as a differently-coloured wall.
+        if (tile === TILE_LADDER) {
+          ctx.fillStyle = COLOUR[TILE_FLOOR] as string;
+          ctx.fillRect(x * t, y * t, t, t);
+          const rail = Math.max(1, Math.floor(t / 8));
+          const inset = Math.max(1, Math.floor(t / 5));
+          ctx.fillStyle = COLOUR[TILE_LADDER] as string;
+          ctx.fillRect(x * t + inset, y * t, rail, t);
+          ctx.fillRect(x * t + t - inset - rail, y * t, rail, t);
+          if (t >= 8) {
+            const rungs = 2;
+            for (let r = 0; r < rungs; r++) {
+              const ry = y * t + Math.floor((t * (r * 2 + 1)) / (rungs * 2));
+              ctx.fillRect(x * t + inset, ry, t - inset * 2, rail);
+            }
           }
           continue;
         }

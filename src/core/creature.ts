@@ -61,12 +61,19 @@ export const CAP_MAX = 255;
 export const PIP_MAX = 5;
 export const PIP_BUDGET = 8;
 
-/** The four a player spends on, and what they are called out loud. */
+/**
+ * The four a player spends on, and what they are called out loud.
+ *
+ * `compare` is the word the picker uses. Plain comparatives on purpose: "most
+ * nerve" meant nothing to the first person who read it, and a six-year-old is
+ * not going to do better. Stronger, faster, tougher — words a child already
+ * owns.
+ */
 export const SPENDABLE = [
-  { key: "FORCE", label: "strength", blurb: "barge a guard out of the way" },
-  { key: "HASTE", label: "speed", blurb: "sometimes move for free" },
-  { key: "GUARD", label: "nerve", blurb: "survive being heard" },
-  { key: "REACH", label: "reach", blurb: "grab gems from a step away" },
+  { key: "FORCE", label: "strength", compare: "Stronger", blurb: "hit harder, jump higher" },
+  { key: "HASTE", label: "speed", compare: "Faster", blurb: "move quicker" },
+  { key: "GUARD", label: "toughness", compare: "Tougher", blurb: "take more hits" },
+  { key: "REACH", label: "reach", compare: "Longer arms", blurb: "grab things further away" },
 ] as const;
 
 export type SpendKey = (typeof SPENDABLE)[number]["key"];

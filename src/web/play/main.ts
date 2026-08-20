@@ -15,7 +15,7 @@ import { ROAM1_LEVEL_TEXT } from "../../core/fixtures.ts";
 import { PRESETS, SPENDABLE, capsToBuild, type Creature } from "../../core/creature.ts";
 import { CodecError, encodeLevel } from "../../core/codec.ts";
 import { levelFromHash, linkFor } from "./link.ts";
-import { loadCreature } from "../stash.ts";
+import { loadCharacter } from "../stash.ts";
 import { parseLevel } from "../../core/level.ts";
 import { hashHex } from "../../core/hash.ts";
 import { engineFor } from "../../engines/registry.ts";
@@ -99,10 +99,10 @@ try {
 
 const level = shared === null ? parseLevel(ROAM1_LEVEL_TEXT) : shared.level;
 const levelName = shared === null ? BUILT_IN_NAME : shared.slug.replace(/-/g, " ");
-// A creature you drew wins over the presets: it is yours, and it is the reason
-// the spec says never to cut day 6.
-const mine = loadCreature();
-const roster: readonly Creature[] = mine === null ? PRESETS : [mine, ...PRESETS];
+// A character you made wins over the ready-made ones: it is yours, and it is
+// the reason the spec says never to cut the drawing day.
+const saved = loadCharacter();
+const roster: readonly Creature[] = saved === null ? PRESETS : [saved.creature, ...PRESETS];
 // A creature you drew borrows a preset's caps AND its id, so "which one is
 // selected" has to be a slot in the roster. Comparing ids lights up two.
 let chosenAt = 0;
@@ -198,7 +198,7 @@ function paint(): void {
       paintShareGate();
     }
     over.className = won ? "show" : "show lost";
-    verdict.textContent = won ? "out" : engine.wasCaught() ? "caught" : "lost";
+    verdict.textContent = won ? "you win" : engine.wasCaught() ? "caught" : "oh no";
     saying.textContent = engine.message() ?? "";
     tally.textContent =
       treasure === null
@@ -245,7 +245,7 @@ function paintMovingHud(): void {
       paintShareGate();
     }
     over.className = won ? "show" : "show lost";
-    verdict.textContent = won ? "out" : "down";
+    verdict.textContent = won ? "you win" : "oh no";
     saying.textContent = game.message() ?? "";
     tally.textContent = `${game.seconds()} seconds · ${got}/${total} treasure`;
   } else {
@@ -277,15 +277,22 @@ function reset(): void {
 /**
  * What this creature is good and bad at, in one line a kid can act on.
  *
- * Described from the BUILD rather than by asking the engine, because the same
- * four pips mean the same four things in every engine -- which is the whole
- * reason MASS went (docs/adr/0008). A creature reads the same whether the level
- * it is about to enter is turn-based or real-time.
+ * The four characteristics carry between engines, but the VERB does not:
+ * strength is how hard you hit from above and how high you jump from the side.
+ * Saying "hits hard" on a platformer would be a small lie, and the whole point
+ * of the budget is that a kid can predict what their creature will do.
  */
+const STRENGTH_WORDS: Record<string, readonly [string, string, string]> = {
+  dash: ["jumps miles", "jumps all right", "can barely hop"],
+  default: ["hits hard", "hits all right", "barely swings"],
+};
+
 function traitLine(creature: Creature): string {
   const build = capsToBuild(creature.caps);
+  const words = STRENGTH_WORDS[level.engine] ?? (STRENGTH_WORDS.default as readonly string[]);
+  const strength = build.FORCE >= 4 ? words[0] : build.FORCE >= 2 ? words[1] : words[2];
   return [
-    build.FORCE >= 4 ? "hits hard" : build.FORCE >= 2 ? "hits all right" : "barely swings",
+    strength,
     build.HASTE >= 4 ? "quick on its feet" : build.HASTE >= 2 ? "steady" : "slow",
     `${2 + build.GUARD} hearts`,
     build.REACH >= 4 ? "long arms" : build.REACH >= 2 ? "fair reach" : "short arms",
@@ -293,9 +300,32 @@ function traitLine(creature: Creature): string {
 }
 
 /**
- * The one thing this creature is best at, for the button face. Four abbreviated
- * numbers do not fit on a phone, and "strength" and "speed" both start with S,
- * so the full picture goes in the trait line underneath instead.
+ * The action button. A sword from above, a jump from the side -- the icon has
+ * to say which, because it is the same button and a kid will press it before
+ * reading anything.
+ */
+const SWORD_ICON = `<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
+  <path d="M20 3 L21 4 L11 14 L10 13 Z" fill="#ffe9a3"/>
+  <path d="M7 15 L9 17 L6 20 L4 18 Z" fill="#cdd6e0"/>
+  <path d="M8.5 14.5 L9.5 15.5" stroke="#7c8899" stroke-width="2"/>
+</svg>`;
+
+const JUMP_ICON = `<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
+  <path d="M12 3 L18 11 L14 11 L14 16 L10 16 L10 11 L6 11 Z" fill="#ffe9a3"/>
+  <rect x="5" y="19" width="14" height="2.5" rx="1" fill="#7c8899"/>
+</svg>`;
+
+function paintActionButton(): void {
+  const button = document.getElementById("wait") as HTMLButtonElement;
+  const jumping = level.engine === "dash";
+  button.innerHTML = jumping ? JUMP_ICON : SWORD_ICON;
+  button.setAttribute("aria-label", jumping ? "jump" : "swing your sword");
+}
+
+/**
+ * The one thing this creature is best at, for the button face -- as a plain
+ * comparative. "Most nerve" was jargon; "Tougher" is a word a child already
+ * owns. The full picture goes in the trait line underneath.
  */
 function bestAt(creature: Creature): string {
   const build = capsToBuild(creature.caps);
@@ -303,7 +333,7 @@ function bestAt(creature: Creature): string {
   for (const spend of SPENDABLE) {
     if (build[spend.key] > build[best.key]) best = spend;
   }
-  return `most ${best.label}`;
+  return best.compare;
 }
 
 function paintStable(): void {
@@ -470,14 +500,14 @@ window.addEventListener("hashchange", () => window.location.reload());
 
 async function share(): Promise<void> {
   if (!hasBeatenThis()) {
-    said.textContent = "beat it first — then you can send it";
+    said.textContent = "finish the level first, then you can send it";
     return;
   }
   const base = `${window.location.origin}${window.location.pathname}`;
   const url = linkFor(level, levelName, base);
   try {
     await navigator.clipboard.writeText(url);
-    said.textContent = `link copied — ${url.length} characters`;
+    said.textContent = "link copied — paste it to a friend";
   } catch {
     // Clipboard access needs a secure context and a real gesture; when it is
     // refused, showing the link is still a way to send it.
@@ -492,7 +522,9 @@ sendIt.addEventListener("click", (ev) => {
 });
 
 if (loadError !== null) {
-  said.textContent = `that link would not open (${loadError}) — playing the built-in level instead`;
+  // The reason is real information, but "the code is damaged" is not a sentence
+  // a nine-year-old should have to parse when all they did was tap a link.
+  said.textContent = "that link is broken — here is the usual level instead";
 }
 
 const levelCode = encodeLevel(level);
@@ -500,6 +532,7 @@ beatenNow = beatenLevels().includes(levelCode);
 paintShareGate();
 
 renderer.setSprite(chosen.sprite);
+paintActionButton();
 paintStable();
 resize();
 

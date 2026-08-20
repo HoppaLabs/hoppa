@@ -1,4 +1,4 @@
-// Browser storage for the creature you made.
+// Browser storage for the character you made.
 //
 // Spec S5b: "Storage will betray you." So this is written assuming it does:
 // every read is guarded, a corrupt or half-written entry is thrown away rather
@@ -7,23 +7,48 @@
 // This lives outside core on purpose. localStorage is ambient state, and the
 // determinism zone may not touch it.
 
-import { normalise, reskin, presetByName, PRESETS, type Creature } from "../core/creature.ts";
-import { pixelsToText, spriteFromText } from "../core/sprite.ts";
+import {
+  PIP_BUDGET,
+  SPENDABLE,
+  clampPip,
+  creatureFromBuild,
+  spent,
+  type Build,
+  type Creature,
+} from "../core/creature.ts";
+import { pixelsToText, spriteFromText, starterSprite } from "../core/sprite.ts";
 import { normaliseSubPalette } from "../core/palette.ts";
 
-const KEY = "hoppa.creature.v1";
+const KEY = "hoppa.character.v2";
 
 interface Stored {
   readonly name: string;
-  readonly build: string;
+  readonly build: Record<string, number>;
   readonly sub: readonly number[];
   readonly pixels: string;
 }
 
-export function saveCreature(name: string, buildName: string, creature: Creature): void {
+/** Every pip clamped, and never more than the budget allows. */
+export function legalBuild(raw: Partial<Record<string, number>>): Build {
+  const build: Record<string, number> = {};
+  for (const spend of SPENDABLE) build[spend.key] = clampPip(raw[spend.key] ?? 0);
+
+  // Trim from the largest down until it fits, so a tampered or out-of-date
+  // record can never produce a character better than one you could build.
+  while (spent(build as Build) > PIP_BUDGET) {
+    let biggest = SPENDABLE[0].key as string;
+    for (const spend of SPENDABLE) {
+      if ((build[spend.key] as number) > (build[biggest] as number)) biggest = spend.key;
+    }
+    build[biggest] = ((build[biggest] as number) - 1) | 0;
+  }
+  return build as Build;
+}
+
+export function saveCharacter(name: string, build: Build, creature: Creature): void {
   const record: Stored = {
     name,
-    build: buildName,
+    build: { ...build },
     sub: [...creature.sprite.sub],
     pixels: pixelsToText(creature.sprite),
   };
@@ -35,8 +60,13 @@ export function saveCreature(name: string, buildName: string, creature: Creature
   }
 }
 
-/** The saved creature, or null if there is not a usable one. */
-export function loadCreature(): Creature | null {
+export interface Saved {
+  readonly creature: Creature;
+  readonly build: Build;
+}
+
+/** The saved character, or null if there is not a usable one. */
+export function loadCharacter(): Saved | null {
   let raw: string | null = null;
   try {
     raw = window.localStorage.getItem(KEY);
@@ -49,10 +79,11 @@ export function loadCreature(): Creature | null {
     const record = JSON.parse(raw) as Partial<Stored>;
     if (typeof record.pixels !== "string" || typeof record.name !== "string") return null;
 
-    const base = presetByName(record.build ?? "") ?? (PRESETS[0] as Creature);
     const sub = normaliseSubPalette(Array.isArray(record.sub) ? record.sub : []);
     const sprite = spriteFromText(record.pixels, sub);
-    return reskin(base, record.name.slice(0, 16) || base.name, sprite);
+    const build = legalBuild((record.build ?? {}) as Record<string, number>);
+    const name = record.name.slice(0, 12) || "Mine";
+    return { creature: creatureFromBuild("yours", name, "@", build, sprite), build };
   } catch {
     // Anything unreadable is treated as absent. Never let a bad record stop the
     // page loading -- a kid cannot clear their own localStorage.
@@ -60,7 +91,7 @@ export function loadCreature(): Creature | null {
   }
 }
 
-export function forgetCreature(): void {
+export function forgetCharacter(): void {
   try {
     window.localStorage.removeItem(KEY);
   } catch {
@@ -68,18 +99,17 @@ export function forgetCreature(): void {
   }
 }
 
-/** The caps a saved creature borrows, by name. */
-export function buildNameOf(creature: Creature): string {
-  for (const preset of PRESETS) {
-    let same = true;
-    const caps = normalise(creature.caps);
-    for (const key of Object.getOwnPropertyNames(preset.caps)) {
-      if ((caps as Record<string, number>)[key] !== (preset.caps as Record<string, number>)[key]) {
-        same = false;
-        break;
-      }
-    }
-    if (same) return preset.name;
-  }
-  return PRESETS[0]?.name ?? "Bruk";
+/**
+ * A blank character to start from, for a first visit.
+ *
+ * Nothing is spent. A starter with the budget already used up shows a kid four
+ * disabled buttons and teaches them nothing; starting at zero makes every plus
+ * button live and the choice obvious.
+ */
+export function startingCharacter(): Saved {
+  const build = legalBuild({ FORCE: 0, HASTE: 0, GUARD: 0, REACH: 0 });
+  return {
+    creature: creatureFromBuild("yours", "Mine", "@", build, starterSprite()),
+    build,
+  };
 }

@@ -12,6 +12,7 @@ import { DelveV3, DELVE_V3_BEHAVIOUR } from "./delve/v3.ts";
 import { DelveV4, DELVE_V4_BEHAVIOUR } from "./delve/v4.ts";
 import { DelveV5, DELVE_V5_BEHAVIOUR } from "./delve/v5.ts";
 import { RoamV1, ROAM_V1_BEHAVIOUR } from "./roam/v1.ts";
+import { DashV1, DASH_V1_BEHAVIOUR } from "./dash/v1.ts";
 import type { Engine } from "./types.ts";
 
 export class UnknownBehaviourError extends Error {}
@@ -39,6 +40,12 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
     `roam/${ROAM_V1_BEHAVIOUR}`,
     (level, creature) =>
       creature === undefined ? new RoamV1(level) : new RoamV1(level, creature),
+  ],
+  // From the side, one screen, everything falls.
+  [
+    `dash/${DASH_V1_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new DashV1(level) : new DashV1(level, creature),
   ],
 ]);
 

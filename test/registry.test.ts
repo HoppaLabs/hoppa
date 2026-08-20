@@ -22,6 +22,7 @@ test("every build ships: retiring one would break every link that pinned it", ()
   expect(knownBuilds()).toEqual([
     "delve/1", "delve/2", "delve/3", "delve/4", "delve/5",
     "roam/1",
+    "dash/1",
   ]);
 });
 

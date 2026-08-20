@@ -14,6 +14,8 @@ export const GLYPH_START = "@";
 export const GLYPH_TREASURE = "$";
 export const GLYPH_EXIT = ">";
 export const GLYPH_GUARD = "G";
+/** A ladder. Side-on engines climb it; from above it is ordinary floor. */
+export const GLYPH_LADDER = "H";
 
 export interface Level {
   readonly schema: number;
@@ -43,6 +45,11 @@ export interface Level {
    * glyph in a level editor is the whole edit.
    */
   readonly guardCells: Int16Array;
+  /**
+   * 1 where a cell is a ladder. Ladders are open ground that a side-on engine
+   * can climb; engines from above ignore them entirely.
+   */
+  readonly ladders: Uint8Array;
 }
 
 export class LevelParseError extends Error {}
@@ -102,6 +109,7 @@ export function parseLevel(text: string): Level {
   const treasureSlot = new Int8Array(GRID_AREA).fill(-1);
   const found: number[] = [];
   const guards: number[] = [];
+  const ladders = new Uint8Array(GRID_AREA);
   let startX = -1;
   let startY = -1;
   let exitX = -1;
@@ -137,6 +145,9 @@ export function parseLevel(text: string): Level {
       } else if (ch === GLYPH_GUARD) {
         walls[idx(x, y)] = 0;
         guards.push(idx(x, y));
+      } else if (ch === GLYPH_LADDER) {
+        walls[idx(x, y)] = 0;
+        ladders[idx(x, y)] = 1;
       } else {
         fail(`row ${y + 1} col ${x + 1}: glyph "${ch}" is not in the tile set`);
       }
@@ -170,6 +181,7 @@ export function parseLevel(text: string): Level {
     treasureCells,
     treasureSlot,
     guardCells,
+    ladders,
   };
 }
 
@@ -179,4 +191,16 @@ export function isWall(level: Level, x: number, y: number): boolean {
 
 export function hasExit(level: Level): boolean {
   return level.exitX >= 0;
+}
+
+export function isLadder(level: Level, x: number, y: number): boolean {
+  return level.ladders[idx(x, y)] === 1;
+}
+
+/** Does this level carry anything only a side-on engine can use? */
+export function hasLadders(level: Level): boolean {
+  for (let i = 0; i < GRID_AREA; i = (i + 1) | 0) {
+    if (level.ladders[i] === 1) return true;
+  }
+  return false;
 }

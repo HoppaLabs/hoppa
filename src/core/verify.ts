@@ -14,6 +14,13 @@ import { reachableFrom } from "./reach.ts";
 /** Engine bitmask width. A ninth treasure has no bit to live in. */
 export const MAX_TREASURE = 8;
 
+/** Engines whose enemies derive a patrol from the corridor they stand in. */
+const CORRIDOR_PATROL_ENGINES: readonly string[] = ["delve", "roam"];
+
+export function usesCorridorPatrols(engine: string): boolean {
+  return CORRIDOR_PATROL_ENGINES.includes(engine);
+}
+
 export interface Check {
   readonly id: string;
   readonly title: string;
@@ -108,8 +115,15 @@ export function verifyLevelText(text: string): VerifyResult {
   });
 
   // L5 has two halves: the treasure mask, and spec S8's cap on how long a
-  // moving part's cycle may be. Rafts add to the second half on day 7.
-  const patrols = patrolsFor(level);
+  // moving part's cycle may be.
+  //
+  // The second half only means anything for engines whose enemies patrol the
+  // CORRIDOR they stand in, derived from geometry. A side-on engine's enemies
+  // walk the floor they are on and turn at a wall or a ledge, so measuring them
+  // as corridors reports a 22-cell "patrol" across a platform and fails a
+  // perfectly good level. The cap exists to bound a turn-based solver's state
+  // space (spec S8); there is no such solver down there.
+  const patrols = usesCorridorPatrols(level.engine) ? patrolsFor(level) : [];
   const tooLong: string[] = [];
   for (let i = 0; i < patrols.length; i = (i + 1) | 0) {
     const patrol = patrols[i] as (typeof patrols)[number];
@@ -130,8 +144,10 @@ export function verifyLevelText(text: string): VerifyResult {
       ? `${count} treasures -- the collected mask only has ${MAX_TREASURE} bits`
       : !patrolsOk
         ? `guard corridors longer than ${MAX_RUN} cells: ${tooLong.join("; ")}`
-        : `${count} of ${MAX_TREASURE} treasure, ${patrols.length} guard, ` +
-          `longest patrol period ${patrols.reduce((m, p) => (p.period > m ? p.period : m), 0)}`,
+        : patrols.length === 0
+          ? `${count} of ${MAX_TREASURE} treasure; ${level.engine} enemies do not patrol corridors`
+          : `${count} of ${MAX_TREASURE} treasure, ${patrols.length} guard, ` +
+            `longest patrol period ${patrols.reduce((m, p) => (p.period > m ? p.period : m), 0)}`,
   });
 
   let reachableCells = 0;

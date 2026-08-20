@@ -17,16 +17,26 @@
 //   walls                       336 bits raw, or runs (see below)
 //   entity count       5 bits
 //   entities          12 bits each: 9-bit cell, 3-bit kind
+//   ladders                     ONLY for side-on engines -- see below
 //   (pad to a byte)
 //   checksum           8 bits   FNV-1a over every byte above
 //
 // The wall encoding is chosen by trying both and keeping the shorter, so a
 // corridor-heavy level pays for runs and a noisy one does not.
+//
+// Ladders are written only when the level's engine is one that can climb them.
+// The engine id sits in the header, before the field, so a decoder always knows
+// whether to expect it -- which means adding ladders cost NOTHING for every
+// level and every link that already exists. The alternative, a second bitmap on
+// every level, would have changed every code ever made.
 
 import { BitReader, BitReaderError, BitWriter, fromBase64url, toBase64url } from "./bits.ts";
 import { hashBytes, hashInit } from "./hash.ts";
 import { GRID_AREA, GRID_H, GRID_W, idx } from "./grid.ts";
-import { GLYPH_EXIT, GLYPH_FLOOR, GLYPH_GUARD, GLYPH_START, GLYPH_TREASURE, type Level } from "./level.ts";
+import {
+  GLYPH_EXIT, GLYPH_FLOOR, GLYPH_GUARD, GLYPH_LADDER, GLYPH_START, GLYPH_TREASURE,
+  type Level,
+} from "./level.ts";
 
 /** Bump only for a layout change, and only ever by adding a new branch. */
 export const CODEC_VERSION = 1;
@@ -40,6 +50,13 @@ const KIND_TREASURE = 2;
 const KIND_GUARD = 3;
 
 const MAX_ENTITIES = 31; // 5-bit count
+
+/** Engines whose levels carry a ladder map. */
+const CLIMBING_ENGINES: readonly string[] = ["dash"];
+
+export function carriesLadders(engine: string): boolean {
+  return CLIMBING_ENGINES.includes(engine);
+}
 
 export class CodecError extends Error {}
 
@@ -85,6 +102,25 @@ function readRun(bits: BitReader): number {
     if (shift > 30) throw new CodecError("run length is nonsense -- the code is corrupt");
   }
   return (value + 1) | 0;
+}
+
+/** Ladder runs start EMPTY, because cell 0 is always a border wall. */
+function ladderRuns(ladders: Uint8Array): number[] {
+  const runs: number[] = [];
+  let current = 0;
+  let run = 0;
+  for (let i = 0; i < GRID_AREA; i = (i + 1) | 0) {
+    const value = ladders[i] === 1 ? 1 : 0;
+    if (value === current) {
+      run = (run + 1) | 0;
+    } else {
+      runs.push(run);
+      current = value;
+      run = 1;
+    }
+  }
+  runs.push(run);
+  return runs;
 }
 
 function wallRuns(walls: Uint8Array): number[] {
@@ -155,6 +191,17 @@ export function encodeLevel(level: Level): string {
     const entry = entities[i] as readonly [number, number];
     bits.write(entry[0], 9);
     bits.write(entry[1], 3);
+  }
+
+  if (carriesLadders(level.engine)) {
+    const runs = ladderRuns(level.ladders);
+    const useLadderRuns = measureRuns(runs) < GRID_AREA;
+    bits.write(useLadderRuns ? 1 : 0, 1);
+    if (useLadderRuns) {
+      for (let i = 0; i < runs.length; i = (i + 1) | 0) writeRun(bits, runs[i] as number);
+    } else {
+      for (let i = 0; i < GRID_AREA; i = (i + 1) | 0) bits.write(level.ladders[i] === 1 ? 1 : 0, 1);
+    }
   }
 
   const payload = bits.finish();
@@ -257,6 +304,25 @@ export function decodeLevel(code: string): Level {
       }
     }
 
+    const ladders = new Uint8Array(GRID_AREA);
+    if (carriesLadders(engine)) {
+      if (bits.read(1) === 1) {
+        let at = 0;
+        let value = 0;
+        while (at < GRID_AREA) {
+          const run = readRun(bits);
+          if (at + run > GRID_AREA) throw new CodecError("ladder runs overflow the grid");
+          for (let i = 0; i < run; i = (i + 1) | 0) {
+            ladders[at] = value;
+            at = (at + 1) | 0;
+          }
+          value = value === 1 ? 0 : 1;
+        }
+      } else {
+        for (let i = 0; i < GRID_AREA; i = (i + 1) | 0) ladders[i] = bits.read(1);
+      }
+    }
+
     if (startX < 0) throw new CodecError("the code has no start");
 
     const treasureCells = new Int16Array(treasures.length);
@@ -283,6 +349,7 @@ export function decodeLevel(code: string): Level {
       treasureCells,
       treasureSlot,
       guardCells,
+      ladders,
     };
   } catch (err) {
     if (err instanceof CodecError) throw err;
@@ -317,6 +384,9 @@ export function sameLevel(a: Level, b: Level): boolean {
   for (let i = 0; i < a.guardCells.length; i = (i + 1) | 0) {
     if (a.guardCells[i] !== b.guardCells[i]) return false;
   }
+  for (let i = 0; i < GRID_AREA; i = (i + 1) | 0) {
+    if ((a.ladders[i] === 1 ? 1 : 0) !== (b.ladders[i] === 1 ? 1 : 0)) return false;
+  }
   return true;
 }
 
@@ -334,6 +404,7 @@ export function levelToText(level: Level): string {
       else if (x === level.exitX && y === level.exitY) row += GLYPH_EXIT;
       else if (level.treasureSlot[cell] !== -1) row += GLYPH_TREASURE;
       else if (isGuard(level, cell)) row += GLYPH_GUARD;
+      else if (level.ladders[cell] === 1) row += GLYPH_LADDER;
       else row += level.walls[cell] === 1 ? "#" : GLYPH_FLOOR;
     }
     rows.push(row);
