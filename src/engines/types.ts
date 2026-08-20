@@ -33,6 +33,15 @@ export const HELD_RIGHT = 2;
 export const HELD_DOWN = 4;
 export const HELD_LEFT = 8;
 export const HELD_ACT = 16;
+/**
+ * The weapon, where it is a separate button from the main action.
+ *
+ * From above, HELD_ACT already means "swing" and this is unused. From the side
+ * HELD_ACT is jump, so the sword and the wand need their own bit -- see
+ * docs/adr/0019. Appended, never renumbered: a log is held-button bytes, and
+ * moving a bit would change what every shipped log means.
+ */
+export const HELD_SWING = 32;
 
 export const FACE_UP = 0;
 export const FACE_RIGHT = 1;

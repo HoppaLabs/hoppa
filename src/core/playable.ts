@@ -39,10 +39,12 @@ import { isLadder, isWall, type Level } from "./level.ts";
 const STEP_UP_BY_VERSION: Readonly<Record<number, readonly number[]>> = {
   1: [0, 1, 1, 1, 2, 2],
   2: [1, 1, 1, 2, 2, 3],
+  // v3 adds the weapon and changes nothing about jumping.
+  3: [1, 1, 1, 2, 2, 3],
 };
 
 /** The newest side-on rules, for anything that does not name a version. */
-export const STEP_UP_BY_PIP: readonly number[] = STEP_UP_BY_VERSION[2] as readonly number[];
+export const STEP_UP_BY_PIP: readonly number[] = STEP_UP_BY_VERSION[3] as readonly number[];
 
 /** The step table for a side-on behaviour version, newest rules if unknown. */
 export function stepTableFor(behaviourVersion: number): readonly number[] {

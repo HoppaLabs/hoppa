@@ -337,9 +337,14 @@ enemies from above to squash them. Fall too far and it costs you.
 - **Stronger** — you jump higher (1, 2 or 3 cells), and you have more hearts
 - **Faster** — you run quicker, so a jump carries you further
 
-`dash/1` is retired but still shipped: under it a creature with no strength
-could not climb a single step, which made spending everything on speed a trap
-(`docs/adr/0018`).
+You deal with an enemy two ways from the side: **land on it** (the Mario move)
+or **swing at it**. The weapon works exactly as it does from above, with the
+same reach, so what you built carries between both games (`docs/adr/0019`).
+Jump and swing are separate buttons, because jump already owns the action key.
+
+`dash/1` and `dash/2` are retired but still shipped: under `dash/1` a creature
+with no strength could not climb a single step, which made spending everything
+on speed a trap (`docs/adr/0018`); neither had a weapon at all.
 
 The same creature plays both. A strong creature muscles through Roam and reaches
 platforms a fast one has to route around; a fast one outruns Roam's enemies and

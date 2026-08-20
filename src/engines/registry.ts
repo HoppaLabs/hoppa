@@ -16,6 +16,7 @@ import { RoamV2, ROAM_V2_BEHAVIOUR } from "./roam/v2.ts";
 import { RoamV3, ROAM_V3_BEHAVIOUR } from "./roam/v3.ts";
 import { DashV1, DASH_V1_BEHAVIOUR } from "./dash/v1.ts";
 import { DashV2, DASH_V2_BEHAVIOUR } from "./dash/v2.ts";
+import { DashV3, DASH_V3_BEHAVIOUR } from "./dash/v3.ts";
 import type { Engine } from "./types.ts";
 
 export class UnknownBehaviourError extends Error {}
@@ -69,6 +70,12 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
     `dash/${DASH_V2_BEHAVIOUR}`,
     (level, creature) =>
       creature === undefined ? new DashV2(level) : new DashV2(level, creature),
+  ],
+  // v3: the weapon works from the side too. Swing OR stomp.
+  [
+    `dash/${DASH_V3_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new DashV3(level) : new DashV3(level, creature),
   ],
 ]);
 

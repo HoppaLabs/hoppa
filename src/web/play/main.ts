@@ -22,7 +22,7 @@ import { hashHex } from "../../core/hash.ts";
 import { engineFor } from "../../engines/registry.ts";
 import { Readout } from "./readout.ts";
 import { Buttons, KEY_BITS, Loop, type Moving } from "./realtime.ts";
-import { HELD_ACT, HELD_DOWN, HELD_LEFT, HELD_RIGHT, HELD_UP } from "../../engines/types.ts";
+import { HELD_ACT, HELD_DOWN, HELD_LEFT, HELD_RIGHT, HELD_SWING, HELD_UP } from "../../engines/types.ts";
 import { reachFor } from "../../engines/roam/v3.ts";
 import {
   INPUT_DOWN,
@@ -447,14 +447,33 @@ const JUMP_ICON = `<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="
 
 function paintActionButton(): void {
   const button = document.getElementById("wait") as HTMLButtonElement;
+  const swingButton = document.getElementById("swing") as HTMLButtonElement | null;
   const jumping = level.engine === "dash";
   const wand = chosen.weapon === "wand";
-  button.innerHTML = jumping ? JUMP_ICON : wand ? WAND_ICON : SWORD_ICON;
-  button.setAttribute(
-    "aria-label",
-    jumping ? "jump" : wand ? "wave your wand" : "swing your sword",
-  );
+  const weaponIcon = wand ? WAND_ICON : SWORD_ICON;
+  const weaponSays = wand ? "wave your wand" : "swing your sword";
+
+  button.innerHTML = jumping ? JUMP_ICON : weaponIcon;
+  button.setAttribute("aria-label", jumping ? "jump" : weaponSays);
+
+  // From the side the action button is jump, so the weapon gets its own key.
+  // From above they would be the same button, so there is only one.
+  if (swingButton !== null) {
+    const separate = jumping && WEAPON_ENGINES.has(`${level.engine}/${level.behaviourVersion}`);
+    swingButton.hidden = !separate;
+    if (separate) {
+      swingButton.innerHTML = weaponIcon;
+      swingButton.setAttribute("aria-label", weaponSays);
+    }
+  }
 }
+
+/**
+ * Side-on builds that have a weapon at all. dash/1 and dash/2 answer an enemy
+ * only by being landed on, and showing a swing button on one of those levels
+ * would offer a child a button that does nothing.
+ */
+const WEAPON_ENGINES: ReadonlySet<string> = new Set(["dash/3"]);
 
 /**
  * The one thing this creature is best at, for the button face -- as a plain
@@ -530,6 +549,7 @@ const PAD_BITS: ReadonlyArray<readonly [string, number]> = [
   ["down", HELD_DOWN],
   ["left", HELD_LEFT],
   ["wait", HELD_ACT],
+  ["swing", HELD_SWING],
 ];
 
 for (const [id, input] of BUTTONS) {

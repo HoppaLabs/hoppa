@@ -6,7 +6,7 @@
 // keeps a replay identical on a fast phone and a slow one.
 
 import { TickPump } from "../../core/clock.ts";
-import { HELD_ACT, HELD_DOWN, HELD_LEFT, HELD_NONE, HELD_RIGHT, HELD_UP } from "../../engines/types.ts";
+import { HELD_ACT, HELD_DOWN, HELD_LEFT, HELD_NONE, HELD_RIGHT, HELD_SWING, HELD_UP } from "../../engines/types.ts";
 
 /** What a real-time engine offers the page beyond the Engine contract. */
 export interface Moving {
@@ -66,6 +66,9 @@ export const KEY_BITS: Record<string, number> = {
   ArrowDown: HELD_DOWN, s: HELD_DOWN, j: HELD_DOWN,
   ArrowLeft: HELD_LEFT, a: HELD_LEFT, h: HELD_LEFT,
   " ": HELD_ACT, x: HELD_ACT, z: HELD_ACT, Enter: HELD_ACT,
+  // The weapon, where it is a button of its own. Added rather than rebound, so
+  // the keys that already swung a sword from above still do.
+  c: HELD_SWING, C: HELD_SWING, Shift: HELD_SWING,
 };
 
 /**
