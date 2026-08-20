@@ -158,20 +158,35 @@ function paintSwatches(): void {
       paintInks();
       paintCode();
       paint();
+      showSwatches(false);
     });
     swatches.appendChild(button);
+  }
+}
+
+/**
+ * Fifty-four swatches is a wall, and it is only wanted for the two seconds
+ * somebody spends changing what one of the three colours IS. It stays shut
+ * until a slot is tapped and shuts again on the way out, which takes a third of
+ * the page back for the drawing.
+ */
+function showSwatches(open: boolean): void {
+  swatches.hidden = !open;
+  for (const index of [0, 1, 2]) {
+    const button = document.getElementById(`slot${index + 1}`) as HTMLButtonElement;
+    button.className = open && index === slot ? "on" : "";
   }
 }
 
 for (const index of [0, 1, 2]) {
   const button = document.getElementById(`slot${index + 1}`) as HTMLButtonElement;
   button.addEventListener("click", () => {
+    // Tapping the slot that is already open closes it, so there is a way out
+    // that is not "pick a colour you did not want".
+    const shut = !swatches.hidden && slot === index;
     slot = index;
-    for (const other of [0, 1, 2]) {
-      (document.getElementById(`slot${other + 1}`) as HTMLButtonElement).className =
-        other === index ? "on" : "";
-    }
     paintSwatches();
+    showSwatches(!shut);
   });
 }
 
@@ -402,6 +417,7 @@ nameField.addEventListener("input", paintCode);
 
 paintInks();
 paintSwatches();
+showSwatches(false);
 paintStats();
 paintWeapons();
 paintCode();

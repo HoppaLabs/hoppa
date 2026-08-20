@@ -54,6 +54,8 @@
       linear-gradient(45deg, #1a212b 25%, transparent 25%, transparent 75%, #1a212b 75%) 0 0/12px 12px,
       linear-gradient(45deg, #1a212b 25%, #0d1014 25%, #0d1014 75%, #1a212b 75%) 6px 6px/12px 12px; }
   #swatches { display: grid; grid-template-columns: repeat(9, 30px); gap: 4px; }
+  /* `display: grid` beats the hidden attribute, so say so. */
+  #swatches[hidden] { display: none; }
   #swatches button { width: 30px; height: 26px; padding: 0; border-radius: 5px; }
   #swatches button.on { outline: 2px solid var(--ink-bright); outline-offset: 1px; }
   #go { background: var(--open); color: var(--bg); font-weight: 600; border: 0; }
@@ -119,30 +121,23 @@
 <canvas id="paper" width="320" height="320"></canvas>
 
 <div class="row" id="inks"></div>
-<div class="hint">pick a colour, then draw. three colours and see-through — that is the whole box.</div>
+<div class="hint">pick a colour, then draw</div>
 
 <div class="row">
-  <span>change colour</span>
+  <span>change a colour</span>
   <button id="slot1" class="on" aria-label="change the first colour">1</button>
   <button id="slot2" aria-label="change the second colour">2</button>
   <button id="slot3" aria-label="change the third colour">3</button>
 </div>
-<div id="swatches"></div>
+<div id="swatches" hidden></div>
 
 <h2>what it swings</h2>
 <div id="weapons" role="group" aria-label="what your character swings"></div>
-<div class="hint">
-  both reach enemies just as far away and you move just as fast. pick the one you
-  like &mdash; neither is the wrong answer.
-</div>
 
 <h2>what it is good at</h2>
 <div id="points">you have <b id="left">6</b> points to spend</div>
 <div id="stats"></div>
-<div class="hint">
-  tap <b>+</b> to spend a point and <b>−</b> to take it back. you cannot be both
-  strong and fast.
-</div>
+<div class="hint">you cannot be both strong and fast</div>
 
 <div class="row">
   <input id="name" maxlength="12" value="Me" aria-label="what your character is called">
@@ -155,33 +150,27 @@
 <div id="note"></div>
 
 <h2>keep it safe</h2>
-<div class="hint">
-  this code <b>is</b> your character. if the browser forgets it, typing this
-  back is the only way to get it again — so send it to yourself.
-</div>
+<div class="hint">this code <b>is</b> your character &mdash; send it to yourself, it is the only copy</div>
 <div id="code"></div>
 <div class="row">
   <button id="copy">copy the code</button>
 </div>
 <canvas id="codeqr" hidden aria-label="your character as a square you can scan"></canvas>
-<div id="qrwhat" hidden>a friend's phone can scan this to get <b>your character</b></div>
+<div id="qrwhat" hidden>a friend can scan this</div>
 
 <h2>bring one back</h2>
 <div class="row">
   <input id="paste" placeholder="HOPPA-..." aria-label="paste a character code">
   <button id="load">use it</button>
 </div>
+<div id="loaded"></div>
 
 <h2>start over</h2>
-<div class="hint">
-  this throws your character away and gives you a blank one. there is no undo
-  &mdash; <b>copy the code above first</b> if you might want it back.
-</div>
+<div class="hint">no undo &mdash; <b>copy the code first</b> if you might want it back</div>
 <div class="row">
   <button id="forget">forget this character</button>
 </div>
 <div id="forgotten"></div>
-<div id="loaded"></div>
 <div class="row"><a href="../">back to the game</a></div>
 
 <script type="module" src="./make.js"></script>
