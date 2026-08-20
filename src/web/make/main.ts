@@ -39,6 +39,7 @@ const codeBox = document.getElementById("code") as HTMLElement;
 const codeQr = document.getElementById("codeqr") as HTMLCanvasElement;
 const pasteBox = document.getElementById("paste") as HTMLInputElement;
 const loaded = document.getElementById("loaded") as HTMLElement;
+const qrWhat = document.getElementById("qrwhat") as HTMLElement;
 
 const saved = loadCharacter() ?? startingCharacter();
 let sprite: Sprite = saved.creature.sprite;
@@ -272,11 +273,13 @@ function paintCode(): void {
         }
       }
       codeQr.hidden = false;
+      qrWhat.hidden = false;
     }
   } catch (err) {
     // A character too big for a QR still has a code to type.
     if (!(err instanceof QrError)) throw err;
     codeQr.hidden = true;
+    qrWhat.hidden = true;
   }
 }
 

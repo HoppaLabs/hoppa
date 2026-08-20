@@ -136,7 +136,8 @@
     background: #ffffff; padding: 0;
   }
   #qr[hidden] { display: none; }
-  #qrhint { font-size: 11px; color: var(--ink); }
+  #qrhint { font-size: 11px; color: var(--ink); max-width: 32ch; }
+  #qrhint b { color: var(--ink-bright); }
   #qrhint[hidden] { display: none; }
   #reset {
     font: inherit; color: var(--ink); background: none;
@@ -165,8 +166,8 @@
       <div id="verdict"></div>
       <div id="saying"></div>
       <div id="tally"></div>
-      <canvas id="qr" hidden></canvas>
-      <div id="qrhint" hidden>point another phone's camera at this</div>
+      <canvas id="qr" hidden aria-label="this level as a square you can scan"></canvas>
+      <div id="qrhint" hidden>a friend's phone can scan this to play <b>your level</b></div>
       <div class="row">
         <button id="again">play again</button>
         <button id="sendit" hidden>share game</button>

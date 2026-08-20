@@ -71,6 +71,9 @@
   #codeqr[hidden] { display: none; }
   #paste { width: min(220px, 60vw); text-align: left; font-size: 12px; }
   #loaded { min-height: 1.2em; font-size: 12px; text-align: center; max-width: 34ch; }
+  #qrwhat { font-size: 11px; color: var(--ink); text-align: center; max-width: 32ch; }
+  #qrwhat[hidden] { display: none; }
+  #qrwhat b { color: var(--ink-bright); }
   .hint { font-size: 11px; color: var(--ink); text-align: center; max-width: 34ch; }
 </style>
 
@@ -83,16 +86,19 @@
 
 <div class="row">
   <span>change colour</span>
-  <button id="slot1" class="on">1</button>
-  <button id="slot2">2</button>
-  <button id="slot3">3</button>
+  <button id="slot1" class="on" aria-label="change the first colour">1</button>
+  <button id="slot2" aria-label="change the second colour">2</button>
+  <button id="slot3" aria-label="change the third colour">3</button>
 </div>
 <div id="swatches"></div>
 
 <h2>what it is good at</h2>
 <div id="points">you have <b id="left">8</b> points to spend</div>
 <div id="stats"></div>
-<div class="hint">you cannot be good at everything — spend the points where you want them.</div>
+<div class="hint">
+  tap <b>+</b> to spend a point and <b>−</b> to take it back. you cannot be good
+  at everything.
+</div>
 
 <div class="row">
   <input id="name" maxlength="12" value="Mine" aria-label="what your character is called">
@@ -110,10 +116,11 @@
   back is the only way to get it again — so send it to yourself.
 </div>
 <div id="code"></div>
-<canvas id="codeqr" hidden></canvas>
 <div class="row">
   <button id="copy">copy the code</button>
 </div>
+<canvas id="codeqr" hidden aria-label="your character as a square you can scan"></canvas>
+<div id="qrwhat" hidden>a friend's phone can scan this to get <b>your character</b></div>
 
 <h2>bring one back</h2>
 <div class="row">
