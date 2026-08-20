@@ -11,7 +11,7 @@
 // The engine is chosen by the level's behaviour= field, never hardcoded here.
 // That is what lets a link from day 5 onwards pin the rules it was beaten under.
 
-import { ROAM4_LEVEL_TEXT } from "../../core/fixtures.ts";
+import { ROAM5_LEVEL_TEXT } from "../../core/fixtures.ts";
 import { PRESETS, capsToBuild, type Creature } from "../../core/creature.ts";
 import { CodecError, encodeLevel } from "../../core/codec.ts";
 import { levelFromHash, linkFor, resultFromHash, resultLinkFor, slugify } from "./link.ts";
@@ -28,7 +28,7 @@ import { Readout } from "./readout.ts";
 import { Recorder, beats, proofKey, type Replayable } from "../../core/proof.ts";
 import { Buttons, KEY_BITS, Loop, type Moving } from "./realtime.ts";
 import { HELD_ACT, HELD_DOWN, HELD_LEFT, HELD_RIGHT, HELD_SWING, HELD_UP } from "../../engines/types.ts";
-import { reachFor } from "../../engines/roam/v4.ts";
+import { reachFor } from "../../engines/roam/v5.ts";
 import {
   INPUT_DOWN,
   INPUT_LEFT,
@@ -168,7 +168,7 @@ try {
   loadError = err instanceof CodecError ? err.message : String(err);
 }
 
-let level = shared === null ? parseLevel(ROAM4_LEVEL_TEXT) : shared.level;
+let level = shared === null ? parseLevel(ROAM5_LEVEL_TEXT) : shared.level;
 let levelName = shared === null ? BUILT_IN_NAME : shared.slug.replace(/-/g, " ");
 
 /**
@@ -227,7 +227,7 @@ const refusal = refuses(level, chosen);
 if (refusal !== null) {
   loadError = refusal;
   shared = null;
-  level = parseLevel(ROAM4_LEVEL_TEXT);
+  level = parseLevel(ROAM5_LEVEL_TEXT);
   levelName = BUILT_IN_NAME;
 }
 /**

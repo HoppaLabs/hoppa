@@ -19,6 +19,7 @@ export const EMBEDDED: ReadonlyArray<readonly [string, string]> = [
   ["ROAM2_LEVEL_TEXT", "levels/roam2.lvl"],
   ["ROAM3_LEVEL_TEXT", "levels/roam3.lvl"],
   ["ROAM4_LEVEL_TEXT", "levels/roam4.lvl"],
+  ["ROAM5_LEVEL_TEXT", "levels/roam5.lvl"],
   ["DASH1_LEVEL_TEXT", "levels/dash1.lvl"],
   ["DASH2_LEVEL_TEXT", "levels/dash2.lvl"],
   ["DASH3_LEVEL_TEXT", "levels/dash3.lvl"],

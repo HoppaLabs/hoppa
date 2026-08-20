@@ -351,9 +351,15 @@ than the guards chasing it, so strength bought hearts and removed every way of
 using them: three of the six builds died to a single mistake. Fixed in `roam/4`
 (`docs/adr/0022`).
 
-`roam/1`, `roam/2` and `roam/3` are retired but still shipped. v1's enemies
+**Treasure is picked up by going to it.** Up to `roam/4` the pickup borrowed the
+weapon's reach — over a cell and a half, and through walls, so walking down the
+next corridor collected a gem you never saw. From `roam/5` it is your own body
+plus a quarter of a cell (`docs/adr/0028`).
+
+`roam/1`, `roam/2`, `roam/3` and `roam/4` are retired but still shipped. v1's enemies
 could walk through walls (`docs/adr/0013`); in v2 the wand was still a costume
-(`docs/adr/0016`); v3's enemies were faster than you (`docs/adr/0022`).
+(`docs/adr/0016`); v3's enemies were faster than you (`docs/adr/0022`); v4 let
+you pick treasure up from a corridor away (`docs/adr/0028`).
 
 ### Dash — from the side
 
