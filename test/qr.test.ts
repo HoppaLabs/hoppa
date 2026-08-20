@@ -259,3 +259,24 @@ test("the play page still shows the square, and shows the right one", async () =
   // Painted once per win, and shown only after a win.
   expect(main.includes("if (won) paintQr();")).toBe(true);
 });
+
+test("the panel can be waved away, and stays away", async () => {
+  const main = await Bun.file("src/web/play/main.ts").text();
+  const html = await Bun.file("src/web/play/index.html").text();
+  // The panel covers the whole screen, so without a way out there is no way to
+  // look at the room you just finished, or at where you died.
+  expect(html.includes('<button id="shut"')).toBe(true);
+
+  // "Hidden" has to be something the page REMEMBERS. A run that is over
+  // repaints every tick, so a class somebody removed once would be back within
+  // a thirtieth of a second.
+  expect(main.includes("let panelShut = false;")).toBe(true);
+  const decisions = main.split("over.className = panelShut").length - 1;
+  expect(decisions).toBe(2); // the real-time path and the turn-based one
+
+  // ...and a new run gets its panel back, or closing it once would kill
+  // sharing for good. Verified in a browser by winning, closing, and winning
+  // again.
+  const reset = main.slice(main.indexOf("function reset(): void {"));
+  expect(reset.slice(0, reset.indexOf("\n}\n")).includes("panelShut = false;")).toBe(true);
+});

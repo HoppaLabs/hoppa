@@ -275,6 +275,16 @@ const stable = document.getElementById("stable") as HTMLElement;
 const said = document.getElementById("said") as HTMLElement;
 const boast = document.getElementById("boast") as HTMLElement;
 const sent = document.getElementById("sent") as HTMLElement;
+const shut = document.getElementById("shut") as HTMLButtonElement;
+
+/**
+ * Whether the end-of-run panel has been waved away.
+ *
+ * The panel is repainted every tick while a run is over, so "hidden" has to be
+ * a thing the page remembers rather than a class somebody removed once -- it
+ * would be back within a thirtieth of a second.
+ */
+let panelShut = false;
 const sendIt = document.getElementById("sendit") as HTMLButtonElement;
 const qrCanvas = document.getElementById("qr") as HTMLCanvasElement;
 const qrHint = document.getElementById("qrhint") as HTMLElement;
@@ -478,7 +488,7 @@ function paint(): void {
       paintShareGate();
     }
     if (won) paintQr();
-    over.className = won ? "show" : "show lost";
+    over.className = panelShut ? "" : won ? "show" : "show lost";
     verdict.textContent = won ? "you win" : engine.wasCaught() ? "caught" : "oh no";
     saying.textContent = engine.message() ?? "";
     tally.textContent =
@@ -568,7 +578,7 @@ function paintMovingHud(): void {
       paintShareGate();
     }
     if (won) paintQr();
-    over.className = won ? "show" : "show lost";
+    over.className = panelShut ? "" : won ? "show" : "show lost";
     verdict.textContent = won ? "you win" : "oh no";
     saying.textContent = game.message() ?? "";
     tally.textContent = `${game.seconds()} seconds · ${got}/${total} treasure`;
@@ -593,6 +603,8 @@ function reset(): void {
   // A new run needs a new log. Keeping the old one would let a losing attempt
   // inherit the presses of a winning one.
   recorder = new Recorder();
+  // A new run gets its panel back.
+  panelShut = false;
   // A new run: nothing that changed between the old one and this one is a
   // noise. Restarting is not losing four treasure.
   lastMoment = { hp: 0, treasure: 0, playing: true, won: false };
@@ -851,6 +863,14 @@ for (const [id, input] of BUTTONS) {
     });
   }
 }
+
+shut.addEventListener("click", (ev) => {
+  ev.stopPropagation();
+  // Only hides the panel. The run is still over and "start again" is still in
+  // the footer -- this is for looking at the room, not for carrying on.
+  panelShut = true;
+  over.className = "";
+});
 
 (document.getElementById("reset") as HTMLButtonElement).addEventListener("click", reset);
 (document.getElementById("again") as HTMLButtonElement).addEventListener("click", (ev) => {

@@ -153,6 +153,13 @@
     padding: 20px 12px; overflow-y: auto;
   }
   #over.show { display: flex; }
+  #shut {
+    position: absolute; top: 10px; right: 10px;
+    font: inherit; font-size: 18px; line-height: 1; color: var(--ink);
+    background: none; border: 1px solid var(--edge); border-radius: 8px;
+    width: 40px; height: 40px; cursor: pointer;
+  }
+  #shut:active { background: var(--key); color: var(--ink-bright); }
   #verdict {
     font-size: 22px; letter-spacing: .18em; text-transform: uppercase;
     color: var(--open); font-weight: 600;
@@ -255,6 +262,9 @@
     <canvas id="grid"></canvas>
     <div id="flash" role="status" aria-live="polite"></div>
     <div id="over" role="status" aria-live="polite">
+      <!-- The panel covers the whole screen, so without this there is no way to
+           look at the room you just finished, or at where you died. -->
+      <button id="shut" aria-label="close">&#10005;</button>
       <div id="verdict"></div>
       <div id="saying"></div>
       <div id="tally"></div>
