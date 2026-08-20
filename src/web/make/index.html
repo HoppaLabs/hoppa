@@ -102,6 +102,14 @@
   #weapons button.on .says { color: var(--ink-bright); }
   #weapons button.on { outline: 2px solid var(--gold); outline-offset: 2px; }
   #weapons svg { display: block; }
+  /* Destructive, so it does not look like the buttons that are not. */
+  #forget {
+    font: inherit; font-size: 13px; color: var(--ink);
+    background: none; border: 1px solid var(--edge); border-radius: 8px;
+    padding: 7px 12px; cursor: pointer;
+  }
+  #forget.sure { color: #ff5f4d; border-color: #ff5f4d; }
+  #forgotten { font-size: 12px; color: var(--ink); min-height: 1.3em; }
 </style>
 </head>
 <body>
@@ -163,6 +171,16 @@
   <input id="paste" placeholder="HOPPA-..." aria-label="paste a character code">
   <button id="load">use it</button>
 </div>
+
+<h2>start over</h2>
+<div class="hint">
+  this throws your character away and gives you a blank one. there is no undo
+  &mdash; <b>copy the code above first</b> if you might want it back.
+</div>
+<div class="row">
+  <button id="forget">forget this character</button>
+</div>
+<div id="forgotten"></div>
 <div id="loaded"></div>
 <div class="row"><a href="../">back to the game</a></div>
 

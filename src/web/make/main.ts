@@ -24,7 +24,7 @@ import {
   type Build,
   type Weapon,
 } from "../../core/creature.ts";
-import { loadCharacter, saveCharacter, startingCharacter } from "../stash.ts";
+import { forgetCharacter, loadCharacter, saveCharacter, startingCharacter } from "../stash.ts";
 import { ChrError, decodeCharacter, encodeCharacter } from "../../core/chr.ts";
 import { encodeQr, QrError } from "../../core/qr.ts";
 import { goOffline } from "../offline.ts";
@@ -406,6 +406,52 @@ paintStats();
 paintWeapons();
 paintCode();
 paint();
+
+// --- starting over ----------------------------------------------------------
+//
+// Asked for after a character had been fiddled with past the point of wanting
+// it. There was no way back: the page loads whatever is in storage, so a
+// creature you had gone off could only be drawn over, never dropped.
+//
+// It is genuinely destructive -- the drawing goes, and spec §5b is blunt that
+// the code is the only copy -- so it takes two taps and says so in between. A
+// dialog would be the other way to do it; two taps is one fewer thing for a
+// nine-year-old to read.
+
+const forget = document.getElementById("forget") as HTMLButtonElement;
+const forgotten = document.getElementById("forgotten") as HTMLElement;
+let armed = false;
+
+forget.addEventListener("click", () => {
+  if (!armed) {
+    armed = true;
+    forget.classList.add("sure");
+    forget.textContent = "tap again to forget it";
+    forgotten.textContent = "the code above is the only copy — last chance to keep it";
+    return;
+  }
+
+  forgetCharacter();
+  const fresh = startingCharacter();
+  sprite = fresh.creature.sprite;
+  weapon = fresh.creature.weapon;
+  for (const spend of SPENDABLE) build[spend.key] = fresh.build[spend.key];
+  nameField.value = fresh.creature.name;
+
+  armed = false;
+  forget.classList.remove("sure");
+  forget.textContent = "forget this character";
+  forgotten.textContent = "gone — this is a blank one";
+
+  paintInks();
+  paintSwatches();
+  paintStats();
+  paintWeapons();
+  // The code has to follow the character, or the box would still show the save
+  // file for something that no longer exists.
+  paintCode();
+  paint();
+});
 
 // Everything above works with no network. This is what makes that true after
 // the first visit as well -- see src/web/sw.ts.
