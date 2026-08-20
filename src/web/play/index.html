@@ -83,6 +83,10 @@
      one walk past is the whole skill of day 3 -- without this button the level
      is not beatable on a phone. */
   #wait { grid-area: wait; font-size: 11px; letter-spacing: .1em; color: var(--ink); }
+  /* One non-directional button, so it takes the right-hand slot: seen from
+     above the weapon IS the action key, and it belongs where the weapon is
+     from the side. See paintActionButton(). */
+  #pad.one #wait { grid-area: swing; }
   footer { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center; }
   #hud { color: var(--ink); display: flex; gap: 12px; }
   #hud b { color: var(--ink-bright); font-weight: 600; }
@@ -207,22 +211,25 @@
   }
   #sent[hidden] { display: none; }
   #sent.bad { color: var(--gold); }
-  #reset {
-    font: inherit; color: var(--ink); background: none;
-    border: 1px solid var(--edge); border-radius: 6px; padding: 5px 10px;
-    cursor: pointer;
-  }
-  #reset:active { background: var(--key); }
-  #sound {
-    position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+  /* Same size, same colour, same distance from its edge as the sound icon --
+     they read as a pair only if they are actually identical. */
+  #reset, #sound {
+    position: absolute; top: 50%; transform: translateY(-50%);
     color: var(--ink); background: none; border: 0; padding: 6px;
     cursor: pointer; line-height: 0;
-    /* A 32px target on a 12px row. Smaller than the 44px a thumb wants, and
-       deliberately so -- it sits beside the title, and anything bigger makes
-       the header taller, which comes straight off the level. It is a setting
-       you touch once. */
     -webkit-tap-highlight-color: transparent;
   }
+  #reset { left: 0; }
+  #reset svg { display: block; width: 20px; height: 20px; }
+  #reset path {
+    fill: none; stroke: currentColor; stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  #reset:active { color: var(--gold); }
+  /* A 32px target on a 12px row. Smaller than the 44px a thumb wants, and
+     deliberately so -- these sit beside the title, and anything bigger makes
+     the header taller, which comes straight off the level. */
+  #sound { right: 0; }
   #sound svg { display: block; width: 20px; height: 20px; }
   #sound .cone { fill: currentColor; }
   #sound .on, #sound .off {
@@ -329,6 +336,15 @@
 </head>
 <body>
   <header id="top">
+    <!-- Mirrors the sound icon on the right. Both are things you reach for
+         between attempts rather than during one, so neither belongs in the
+         row of things you came here to do. -->
+    <button id="reset" aria-label="start again">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M20 12a8 8 0 1 1-2.3-5.6"/>
+        <path d="M20 3v5h-5"/>
+      </svg>
+    </button>
     <h1>hoppa &middot; <span id="levelname">delve</span></h1>
     <!-- Off until asked for: a link gets opened on a bus. See src/web/play/sound.ts.
          An icon rather than the words "sound off", because it is a setting you
@@ -381,7 +397,6 @@
   </nav>
   <footer>
     <span id="hud"></span>
-    <button id="reset">start again</button>
   </footer>
   <!-- The two things you can make, side by side and equal. Neither is the one
        to press: see the note on #draw, #build. -->

@@ -52,8 +52,11 @@ test("the trait line is the two values and nothing else", async () => {
   const main = await Bun.file("src/web/play/main.ts").text();
   // Three adjectives hid the numbers; numbers plus what they buy was more than
   // anybody reads with a guard walking towards them. Just the values.
-  expect(main.includes('<b class="what">strong</b>')).toBe(true);
-  expect(main.includes('<b class="what">fast</b>')).toBe(true);
+  // ...and the labels name the thing being measured rather than describe the
+  // creature: "strength ●●●○" reads as a measurement, "strong ●●●○" as an
+  // opinion with some dots after it.
+  expect(main.includes('<b class="what">strength</b>')).toBe(true);
+  expect(main.includes('<b class="what">speed</b>')).toBe(true);
   // The pips are the same count the make page hands out, so "I gave it four"
   // and "it has four" are the same picture on both pages.
   expect(main.includes("PIP_MAX - n")).toBe(true);

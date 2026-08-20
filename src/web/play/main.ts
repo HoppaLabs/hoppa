@@ -707,8 +707,11 @@ function traitLine(creature: Creature): string {
   const pips = (n: number): string =>
     "\u25cf".repeat(n) + "\u25cb".repeat(PIP_MAX - n);
   return (
-    `<span class="pair"><b class="what">strong</b><b class="pips">${pips(build.FORCE)}</b></span>` +
-    `<span class="pair"><b class="what">fast</b><b class="pips">${pips(build.HASTE)}</b></span>`
+    // The name of the thing, not a description of the creature: "strength ●●●○"
+    // reads as a measurement, where "strong ●●●○" reads as an opinion with
+    // some dots after it.
+    `<span class="pair"><b class="what">strength</b><b class="pips">${pips(build.FORCE)}</b></span>` +
+    `<span class="pair"><b class="what">speed</b><b class="pips">${pips(build.HASTE)}</b></span>`
   );
 }
 
@@ -752,21 +755,39 @@ function paintActionButton(): void {
   // From the side the action button is jump, so the weapon gets its own key.
   // From above they would be the same button, so there is only one.
   if (swingButton !== null) {
-    const separate = jumping && WEAPON_ENGINES.has(`${level.engine}/${level.behaviourVersion}`);
+    const separate = jumping && hasWeapon(level.engine, level.behaviourVersion);
     swingButton.hidden = !separate;
     if (separate) {
       swingButton.innerHTML = weaponIcon;
       swingButton.setAttribute("aria-label", weaponSays);
     }
+    // With no second button, the one button moves across to sit beside up on
+    // the RIGHT. A thumb reaching for the weapon should find it in the same
+    // place whichever game this is, and from the side that place is the right
+    // of the pad -- the left one there is the jump.
+    pad.classList.toggle("one", !separate);
   }
 }
 
 /**
- * Side-on builds that have a weapon at all. dash/1 and dash/2 answer an enemy
- * only by being landed on, and showing a swing button on one of those levels
- * would offer a child a button that does nothing.
+ * The first side-on build with a weapon at all.
+ *
+ * dash/1 and dash/2 answer an enemy only by being landed on, and showing a
+ * swing button on one of those levels would offer a child a button that does
+ * nothing. From dash/3 on, the swing key strikes.
+ *
+ * A THRESHOLD, not a list. It was a list naming "dash/3" alone, so dash/4 --
+ * which is dash/3 plus a change to picking gems up, weapon untouched -- shipped
+ * with no weapon button at all, and a child on one of those levels had no
+ * answer to a guard but to walk round it. Every new dash build would have lost
+ * it again, silently, which is exactly the failure the version table exists to
+ * make loud.
  */
-const WEAPON_ENGINES: ReadonlySet<string> = new Set(["dash/3"]);
+const FIRST_ARMED_DASH = 3;
+
+function hasWeapon(engine: string, version: number): boolean {
+  return engine === "dash" && version >= FIRST_ARMED_DASH;
+}
 
 
 /**

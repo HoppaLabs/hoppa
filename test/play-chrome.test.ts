@@ -41,7 +41,7 @@ test("sound is an icon by the title, not a word in the row of things to do", () 
   const top = html.slice(html.indexOf('<header id="top">'), html.indexOf("</header>"));
   expect(top.includes('id="sound"')).toBe(true);
   expect(top.includes("<h1>")).toBe(true);
-  expect(rule("#sound")).toContain("position: absolute");
+  expect(rule("#reset, #sound")).toContain("position: absolute");
   // The title stays centred: the icon is out of the flow rather than pushing
   // it. Measured -- the header row is as tall as the title alone was, and the
   // level is 360x210 on a 390pt phone with the icon exactly as without it.
@@ -65,4 +65,41 @@ test("a button with no words still says what tapping it will do", () => {
   expect(main.includes('sounds.isOn() ? "turn sound off" : "turn sound on"')).toBe(true);
   expect(html).toMatch(/<button id="sound"[^>]*aria-label="turn sound on"/);
   expect(html).toMatch(/<svg viewBox="0 0 24 24" aria-hidden="true">/);
+});
+
+test("start again mirrors sound: an icon at the other end of the same row", () => {
+  // Both are things you reach for between attempts rather than during one, so
+  // neither belongs in the row of things you came here to do.
+  const top = html.slice(html.indexOf('<header id="top">'), html.indexOf("</header>"));
+  expect(top.includes('id="reset"')).toBe(true);
+  expect(html.includes("#reset { left: 0; }")).toBe(true);
+  expect(html.includes("#sound { right: 0; }")).toBe(true);
+  // They read as a pair only if they are actually identical, so they share
+  // one rule rather than two that happen to agree today.
+  expect(rule("#reset, #sound")).toContain("padding: 6px");
+  expect(html.includes('<button id="reset" aria-label="start again">')).toBe(true);
+  // The footer is what it left, and only the read-out stays there.
+  const footer = html.slice(html.indexOf("<footer>"), html.indexOf("</footer>"));
+  expect(footer.includes('id="reset"')).toBe(false);
+  expect(footer.includes('id="hud"')).toBe(true);
+});
+
+test("the weapon sits to the right of up, in both games", () => {
+  // Seen from above there is one non-directional button and it was top LEFT;
+  // from the side that slot is the jump and the weapon is on the right. A
+  // thumb should find the weapon in the same place either way.
+  expect(html).toContain('grid-template-areas: "wait up swing" "left down right"');
+  expect(html.includes("#pad.one #wait { grid-area: swing; }")).toBe(true);
+  expect(main.includes('pad.classList.toggle("one", !separate);')).toBe(true);
+});
+
+test("every armed side-on build offers the weapon, not just the one named", () => {
+  // It was a set naming "dash/3" alone, so dash/4 -- which is dash/3 plus a
+  // change to picking gems up, weapon untouched -- shipped with no weapon
+  // button, and a child had no answer to a guard but to walk round it.
+  expect(main).not.toContain("WEAPON_ENGINES");
+  expect(main.includes("const FIRST_ARMED_DASH = 3;")).toBe(true);
+  expect(
+    main.includes('return engine === "dash" && version >= FIRST_ARMED_DASH;'),
+  ).toBe(true);
 });
