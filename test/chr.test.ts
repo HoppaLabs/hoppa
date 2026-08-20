@@ -226,7 +226,43 @@ test("C5: a code from a newer hoppa says so rather than guessing", () => {
   const changed = (ALPHABET[bumped] as string) + symbols.slice(1);
   const rebuilt = `HOPPA-BASH-${changed}-${checkSymbol(changed)}`;
   expect(() => decodeCharacter(rebuilt)).toThrow(/newer hoppa/);
-  expect(CHR_VERSION).toBe(1);
+  expect(CHR_VERSION).toBe(2);
+});
+
+/**
+ * A real code, copied out of the editor before the weapon existed. A kid who
+ * wrote their character down on paper last week has to be able to type it back
+ * in today -- that is the whole reason the format has a version field, and it
+ * is the one promise this file cannot break.
+ */
+const V1_CODE =
+  "HOPPA-MINE-2VE9G-GM198-GKGS9-1A30M-6188A-GR51G-A22N4-5A8AG-W51RA-" +
+  "22N46-9RCG0-15020-24418-R2GG9-10J00-M0288-CG050-2J20M-440-H";
+
+test("a code written down before the weapon existed still works, and it has a sword", () => {
+  const back = decodeCharacter(V1_CODE);
+  expect(back.name).toBe("Mine");
+  expect(back.build).toEqual({ FORCE: 3, HASTE: 3 });
+  expect(back.creature.weapon).toBe("sword");
+});
+
+test("the weapon survives the code, and it is the only thing that changed", () => {
+  const withSword = encodeCharacter("Bash", BUILD, BRUK.sprite, "sword");
+  const withWand = encodeCharacter("Bash", BUILD, BRUK.sprite, "wand");
+  expect(withSword).not.toBe(withWand);
+  expect(decodeCharacter(withSword).creature.weapon).toBe("sword");
+  expect(decodeCharacter(withWand).creature.weapon).toBe("wand");
+
+  // Same build, same drawing: a wand is a costume, not a characteristic.
+  const a = decodeCharacter(withSword);
+  const b = decodeCharacter(withWand);
+  expect(a.build).toEqual(b.build);
+  expect(a.creature.caps).toEqual(b.creature.caps);
+  expect([...a.creature.sprite.pixels]).toEqual([...b.creature.sprite.pixels]);
+});
+
+test("a code with no weapon named defaults to a sword", () => {
+  expect(decodeCharacter(encodeCharacter("Bash", BUILD, BRUK.sprite)).creature.weapon).toBe("sword");
 });
 
 // --- names ------------------------------------------------------------------------------

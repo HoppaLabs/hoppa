@@ -12,20 +12,36 @@ import {
   SPENDABLE,
   clampPip,
   creatureFromBuild,
+  isWeapon,
   spent,
   type Build,
   type Creature,
+  type Weapon,
 } from "../core/creature.ts";
 import { pixelsToText, spriteFromText, starterSprite } from "../core/sprite.ts";
+import { GRID_AREA } from "../core/grid.ts";
+import {
+  GLYPH_EXIT, GLYPH_FLOOR, GLYPH_GUARD, GLYPH_LADDER,
+  GLYPH_START, GLYPH_TREASURE, GLYPH_WALL,
+} from "../core/level.ts";
+import type { Draft, Glyph } from "../core/draft.ts";
+
+const LEGAL_GLYPHS: readonly string[] = [
+  GLYPH_WALL, GLYPH_FLOOR, GLYPH_START, GLYPH_EXIT,
+  GLYPH_TREASURE, GLYPH_GUARD, GLYPH_LADDER,
+];
 import { normaliseSubPalette } from "../core/palette.ts";
 
 const KEY = "hoppa.character.v2";
+const DRAFT_KEY = "hoppa.level.v1";
 
 interface Stored {
   readonly name: string;
   readonly build: Record<string, number>;
   readonly sub: readonly number[];
   readonly pixels: string;
+  /** Absent on records written before the choice existed: those had swords. */
+  readonly weapon?: string;
 }
 
 /** Every pip clamped, and never more than the budget allows. */
@@ -51,6 +67,7 @@ export function saveCharacter(name: string, build: Build, creature: Creature): v
     build: { ...build },
     sub: [...creature.sprite.sub],
     pixels: pixelsToText(creature.sprite),
+    weapon: creature.weapon,
   };
   try {
     window.localStorage.setItem(KEY, JSON.stringify(record));
@@ -83,7 +100,11 @@ export function loadCharacter(): Saved | null {
     const sprite = spriteFromText(record.pixels, sub);
     const build = legalBuild((record.build ?? {}) as Record<string, number>);
     const name = record.name.slice(0, 12) || "Mine";
-    return { creature: creatureFromBuild("yours", name, "@", build, sprite), build };
+    // A record written before the choice existed has no weapon in it, and a
+    // tampered one may have nonsense: both mean "sword".
+    const weapon: Weapon =
+      typeof record.weapon === "string" && isWeapon(record.weapon) ? record.weapon : "sword";
+    return { creature: creatureFromBuild("yours", name, "@", build, sprite, weapon), build };
   } catch {
     // Anything unreadable is treated as absent. Never let a bad record stop the
     // page loading -- a kid cannot clear their own localStorage.
@@ -112,4 +133,69 @@ export function startingCharacter(): Saved {
     creature: creatureFromBuild("yours", "Mine", "@", build, starterSprite()),
     build,
   };
+}
+
+
+// --- the level you are drawing --------------------------------------------------
+//
+// Same posture as the character: assume storage lies. A draft is worth keeping
+// because a half-drawn room is real work, but losing one costs an afternoon's
+// drawing and never a level somebody already sent you -- those live in links.
+
+interface StoredDraft {
+  readonly engine: string;
+  readonly behaviourVersion: number;
+  readonly name: string;
+  readonly cells: string;
+}
+
+export function saveDraft(draft: Draft, name: string): void {
+  const record: StoredDraft = {
+    engine: draft.engine,
+    behaviourVersion: draft.behaviourVersion,
+    name,
+    cells: draft.cells.join(""),
+  };
+  try {
+    window.localStorage.setItem(DRAFT_KEY, JSON.stringify(record));
+  } catch {
+    // Nothing to do and nothing to say: the level is still on screen.
+  }
+}
+
+/** The draft in storage, or null when there is not a usable one. */
+export function loadDraft(): { draft: Draft; name: string } | null {
+  let raw: string | null = null;
+  try {
+    raw = window.localStorage.getItem(DRAFT_KEY);
+  } catch {
+    return null;
+  }
+  if (raw === null) return null;
+
+  try {
+    const record = JSON.parse(raw) as Partial<StoredDraft>;
+    const cells = typeof record.cells === "string" ? record.cells : "";
+    if (cells.length !== GRID_AREA) return null;
+
+    const glyphs: Glyph[] = [];
+    for (let i = 0; i < cells.length; i = (i + 1) | 0) {
+      const ch = cells[i] as string;
+      if (!LEGAL_GLYPHS.includes(ch)) return null;
+      glyphs.push(ch as Glyph);
+    }
+
+    const draft: Draft = {
+      engine: typeof record.engine === "string" ? record.engine : "roam",
+      behaviourVersion: typeof record.behaviourVersion === "number" ? record.behaviourVersion | 0 : 2,
+      cells: glyphs,
+    };
+    // A stored draft with no start is not a draft: it would crash the parser
+    // rather than merely look odd, so it goes in the bin like a corrupt sprite.
+    if (!cells.includes(GLYPH_START)) return null;
+
+    return { draft, name: typeof record.name === "string" ? record.name : "my level" };
+  } catch {
+    return null;
+  }
 }

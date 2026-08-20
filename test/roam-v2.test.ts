@@ -2,10 +2,12 @@ import { expect, test } from "bun:test";
 import { isWall, parseLevel } from "../src/core/level.ts";
 import { hashHex } from "../src/core/hash.ts";
 import { engineFor } from "../src/engines/registry.ts";
-import { BRUK, NIM, PELL, creatureFromCaps } from "../src/core/creature.ts";
+import { BRUK, NIM, PELL, creatureFromBuild, creatureFromCaps } from "../src/core/creature.ts";
 import { starterSprite } from "../src/core/sprite.ts";
 import { ONE, toCell } from "../src/core/fixed.ts";
-import { BODY, RoamV2, hitsToKillFor } from "../src/engines/roam/v2.ts";
+import {
+  BODY, RoamV2, heartsFor, hitsToKillFor, reachFor, stunFor,
+} from "../src/engines/roam/v2.ts";
 import { RoamV1 } from "../src/engines/roam/v1.ts";
 import {
   HELD_ACT, HELD_LEFT, HELD_RIGHT, HELD_UP,
@@ -222,4 +224,35 @@ test("v2 replays identically three times over", () => {
   }
   expect(hashes[0]).toBe(hashes[1]);
   expect(hashes[1]).toBe(hashes[2]);
+});
+
+
+// --- the weapon is a costume ------------------------------------------------------
+
+test("E10: a wand and a sword play identically -- the weapon never reaches the hash", () => {
+  const build = { FORCE: 4, HASTE: 2 } as const;
+  const swordy = creatureFromBuild("w", "Swordy", "@", build, starterSprite(), "sword");
+  const wandy = creatureFromBuild("w", "Wandy", "@", build, starterSprite(), "wand");
+  expect(swordy.weapon).toBe("sword");
+  expect(wandy.weapon).toBe("wand");
+
+  const hashes = [swordy, wandy].map((creature) => {
+    const engine = new RoamV2(level, creature);
+    let status: number = STATUS_PLAYING;
+    for (let t = 0; t < 900 && status === STATUS_PLAYING; t++) {
+      status = engine.step((t % 5 === 0 ? HELD_ACT : 0) | (t % 160 < 80 ? HELD_RIGHT : HELD_UP));
+    }
+    return hashHex(engine.stateHash());
+  });
+  expect(hashes[0]).toBe(hashes[1]);
+});
+
+test("E10: a wand reaches exactly as far and hits exactly as hard", () => {
+  const build = { FORCE: 4, HASTE: 2 } as const;
+  const swordy = creatureFromBuild("w", "Swordy", "@", build, starterSprite(), "sword");
+  const wandy = creatureFromBuild("w", "Wandy", "@", build, starterSprite(), "wand");
+  expect(reachFor(wandy)).toBe(reachFor(swordy));
+  expect(hitsToKillFor(wandy)).toBe(hitsToKillFor(swordy));
+  expect(stunFor(wandy)).toBe(stunFor(swordy));
+  expect(heartsFor(wandy)).toBe(heartsFor(swordy));
 });

@@ -12,7 +12,7 @@
 // That is what lets a link from day 5 onwards pin the rules it was beaten under.
 
 import { ROAM2_LEVEL_TEXT } from "../../core/fixtures.ts";
-import { PRESETS, SPENDABLE, capsToBuild, type Creature } from "../../core/creature.ts";
+import { PRESETS, SPENDABLE, capsToBuild, spent, type Creature } from "../../core/creature.ts";
 import { CodecError, encodeLevel } from "../../core/codec.ts";
 import { levelFromHash, linkFor } from "./link.ts";
 import { encodeQr, QrError } from "../../core/qr.ts";
@@ -100,6 +100,15 @@ try {
 
 const level = shared === null ? parseLevel(ROAM2_LEVEL_TEXT) : shared.level;
 const levelName = shared === null ? BUILT_IN_NAME : shared.slug.replace(/-/g, " ");
+
+// The remix loop. On a level somebody sent you, the editor link opens THAT
+// level to change rather than an empty room -- your friend's rooms, your walls.
+// It is the reason the level travels in the link instead of living on a server.
+const buildLink = document.getElementById("build") as HTMLAnchorElement | null;
+if (buildLink !== null && shared !== null) {
+  buildLink.href = `./level/#from/${encodeLevel(level)}`;
+  buildLink.textContent = "change this level";
+}
 // A character you made wins over the ready-made ones: it is yours, and it is
 // the reason the spec says never to cut the drawing day.
 const saved = loadCharacter();
@@ -325,6 +334,9 @@ function reset(): void {
   // Only when the creature changes: stamping 256 pixels every frame is the
   // difference between smooth and not on a cheap phone.
   renderer.setSprite(chosen.sprite);
+  renderer.setWeapon(chosen.weapon);
+  // A creature that swings a wand needs the wand on the button, not a sword.
+  paintActionButton();
   paintStable();
   paint();
 
@@ -368,10 +380,20 @@ function traitLine(creature: Creature): string {
  * to say which, because it is the same button and a kid will press it before
  * reading anything.
  */
+// Upright, with a crossguard and a pommel. The old icon was a thin diagonal
+// with the blade and the grip nearly the same colour, and it read as a pencil.
 const SWORD_ICON = `<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
-  <path d="M20 3 L21 4 L11 14 L10 13 Z" fill="#ffe9a3"/>
-  <path d="M7 15 L9 17 L6 20 L4 18 Z" fill="#cdd6e0"/>
-  <path d="M8.5 14.5 L9.5 15.5" stroke="#7c8899" stroke-width="2"/>
+  <path d="M12 2 L14.4 5.5 L14.4 14 L9.6 14 L9.6 5.5 Z" fill="#e2eaf2"/>
+  <path d="M12 2 L12 14" stroke="#a8b6c6" stroke-width="1"/>
+  <rect x="5.5" y="14" width="13" height="2.4" rx="1.2" fill="#8d7a5c"/>
+  <rect x="10.8" y="16.4" width="2.4" height="4.2" fill="#a8b6c6"/>
+  <circle cx="12" cy="21" r="1.8" fill="#8d7a5c"/>
+</svg>`;
+
+const WAND_ICON = `<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
+  <rect x="10.8" y="9" width="2.4" height="12.5" rx="1.2" transform="rotate(20 12 15)" fill="#e8dcf4"/>
+  <path d="M12 1.5 L13.5 5.7 L17.7 7.2 L13.5 8.7 L12 12.9 L10.5 8.7 L6.3 7.2 L10.5 5.7 Z" fill="#f0e2ff"/>
+  <circle cx="12" cy="7.2" r="1.5" fill="#ffffff"/>
 </svg>`;
 
 const JUMP_ICON = `<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
@@ -382,8 +404,12 @@ const JUMP_ICON = `<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="
 function paintActionButton(): void {
   const button = document.getElementById("wait") as HTMLButtonElement;
   const jumping = level.engine === "dash";
-  button.innerHTML = jumping ? JUMP_ICON : SWORD_ICON;
-  button.setAttribute("aria-label", jumping ? "jump" : "swing your sword");
+  const wand = chosen.weapon === "wand";
+  button.innerHTML = jumping ? JUMP_ICON : wand ? WAND_ICON : SWORD_ICON;
+  button.setAttribute(
+    "aria-label",
+    jumping ? "jump" : wand ? "wave your wand" : "swing your sword",
+  );
 }
 
 /**
@@ -397,6 +423,9 @@ function paintActionButton(): void {
  */
 function bestAt(creature: Creature): string {
   const build = capsToBuild(creature.caps);
+  // A brand-new character has spent nothing, and "A bit of both" would be a
+  // lie -- it is a bit of neither. Say what to do about it instead.
+  if (spent(build) === 0) return "Spend its points";
   let best = SPENDABLE[0] as (typeof SPENDABLE)[number];
   let tied = false;
   for (const spend of SPENDABLE) {
@@ -605,6 +634,7 @@ beatenNow = beatenLevels().includes(levelCode);
 paintShareGate();
 
 renderer.setSprite(chosen.sprite);
+renderer.setWeapon(chosen.weapon);
 paintActionButton();
 paintStable();
 resize();

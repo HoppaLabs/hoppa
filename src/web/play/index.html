@@ -145,11 +145,14 @@
     cursor: pointer;
   }
   #reset:active { background: var(--key); }
-  #draw {
+  #draw, #build {
     font: inherit; color: var(--ink-bright); background: var(--key);
     border: 1px solid var(--gold); border-radius: 6px; padding: 6px 12px;
     cursor: pointer; text-decoration: none;
   }
+  /* The level editor is the other half of the point, so it is a peer of the
+     character editor rather than something tucked away below it. */
+  #build { border-color: var(--edge); }
   #said {
     color: var(--ink); font-size: 12px; min-height: 1.3em; text-align: center;
     max-width: 40ch; word-break: break-all;
@@ -170,7 +173,7 @@
       <div id="qrhint" hidden>a friend's phone can scan this to play <b>your level</b></div>
       <div class="row">
         <button id="again">play again</button>
-        <button id="sendit" hidden>share game</button>
+        <button id="sendit" hidden>share level</button>
       </div>
     </div>
   </div>
@@ -185,6 +188,7 @@
     <span id="hud"></span>
     <button id="reset">start again</button>
     <a id="draw" href="./make/">edit character</a>
+    <a id="build" href="./level/">make a level</a>
   </footer>
   <div id="said"></div>
   <script type="module" src="./app.js"></script>

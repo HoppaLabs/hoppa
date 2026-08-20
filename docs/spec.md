@@ -289,6 +289,11 @@ worth carrying between them. The noun is fixed, the verb is the engine's:
 strength is a harder sword from above and a higher jump from the side. A
 creature is not good or bad; it is good at *some levels*.
 
+A creature also carries a **weapon** — sword or wand — which is *cosmetic*, like
+its drawing. A wand reaches as far as a sword and hits as hard; making it
+behave differently would be a third characteristic that is not on the budget,
+and would turn a look into a power. See `docs/adr/0015`.
+
 `MOVE_GROUND`, `MOVE_AIR`, `SPARK`, `MASS`, `GUARD` and `REACH` remain in the
 vocabulary because engine builds up to `delve/5` read them and every link pinning
 those builds must keep playing identically. A build can no longer *spend* on
@@ -306,11 +311,17 @@ A level's engine is pinned in its link, so both live in the same bundle forever.
 
 ### Roam — from above
 
-Zelda-shaped. You look down on a room, walk in eight directions, swing a sword at
-enemies that see you and come after you. Collect what's there, find the way out.
+Zelda-shaped. You look down on a room, walk in eight directions, swing a sword
+(or a wand) at enemies that see you and come after you. Collect what's there,
+find the way out.
 
-- **Stronger** — the sword hits harder, and you have more hearts
+- **Stronger** — fewer swings to put an enemy down, longer it stays down, more hearts
 - **Faster** — you move quicker, so you can outrun what you cannot beat
+
+Enemies **die**: enough hits and one is gone for the rest of the attempt, and the
+room is full again when you start over — the Zelda/Mario rule, not a timer.
+`roam/1` is retired but still shipped: its enemies could walk through walls
+(`docs/adr/0013`).
 
 ### Dash — from the side
 
@@ -462,6 +473,26 @@ only.
 a monotonic counter, never wall-clock.
 
 Creatures live in browser storage and travel only when deliberately shared.
+
+---
+
+## 11b. The level editor
+
+*Implemented — see `docs/adr/0014`.* A third page, `/level/`. Draw on the 24×14
+grid with plain-word tools (**wall**, **clear**, **start**, **door**,
+**treasure**, **enemy**, **ladder**), pick **from above** or **from the side**,
+and tap **play it**.
+
+The level reaches the game through the URL fragment — the same route a shared
+level takes — so the share gate, the replay, the win screen and the QR all work
+on a drawn level with nothing written for them. The reverse is the remix loop:
+on a level somebody sent you the editor link reads **change this level** and
+opens it for editing.
+
+The editor enforces only what keeps a draft drawable (one start, one door, the
+treasure and enemy caps). Everything else is advice in plain sentences, because
+**the share gate is the real filter** — a flood fill knows about walls and
+nothing about jumping, so it cannot prove a level winnable and does not claim to.
 
 ---
 

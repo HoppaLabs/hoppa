@@ -5,12 +5,13 @@ import { rm, mkdir } from "node:fs/promises";
 
 const OUT = "dist";
 
-// Two pages, two bundles. /make is a real directory rather than a route, so it
-// works on static hosting with no rewrites -- the same reason the level lives
-// in the URL fragment. See docs/adr/0006.
+// Three pages, three bundles. /make and /level are real directories rather than
+// routes, so they work on static hosting with no rewrites -- the same reason the
+// level lives in the URL fragment. See docs/adr/0006.
 const PAGES = [
   { entry: "src/web/play/main.ts", html: "src/web/play/index.html", dir: "", js: "app.js" },
   { entry: "src/web/make/main.ts", html: "src/web/make/index.html", dir: "make/", js: "make.js" },
+  { entry: "src/web/level/main.ts", html: "src/web/level/index.html", dir: "level/", js: "level.js" },
 ];
 
 export async function build(): Promise<string[]> {

@@ -40,6 +40,23 @@ export interface Creature {
    * and different sprites must play identically, and there is a test for it.
    */
   readonly sprite: Sprite;
+  /**
+   * What it swings. Purely how it looks -- a wand reaches exactly as far as a
+   * sword and hits exactly as hard, and there is a test saying so.
+   *
+   * It exists because "a sword" is not every child's idea of their own
+   * character, and the cost of offering the other one is a drawing and a bit
+   * on the wire. Like the sprite, it NEVER reaches stateHash().
+   */
+  readonly weapon: Weapon;
+}
+
+/** The things a creature can swing. Cosmetic; add to the END, never reorder. */
+export const WEAPONS = ["sword", "wand"] as const;
+export type Weapon = (typeof WEAPONS)[number];
+
+export function isWeapon(value: string): value is Weapon {
+  return (WEAPONS as readonly string[]).includes(value);
 }
 
 import { spriteFromRows, type Sprite } from "./sprite.ts";
@@ -49,11 +66,11 @@ export const CAP_MAX = 255;
 
 // --- what a player actually spends -------------------------------------------
 //
-// A creature is built from a BUDGET, not chosen from a menu. Four
-// characteristics, five pips each, eight pips to spend: you cannot be strong
-// and fast and hardy and long-armed, and deciding what to give up is the whole
-// of the design. It also means every creature a kid makes is comparable with
-// every other one, which is what makes trading them mean anything.
+// A creature is built from a BUDGET, not chosen from a menu. Two
+// characteristics, five pips each, six pips to spend: you cannot be strong AND
+// fast, and deciding what to give up is the whole of the design. It also means
+// every creature a kid makes is comparable with every other one, which is what
+// makes trading them mean anything.
 //
 // Pips rather than a 0-255 slider because a kid has to see the trade. The axes
 // underneath are still 0-255, so nothing about the wire format changes.
@@ -159,8 +176,9 @@ function creature(
   glyph: string,
   caps: Partial<Caps>,
   sprite: Sprite,
+  weapon: Weapon = "sword",
 ): Creature {
-  return { schema: 1, id, name, glyph, caps: normalise(caps), sprite };
+  return { schema: 1, id, name, glyph, caps: normalise(caps), sprite, weapon };
 }
 
 /** A creature from a pip build. Every preset is made this way, so none of them
@@ -171,13 +189,22 @@ export function creatureFromBuild(
   glyph: string,
   build: Build,
   sprite: Sprite,
+  weapon: Weapon = "sword",
 ): Creature {
-  return { schema: 1, id, name, glyph, caps: buildToCaps(build), sprite };
+  return { schema: 1, id, name, glyph, caps: buildToCaps(build), sprite, weapon };
 }
 
 /** Replace a creature's looks and nothing else. */
-export function reskin(base: Creature, name: string, sprite: Sprite): Creature {
-  return { schema: base.schema, id: base.id, name, glyph: base.glyph, caps: base.caps, sprite };
+export function reskin(
+  base: Creature,
+  name: string,
+  sprite: Sprite,
+  weapon: Weapon = base.weapon,
+): Creature {
+  return {
+    schema: base.schema, id: base.id, name, glyph: base.glyph,
+    caps: base.caps, sprite, weapon,
+  };
 }
 
 // Three silhouettes. Three colours each, drawn shape-first the way spec S4 says
@@ -294,8 +321,9 @@ export function creatureFromCaps(
   name: string,
   caps: Partial<Caps>,
   sprite: Sprite = spriteFromRows(NIM_ROWS, [22, 23, 5]),
+  weapon: Weapon = "sword",
 ): Creature {
-  return creature(id, name, "?", caps, sprite);
+  return creature(id, name, "?", caps, sprite, weapon);
 }
 
 /** Every axis at one value. Spec S13's E1 and E2 want 0 and 255 to be playable. */

@@ -70,23 +70,18 @@ export function adviceFor(text: string): Advice {
     notes.push({ fatal: true, text: "you cannot get from the start to the door -- there is a wall in the way" });
   }
 
-  const l4 = byId.get("L4");
-  if (l4 !== undefined && l4.ok === false) {
-    const level = result.level;
-    const stranded: number[] = [];
-    const seenText = l4.detail;
-    // verify.ts already worked out which ones; recover the count from its list
-    // rather than flooding the level a second time.
-    const walled = seenText.startsWith("walled off:") ? seenText.slice("walled off:".length).trim().split(" ").length : 0;
-    if (walled > 0) stranded.push(walled);
+  const walled = result.strandedTreasure.length;
+  if (walled > 0) {
+    // Fatal, not a warning: the door only opens once every treasure is picked
+    // up, so one unreachable gem means nobody finishes -- including whoever
+    // drew it, which the share gate would eventually tell them anyway.
     notes.push({
-      fatal: false,
+      fatal: true,
       text:
         walled === 1
-          ? "one treasure is walled off, so nobody can finish this level"
-          : `${walled} treasures are walled off, so nobody can finish this level`,
+          ? `one treasure is walled off (${at(result.strandedTreasure[0] as number)}), so the door can never open`
+          : `${walled} treasures are walled off, so the door can never open`,
     });
-    void level;
   }
 
   const l5 = byId.get("L5");
@@ -116,5 +111,3 @@ export function headline(advice: Advice): string {
   const first = advice.notes[0];
   return first === undefined ? "" : first.text;
 }
-
-export { at as cellDescription };

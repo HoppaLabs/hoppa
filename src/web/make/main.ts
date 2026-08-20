@@ -18,9 +18,11 @@ import {
   PIP_BUDGET,
   PIP_MAX,
   SPENDABLE,
+  WEAPONS,
   creatureFromBuild,
   spent,
   type Build,
+  type Weapon,
 } from "../../core/creature.ts";
 import { loadCharacter, saveCharacter, startingCharacter } from "../stash.ts";
 import { ChrError, decodeCharacter, encodeCharacter } from "../../core/chr.ts";
@@ -40,12 +42,14 @@ const codeQr = document.getElementById("codeqr") as HTMLCanvasElement;
 const pasteBox = document.getElementById("paste") as HTMLInputElement;
 const loaded = document.getElementById("loaded") as HTMLElement;
 const qrWhat = document.getElementById("qrwhat") as HTMLElement;
+const weaponsBox = document.getElementById("weapons") as HTMLElement;
 
 const saved = loadCharacter() ?? startingCharacter();
 let sprite: Sprite = saved.creature.sprite;
 const build: Record<string, number> = { ...saved.build };
 let ink = 1;
 let slot = 0;
+let weapon: Weapon = saved.creature.weapon;
 nameField.value = saved.creature.name;
 
 // --- drawing ----------------------------------------------------------------
@@ -233,17 +237,53 @@ function paintStats(): void {
 
 (document.getElementById("go") as HTMLButtonElement).addEventListener("click", () => {
   const name = nameField.value.trim().slice(0, 12) || "Mine";
-  const made = creatureFromBuild("yours", name, "@", build as Build, sprite);
+  const made = creatureFromBuild("yours", name, "@", build as Build, sprite, weapon);
   saveCharacter(name, build as Build, made);
   note.textContent = "saved";
   window.location.href = "../";
 });
 
+// --- sword or wand --------------------------------------------------------------
+//
+// Cosmetic, and said so on the page. A wand reaches exactly as far as a sword
+// and hits exactly as hard -- it is here because a sword is not every child's
+// idea of their own character, not because it is a third thing to balance.
+
+const WEAPON_ART: Record<Weapon, string> = {
+  sword: `<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+    <path d="M12 2 L14.4 5.5 L14.4 14 L9.6 14 L9.6 5.5 Z" fill="#e2eaf2"/>
+    <rect x="5.5" y="14" width="13" height="2.4" rx="1.2" fill="#8d7a5c"/>
+    <rect x="10.8" y="16.4" width="2.4" height="4.2" fill="#a8b6c6"/>
+    <circle cx="12" cy="21" r="1.8" fill="#8d7a5c"/>
+  </svg>`,
+  wand: `<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+    <rect x="10.8" y="9" width="2.4" height="12.5" rx="1.2" transform="rotate(20 12 15)" fill="#e8dcf4"/>
+    <path d="M12 1.5 L13.5 5.7 L17.7 7.2 L13.5 8.7 L12 12.9 L10.5 8.7 L6.3 7.2 L10.5 5.7 Z" fill="#f0e2ff"/>
+    <circle cx="12" cy="7.2" r="1.5" fill="#ffffff"/>
+  </svg>`,
+};
+
+function paintWeapons(): void {
+  weaponsBox.innerHTML = "";
+  for (const choice of WEAPONS) {
+    const button = document.createElement("button");
+    button.className = choice === weapon ? "on" : "";
+    button.setAttribute("aria-pressed", choice === weapon ? "true" : "false");
+    button.innerHTML = `${WEAPON_ART[choice]}<span>${choice}</span>`;
+    button.addEventListener("click", () => {
+      weapon = choice;
+      paintWeapons();
+      paintCode();
+    });
+    weaponsBox.appendChild(button);
+  }
+}
+
 // --- the code that IS the character -------------------------------------------
 
 function currentCode(): string {
   const name = nameField.value.trim().slice(0, 12) || "Mine";
-  return encodeCharacter(name, build as Build, sprite);
+  return encodeCharacter(name, build as Build, sprite, weapon);
 }
 
 function paintCode(): void {
@@ -301,6 +341,7 @@ function paintCode(): void {
   try {
     const back = decodeCharacter(typed);
     sprite = back.creature.sprite;
+    weapon = back.creature.weapon;
     for (const spend of SPENDABLE) build[spend.key] = back.build[spend.key];
     nameField.value = back.name;
     loaded.textContent = `${back.name} is back`;
@@ -308,6 +349,7 @@ function paintCode(): void {
     paintInks();
     paintSwatches();
     paintStats();
+    paintWeapons();
     // Without this the box still shows the code for whatever was here BEFORE
     // the paste. On a page whose whole promise is "this code is your save
     // file", showing a stale one would hand a kid the wrong character.
@@ -323,5 +365,6 @@ nameField.addEventListener("input", paintCode);
 paintInks();
 paintSwatches();
 paintStats();
+paintWeapons();
 paintCode();
 paint();

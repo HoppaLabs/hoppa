@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1014">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Crect width='8' height='8' fill='%230d1014'/%3E%3Crect x='2' y='2' width='4' height='4' fill='%23ffc23d'/%3E%3C/svg%3E">
+<title>hoppa — make a level</title>
+<style>
+  :root {
+    --bg: #0d1014; --ink: #7c8899; --ink-bright: #cdd6e0;
+    --key: #222a35; --key-lit: #39485c; --edge: #1a212b;
+    --gold: #ffc23d; --open: #6fe08a; --bad: #ff7a6b;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; min-height: 100%;
+    background: var(--bg); color: var(--ink);
+    font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+  body {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    padding: max(10px, env(safe-area-inset-top)) 10px max(14px, env(safe-area-inset-bottom));
+    touch-action: manipulation;
+  }
+  h1 {
+    margin: 0; font-size: 12px; font-weight: 400; letter-spacing: .14em;
+    text-transform: uppercase;
+  }
+  h1 b { color: var(--ink-bright); font-weight: 600; }
+  h2 {
+    margin: 2px 0 0; font-size: 12px; font-weight: 400; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--ink);
+  }
+  canvas { display: block; image-rendering: pixelated; border: 1px solid var(--edge); border-radius: 3px; }
+  /* The drawing surface must not pan or zoom the page under a dragging finger. */
+  #paper { touch-action: none; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  button, input {
+    font: inherit; color: var(--ink-bright); background: var(--key);
+    border: 1px solid var(--edge); border-radius: 8px; padding: 8px 12px; cursor: pointer;
+  }
+  input { cursor: text; text-align: center; }
+  button.on { border-color: var(--gold); }
+  button:disabled { opacity: .35; cursor: default; }
+  a { color: var(--ink); }
+
+  /*
+    The whole editor is one flexible column that becomes two when there is room.
+    A phone in portrait gets the level on top and the tools under it; a tablet,
+    or a phone turned sideways, gets the tools beside the level instead of
+    pushing it off the screen. Nothing is measured in device names -- the layout
+    switches when the width can actually hold both.
+  */
+  #board { display: flex; gap: 14px; align-items: flex-start; justify-content: center;
+           flex-wrap: wrap; width: 100%; }
+  #side { display: flex; flex-direction: column; gap: 10px; align-items: center;
+          flex: 0 1 auto; min-width: min(280px, 100%); }
+
+  /* Each tool shows what it draws AND what it is called. A swatch alone is a
+     guessing game, and a word alone is a reading test. */
+  #tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%;
+           max-width: 340px; }
+
+  /* Wide enough to hold both: the tools move beside the level instead of
+     underneath it, and the level gets the rest. Keyed on what fits, not on
+     what kind of device it is -- a phone turned sideways lands here too. */
+  @media (min-width: 760px) {
+    #side { align-items: stretch; min-width: 250px; max-width: 270px; }
+    #tools { max-width: none; }
+  }
+  #tools button {
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    padding: 8px 4px; font-size: 11px; line-height: 1;
+  }
+  #tools button.on { outline: 2px solid var(--gold); outline-offset: 2px; }
+  /* Every chip gets an outline, because the clear one IS the floor colour and
+     without a border it looked like a missing icon rather than an empty box. */
+  #tools .chip { width: 22px; height: 22px; border-radius: 4px; border: 1px solid var(--ink); }
+  #tools .count { font-size: 10px; color: var(--ink); }
+
+  #games { display: flex; gap: 6px; width: 100%; max-width: 340px; }
+  #games button { flex: 1; font-size: 12px; padding: 9px 6px; }
+
+  #name { width: min(220px, 100%); }
+
+  /* The check strip. One line, plain words, and it only shouts when something
+     actually stops the level working. */
+  #says {
+    min-height: 2.6em; text-align: center; max-width: 40ch; font-size: 12px;
+    display: flex; align-items: center; justify-content: center; padding: 0 4px;
+  }
+  #says.bad { color: var(--bad); }
+  #says.warn { color: var(--gold); }
+  #says.good { color: var(--open); }
+  #play { background: var(--open); color: var(--bg); font-weight: 600; border: 0; }
+  #play:disabled { background: var(--key); color: var(--ink); }
+  .hint { font-size: 11px; color: var(--ink); text-align: center; max-width: 38ch; }
+</style>
+</head>
+<body>
+
+<h1>hoppa &middot; <b>make a level</b></h1>
+
+<div id="board">
+  <canvas id="paper" aria-label="the level you are drawing"></canvas>
+
+  <div id="side">
+    <div id="games" role="group" aria-label="which game this level is for"></div>
+
+    <h2>what to draw with</h2>
+    <div id="tools" role="group" aria-label="drawing tools"></div>
+
+    <div class="hint">drag to draw. tap a thing to put one down.</div>
+
+    <div class="row"><input id="name" maxlength="24" value="my level" aria-label="what your level is called"></div>
+
+    <div id="says"></div>
+
+    <div class="row">
+      <button id="play">play it</button>
+      <button id="clear">start over</button>
+    </div>
+
+    <div class="row"><a href="../">back to the game</a></div>
+  </div>
+</div>
+
+<script type="module" src="./level.js"></script>
+</body>
+</html>

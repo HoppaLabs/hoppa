@@ -22,14 +22,24 @@ import {
   SPENDABLE,
   clampPip,
   creatureFromBuild,
+  WEAPONS,
   type Build,
   type Creature,
+  type Weapon,
 } from "./creature.ts";
 import { normaliseSubPalette, PALETTE_SIZE } from "./palette.ts";
 import { SPRITE_PIXELS, type Sprite } from "./sprite.ts";
 
 /** Bump only for a layout change, and only ever by adding a new branch. */
-export const CHR_VERSION = 1;
+/**
+ * Version 2 adds the weapon bit. Version 1 codes still read -- they simply had
+ * no choice to record, so they come back carrying a sword. A code a child wrote
+ * on paper last week has to keep working; that is the entire point of the
+ * format, and it is why the version field was there from the first one.
+ */
+export const CHR_VERSION = 2;
+/** The oldest code this build still understands. */
+export const CHR_OLDEST = 1;
 
 /** No I, L, O or U: the four that get misread off a screen. */
 export const ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
@@ -82,9 +92,10 @@ function readRun(bits: BitReader): { value: number; length: number } {
 
 // --- the payload ---------------------------------------------------------------
 
-function payloadBytes(build: Build, sprite: Sprite): Uint8Array {
+function payloadBytes(build: Build, sprite: Sprite, weapon: Weapon): Uint8Array {
   const bits = new BitWriter();
   bits.write(CHR_VERSION, 4);
+  bits.write(WEAPONS.indexOf(weapon) < 0 ? 0 : WEAPONS.indexOf(weapon), 2);
   for (const spend of SPENDABLE) bits.write(clampPip(build[spend.key]), 3);
   for (const index of sprite.sub) bits.write(index, 6);
 
@@ -158,8 +169,13 @@ export function tidyName(name: string): string {
 
 // --- the code ------------------------------------------------------------------
 
-export function encodeCharacter(name: string, build: Build, sprite: Sprite): string {
-  const symbols = toSymbols(payloadBytes(build, sprite));
+export function encodeCharacter(
+  name: string,
+  build: Build,
+  sprite: Sprite,
+  weapon: Weapon = "sword",
+): string {
+  const symbols = toSymbols(payloadBytes(build, sprite, weapon));
   const check = checkSymbol(symbols);
   const chunks: string[] = [];
   for (let i = 0; i < symbols.length; i = (i + 5) | 0) chunks.push(symbols.slice(i, i + 5));
@@ -195,9 +211,15 @@ export function decodeCharacter(code: string): DecodedCharacter {
   try {
     const bits = new BitReader(fromSymbols(symbols));
     const version = bits.read(4);
-    if (version !== CHR_VERSION) {
+    if (version > CHR_VERSION || version < CHR_OLDEST) {
       throw new ChrError(`that code was made by a newer hoppa (version ${version})`);
     }
+
+    // Version 1 had no weapon in it, so it means "sword" -- the only thing
+    // there was when those codes were written.
+    const weapon: Weapon = version >= 2
+      ? (WEAPONS[bits.read(2)] ?? "sword")
+      : "sword";
 
     const build: Record<string, number> = {};
     for (const spend of SPENDABLE) build[spend.key] = clampPip(bits.read(3));
@@ -220,7 +242,7 @@ export function decodeCharacter(code: string): DecodedCharacter {
 
     const sprite: Sprite = { pixels, sub: normaliseSubPalette(sub) };
     return {
-      creature: creatureFromBuild("yours", titleCase(name), "@", build as Build, sprite),
+      creature: creatureFromBuild("yours", titleCase(name), "@", build as Build, sprite, weapon),
       build: build as Build,
       name: titleCase(name),
     };

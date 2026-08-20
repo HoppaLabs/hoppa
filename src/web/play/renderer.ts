@@ -45,6 +45,8 @@ export class GridRenderer {
   private scale = 1;
   /** The player's creature, drawn instead of a plain square. Cosmetic only. */
   private sprite: Sprite | null = null;
+  /** Cosmetic, like the sprite: it never reaches the engine. */
+  private weapon: string = "sword";
   private stamp: HTMLCanvasElement | null = null;
 
   /**
@@ -52,6 +54,10 @@ export class GridRenderer {
    * once per change rather than per frame: 256 fillRects every repaint is the
    * difference between smooth and not on a cheap phone.
    */
+  setWeapon(weapon: string): void {
+    this.weapon = weapon;
+  }
+
   setSprite(sprite: Sprite | null): void {
     this.sprite = sprite;
     this.stamp = null;
@@ -150,22 +156,53 @@ export class GridRenderer {
       // The blade is shortest at the extremes of the arc and longest through
       // the middle, the way an actual swing looks.
       const extend = 0.55 + 0.45 * Math.sin(Math.PI * done);
-      const len = px(reach) * extend;
+      // The hilt starts clear of the body rather than at its centre. Drawn from
+      // the centre the blade came out of the middle of the creature, which read
+      // wrong; held out in front, it reads as something being swung.
+      const hilt = t * 0.34;
+      const len = px(reach) * extend * 0.72 - hilt;
       const cx = px(actor.x);
-      const cy = px(actor.y);
-      const thick = Math.max(2, Math.floor(t / 4));
+      // The arc turns about a point ABOVE the body's centre -- roughly where a
+      // hand would be, not where the legs are. Swung from the centre, the
+      // downward part of the sweep came out from between them.
+      const cy = px(actor.y) - t * 0.22;
+      const thick = Math.max(2, Math.floor(t / 5));
 
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(angle);
-      // A faint trail behind the blade, so a fast swing still reads.
-      ctx.fillStyle = "rgba(255,233,163,.28)";
-      ctx.fillRect(0, -thick, len, thick * 2);
-      ctx.fillStyle = "#ffe9a3";
-      ctx.fillRect(0, -thick / 2, len, thick);
-      // A tip, so it looks like a sword rather than a stick.
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(len - thick, -thick / 2, thick, thick);
+
+      if (this.weapon === "wand") {
+        // A wand is a short pale rod with the work happening at the tip: the
+        // star is the swing, the way the blade is for a sword.
+        const star = Math.max(3, t * 0.22);
+        ctx.fillStyle = "rgba(219,182,255,.30)";
+        ctx.fillRect(hilt, -thick, len, thick * 2);
+        ctx.fillStyle = "#e8dcf4";
+        ctx.fillRect(hilt, -thick / 2, len, thick);
+        ctx.fillStyle = "rgba(233,208,255,.55)";
+        ctx.beginPath();
+        ctx.arc(hilt + len, 0, star, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(hilt + len, 0, star * 0.45, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Silver, not gold: a sword is steel, and the gold one read as brass.
+        const trail = Math.max(2, thick);
+        ctx.fillStyle = "rgba(226,234,242,.24)";
+        ctx.fillRect(hilt, -trail, len, trail * 2);
+        // The crossguard, at the hilt end, so the shape says "sword" even at
+        // the size a phone draws it.
+        ctx.fillStyle = "#8d7a5c";
+        ctx.fillRect(hilt - thick * 0.6, -thick * 1.4, thick * 0.8, thick * 2.8);
+        ctx.fillStyle = "#e2eaf2";
+        ctx.fillRect(hilt, -thick / 2, len, thick);
+        // A tip, so it looks like a sword rather than a stick.
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(hilt + len - thick, -thick / 2, thick, thick);
+      }
       ctx.restore();
     }
 

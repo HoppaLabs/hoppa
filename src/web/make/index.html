@@ -82,6 +82,16 @@
   #qrwhat[hidden] { display: none; }
   #qrwhat b { color: var(--ink-bright); }
   .hint { font-size: 11px; color: var(--ink); text-align: center; max-width: 34ch; }
+  /* Sword or wand. Two buttons, each showing the thing itself, because the
+     word "wand" and the word "sword" look alike to somebody still learning to
+     read and the picture does not. */
+  #weapons { display: flex; gap: 8px; justify-content: center; }
+  #weapons button {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 8px 18px; font-size: 12px;
+  }
+  #weapons button.on { outline: 2px solid var(--gold); outline-offset: 2px; }
+  #weapons svg { display: block; }
 </style>
 </head>
 <body>
@@ -101,6 +111,10 @@
 </div>
 <div id="swatches"></div>
 
+<h2>what it swings</h2>
+<div id="weapons" role="group" aria-label="what your character swings"></div>
+<div class="hint">this is only how it looks. a wand reaches just as far as a sword.</div>
+
 <h2>what it is good at</h2>
 <div id="points">you have <b id="left">6</b> points to spend</div>
 <div id="stats"></div>
@@ -114,7 +128,7 @@
 </div>
 
 <div class="row">
-  <button id="clear">rub it out</button>
+  <button id="clear">clear</button>
   <button id="go">play as this</button>
 </div>
 <div id="note"></div>
