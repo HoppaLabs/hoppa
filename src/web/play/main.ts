@@ -988,6 +988,53 @@ function myScore(): number {
  * The second is what turns a link into a conversation, and the page already
  * knows which situation it is in.
  */
+/**
+ * Copy without the Clipboard API, for when the Clipboard API says no.
+ *
+ * `execCommand("copy")` is deprecated and works everywhere, which is a fair
+ * description of the web. It needs a real element with a real selection, so
+ * this makes one, uses it and throws it away.
+ */
+function copyTheOldWay(url: string): boolean {
+  const box = document.createElement("textarea");
+  box.value = url;
+  // Off-screen but not display:none, or there is nothing to select.
+  box.style.position = "fixed";
+  box.style.top = "-1000px";
+  box.setAttribute("readonly", "");
+  document.body.appendChild(box);
+  try {
+    box.select();
+    box.setSelectionRange(0, url.length);
+    return document.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    box.remove();
+  }
+}
+
+/**
+ * Sending a level, in the order a phone is actually good at.
+ *
+ * This used to be one `navigator.clipboard.writeText` and a message. When that
+ * silently failed -- which it does on iOS more often than the documentation
+ * suggests -- two things happened at once, and both were reported: no
+ * confirmation appeared, AND the clipboard still held whatever was in it
+ * before. Paste that and you land wherever the old link went, which for
+ * somebody who had tapped "edit level" earlier is the level editor.
+ *
+ * So the clipboard is now the second choice, not the first:
+ *
+ * 1. **The phone's own share sheet.** This is literally what "send it to a
+ *    friend" means, and it puts WhatsApp one tap away instead of asking a child
+ *    to find the paste menu. Cancelling it is not a failure.
+ * 2. **The clipboard**, if there is no share sheet.
+ * 3. **execCommand**, deprecated and widely working, if the clipboard refuses.
+ * 4. **The link on screen**, to copy by hand, if all of that fails.
+ *
+ * Every one of those ends with something on screen. Silence was the bug.
+ */
 async function share(): Promise<void> {
   if (!hasBeatenThis()) {
     sent.className = "bad";
@@ -1008,21 +1055,48 @@ async function share(): Promise<void> {
         base,
       )
     : linkFor(level, levelName, base);
+
+  const say = (words: string, bad = false): void => {
+    sent.className = bad ? "bad" : "";
+    sent.textContent = words;
+    sent.hidden = false;
+  };
+
+  if (typeof navigator.share === "function") {
+    try {
+      await navigator.share({
+        title: "hoppa",
+        text: sendingBack ? `I did it in ${myScore()}. Beat that.` : `Play my level: ${levelName}`,
+        url,
+      });
+      say("sent");
+      return;
+    } catch (err) {
+      // Changing your mind is not an error, and must not fall through to
+      // copying something you decided not to send.
+      if (err instanceof DOMException && err.name === "AbortError") return;
+    }
+  }
+
+  let copied = false;
   try {
     await navigator.clipboard.writeText(url);
-    sent.className = "";
-    sent.textContent = sendingBack
-      ? "copied — send it back and see if they can beat your score"
-      : "link copied — send it to a friend";
-    sent.hidden = false;
+    copied = true;
   } catch {
-    // Clipboard access needs a secure context and a real gesture; when it is
-    // refused, showing the link is still a way to send it -- but say so, or a
-    // wall of characters reads as an error rather than as the thing to copy.
-    sent.className = "bad";
-    sent.textContent = `press and hold this to copy it: ${url}`;
-    sent.hidden = false;
+    copied = copyTheOldWay(url);
   }
+
+  if (copied) {
+    say(
+      sendingBack
+        ? "copied — send it back and see if they can beat your score"
+        : "link copied — send it to a friend",
+    );
+    return;
+  }
+  // Nothing would copy it. The link itself is still a way to send it, as long
+  // as it is clearly the thing to copy rather than a wall of characters.
+  say(`press and hold this to copy it: ${url}`, true);
 }
 
 sendIt.addEventListener("click", (ev) => {

@@ -100,3 +100,25 @@ test("a result link with no name still names the level", () => {
   const nameless = good.replace("#r/the-big-one/", "#r//");
   expect(resultFromHash(nameless)?.slug).toBe(UNNAMED);
 });
+
+test("sending a level tries the phone's own share sheet before the clipboard", async () => {
+  const main = await Bun.file("src/web/play/main.ts").text();
+  // Reported: no confirmation appeared AND the pasted link opened the editor.
+  // One cause -- navigator.clipboard.writeText failed silently, so nothing was
+  // said and the clipboard still held whatever was in it before.
+  //
+  // Four ways to send, tried in order, every one of them ending in something on
+  // screen. Verified in a browser with each of the first three forced.
+  const order = [
+    main.indexOf("typeof navigator.share === \"function\""),
+    main.indexOf("navigator.clipboard.writeText(url)"),
+    main.indexOf("copyTheOldWay(url)"),
+    main.indexOf("press and hold this to copy it"),
+  ];
+  for (const at of order) expect(at).toBeGreaterThan(0);
+  expect([...order].sort((a, b) => a - b)).toEqual(order);
+
+  // Cancelling the share sheet is not a failure, and must not fall through to
+  // copying something you decided not to send.
+  expect(main.includes('err.name === "AbortError"')).toBe(true);
+});
