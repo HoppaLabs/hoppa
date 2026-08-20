@@ -35,6 +35,7 @@ import { normaliseSubPalette } from "../core/palette.ts";
 const KEY = "hoppa.character.v2";
 const DRAFT_KEY = "hoppa.level.v1";
 const PLAYED_KEY = "hoppa.played.v1";
+const SOUND_KEY = "hoppa.sound.v1";
 
 interface Stored {
   readonly name: string;
@@ -265,5 +266,27 @@ export function forgetPlayed(): void {
     window.localStorage.removeItem(PLAYED_KEY);
   } catch {
     // the caller only wanted it gone
+  }
+}
+
+// --- whether the game makes a noise -----------------------------------------
+//
+// Off until somebody asks for it. A link is opened on a bus, in a waiting room
+// and at the back of a classroom, and a game that starts making noises on a
+// stranger's phone is a game that gets closed.
+
+export function soundOn(): boolean {
+  try {
+    return window.localStorage.getItem(SOUND_KEY) === "on";
+  } catch {
+    return false;
+  }
+}
+
+export function setSoundOn(on: boolean): void {
+  try {
+    window.localStorage.setItem(SOUND_KEY, on ? "on" : "off");
+  } catch {
+    // Then it is off again next time. A setting is not worth a broken page.
   }
 }

@@ -16,7 +16,8 @@ import { PRESETS, SPENDABLE, capsToBuild, spent, type Creature } from "../../cor
 import { CodecError, encodeLevel } from "../../core/codec.ts";
 import { levelFromHash, linkFor, resultFromHash, resultLinkFor, slugify } from "./link.ts";
 import { encodeQr, QrError } from "../../core/qr.ts";
-import { loadCharacter, loadDraft, playedBefore, rememberPlayed } from "../stash.ts";
+import { loadCharacter, loadDraft, playedBefore, rememberPlayed, setSoundOn, soundOn } from "../stash.ts";
+import { Sounds, soundsFor, type Moment } from "./sound.ts";
 import { draftToText } from "../../core/draft.ts";
 import { parseLevel } from "../../core/level.ts";
 import { colourFor } from "../../core/palette.ts";
@@ -354,6 +355,55 @@ function paintShareGate(): void {
   sendIt.textContent = sendingBack ? "send your score" : "share level";
 }
 
+// --- noise ------------------------------------------------------------------
+//
+// The engines are not told about any of this and must not be: an engine that
+// knows about sound is an engine whose behaviour could depend on it. Every cue
+// is worked out by comparing one frame's read-outs with the last, which is why
+// none of it can affect a replay.
+
+const sounds = new Sounds(soundOn());
+const soundButton = document.getElementById("sound") as HTMLButtonElement;
+
+function paintSoundButton(): void {
+  soundButton.textContent = sounds.isOn() ? "sound on" : "sound off";
+  soundButton.setAttribute("aria-pressed", String(sounds.isOn()));
+}
+
+soundButton.addEventListener("click", () => {
+  sounds.setOn(!sounds.isOn());
+  setSoundOn(sounds.isOn());
+  paintSoundButton();
+  // The tap that turns it on is also the gesture a browser wants before it will
+  // let a page make a noise, so this both confirms the setting and unlocks it.
+  if (sounds.isOn()) sounds.play("treasure");
+});
+paintSoundButton();
+
+/** What the run sounds like right now, read out rather than reported. */
+function momentNow(): Moment {
+  const treasure = moving === null ? engine.treasure() : null;
+  return {
+    hp: moving === null ? 0 : (moving as Moving).health().hp,
+    treasure:
+      moving === null
+        ? (treasure?.got ?? 0)
+        : (moving as Moving).collectedCount(),
+    playing: !finished(),
+    won:
+      (moving === null ? engine.currentStatus() : (moving as Moving).currentStatus()) === STATUS_WON,
+  };
+}
+
+let lastMoment: Moment = { hp: 0, treasure: 0, playing: true, won: false };
+
+/** Called after every repaint, which is every tick on a real-time level. */
+function listen(): void {
+  const now = momentNow();
+  for (const cue of soundsFor(lastMoment, now)) sounds.play(cue);
+  lastMoment = now;
+}
+
 function paint(): void {
   if (moving !== null) {
     renderer.drawMoving(
@@ -372,6 +422,7 @@ function paint(): void {
       reachFor(chosen),
     );
     paintMovingHud();
+    listen();
     return;
   }
 
@@ -420,6 +471,7 @@ function paint(): void {
   } else {
     over.className = "";
   }
+  listen();
 }
 
 function move(input: Input): void {
@@ -506,6 +558,7 @@ function paintMovingHud(): void {
   } else {
     over.className = "";
   }
+  listen();
 }
 
 function reset(): void {
@@ -522,6 +575,9 @@ function reset(): void {
   // A new run needs a new log. Keeping the old one would let a losing attempt
   // inherit the presses of a winning one.
   recorder = new Recorder();
+  // A new run: nothing that changed between the old one and this one is a
+  // noise. Restarting is not losing four treasure.
+  lastMoment = { hp: 0, treasure: 0, playing: true, won: false };
   // ...but a proof already earned still stands, including one from a previous
   // visit. Switching creature is a different run, so it is re-checked.
   proven = provenBefore();
@@ -781,6 +837,9 @@ for (const [id, input] of BUTTONS) {
 
   el.addEventListener("pointerdown", (ev) => {
     ev.preventDefault();
+    // The weapon is the one noise the engine cannot be asked about: whether a
+    // swing connected is state, but whether a child pressed the button is not.
+    if (id === "wait" || id === "swing") sounds.play("swing");
     if (moving !== null) {
       // Held, not tapped: you keep walking while your thumb is down.
       buttons.set(bit, true);

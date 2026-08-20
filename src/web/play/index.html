@@ -180,6 +180,12 @@
     cursor: pointer;
   }
   #reset:active { background: var(--key); }
+  #sound {
+    font: inherit; font-size: 12px; color: var(--ink); background: none;
+    border: 1px solid var(--edge); border-radius: 6px; padding: 5px 9px;
+    cursor: pointer;
+  }
+  #sound[aria-pressed="true"] { color: var(--gold); border-color: var(--gold); }
   #draw, #build {
     font: inherit; color: var(--ink-bright); background: var(--key);
     border: 1px solid var(--gold); border-radius: 6px; padding: 6px 12px;
@@ -254,6 +260,8 @@
   <footer>
     <span id="hud"></span>
     <button id="reset">start again</button>
+    <!-- Off until asked for: a link gets opened on a bus. See src/web/play/sound.ts. -->
+    <button id="sound" aria-pressed="false">sound off</button>
     <a id="draw" href="./make/">edit character</a>
     <a id="build" href="./level/">make a level</a>
   </footer>

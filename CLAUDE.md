@@ -80,5 +80,10 @@ bun run deploy        # push to hosting
 
 ## Things that are deliberately not in scope
 
-AI generation, accounts, a backend, a gallery, sound, the Run side-scroller
-engine, native apps. Don't add them, don't design for them.
+AI generation, accounts, a backend, a gallery, the Run side-scroller engine,
+native apps. Don't add them, don't design for them.
+
+**Sound was on this list and came off it on day 15**, by decision — see
+`docs/adr/0027`. It is synthesised, off until asked for, and may never be read
+by an engine: hard rule 4 still holds, and a run replays identically whether it
+was played in silence or not.
