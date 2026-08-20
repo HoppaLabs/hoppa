@@ -188,6 +188,13 @@ biggest threat to the premise and it needs three mitigations, not one:
 1. **The creature code is the save file.** Every creature has a code that can be
    copied out and pasted back in, on any device, forever. Show it immediately
    after creation, framed as *"this is the only copy — send it to yourself."*
+
+   To be explicit about what this is for: **when the browser throws the storage
+   away, the code is how a kid gets their creature back.** Pasting it in
+   rebuilds the character exactly — same drawing, same points — because the code
+   carries the sprite and the build, not a reference to something on a server.
+   There is no server. Nothing else can recover it, which is why the code is
+   shown at the moment of creation rather than buried in a menu.
 2. **Prompt "add to home screen."** Home screen web apps are exempt from the
    7-day counter and keep their own use timer. Prompt once, after a creature is
    made, when the value is obvious.
@@ -436,7 +443,10 @@ Creatures live in browser storage and travel only when deliberately shared.
 
 ## 12. The share gate
 
-**You cannot share a level you haven't beaten.**
+**You cannot share a level you haven't beaten.** *Implemented — the button does
+not exist until you win, and beating a level is remembered so coming back
+tomorrow does not take the right away. Day 9 replaces the honour system with the
+real thing: the input log is verified before a link is produced.*
 
 The most valuable mechanic here, and nearly free once you have deterministic
 replay. Beat your own level → input log verified locally → only then does the

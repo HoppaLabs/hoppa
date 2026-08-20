@@ -38,7 +38,7 @@ const level = parseLevel(DAY7_LEVEL_TEXT);
 const MOVES: Record<string, number> = { U: 1, R: 2, D: 3, L: 4, ".": 0 };
 
 const WINS = {
-  Bruk: "..RRRRRRRRRDDDDLLLDDDDLLLLLRRRDDDRRRRRRRRRRRRRUUURRRUUUURLDDDDLLLDDDRRRR",
+  Bash: "..RRRRRRRRRDDDDLLLDDDDLLLLLRRRDDDRRRRRRRRRRRRRUUURRRUUUURLDDDDLLLDDDRRRR",
   Nim: "...RRRRRRRRRDDDDLLLDDDDLLLLLRRRDDDRRRRRRRRRRRRRUUURRRUUUURLDDDDLLLDDDRRRR",
   Pell: "RRRRRRRRRDDDDLLLDDDDLLLLRRRRRRRRRRRRRRRRRRUUUDDDLLLDDDLLLRRRRRRR",
 } as const;
@@ -269,7 +269,7 @@ test.each(PRESETS.map((c) => [c.name, c] as const))(
 );
 
 test("speed still buys turns, not steps", () => {
-  const bruk = play(BRUK, WINS.Bruk).engine;
+  const bruk = play(BRUK, WINS.Bash).engine;
   const nim = play(NIM, WINS.Nim).engine;
   expect(nim.turns()).toBeLessThan(bruk.turns());
 });
@@ -287,7 +287,7 @@ test("nerve still buys spottings, capped at the alert ceiling", () => {
 // --- the usual guarantees ------------------------------------------------------
 
 test("E3: three replays of one log produce identical hashes", () => {
-  const log = WINS.Bruk.slice(0, 30);
+  const log = WINS.Bash.slice(0, 30);
   const hashes = [0, 1, 2].map(() => hashHex(play(BRUK, log).engine.stateHash()));
   expect(new Set(hashes).size).toBe(1);
 });

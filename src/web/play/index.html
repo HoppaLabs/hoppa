@@ -117,6 +117,12 @@
     font-weight: 600;
   }
   #over.lost #again { background: #ff5f4d; }
+  #sendit {
+    font: inherit; font-size: 14px; color: var(--bg); background: var(--gold);
+    border: 0; border-radius: 8px; padding: 10px 18px; cursor: pointer;
+    font-weight: 600;
+  }
+  #sendit[hidden] { display: none; }
   #reset {
     font: inherit; color: var(--ink); background: none;
     border: 1px solid var(--edge); border-radius: 6px; padding: 5px 10px;
@@ -129,6 +135,10 @@
     font-weight: 600;
   }
   #share:active { opacity: .8; }
+  #share[hidden] { display: none; }
+  /* The share button appears on the win screen too, because that is the moment
+     you actually want to send it. */
+  #over #share { position: static; }
   #draw {
     font: inherit; color: var(--ink-bright); background: var(--key);
     border: 1px solid var(--gold); border-radius: 6px; padding: 6px 12px;
@@ -151,6 +161,7 @@
       <div id="saying"></div>
       <div id="tally"></div>
       <button id="again">play again</button>
+      <button id="sendit" hidden>send it to a friend</button>
     </div>
   </div>
   <nav id="pad">
@@ -167,8 +178,8 @@
   <footer>
     <span id="hud"></span>
     <button id="reset">reset</button>
-    <button id="share">share</button>
-    <a id="draw" href="./make/">draw your own</a>
+    <button id="share" hidden>send it</button>
+    <a id="draw" href="./make/">edit character</a>
   </footer>
   <div id="said"></div>
   <script type="module" src="./app.js"></script>

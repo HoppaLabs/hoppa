@@ -13,7 +13,7 @@
 
 import { ROAM1_LEVEL_TEXT } from "../../core/fixtures.ts";
 import { PRESETS, SPENDABLE, capsToBuild, type Creature } from "../../core/creature.ts";
-import { CodecError } from "../../core/codec.ts";
+import { CodecError, encodeLevel } from "../../core/codec.ts";
 import { levelFromHash, linkFor } from "./link.ts";
 import { loadCreature } from "../stash.ts";
 import { parseLevel } from "../../core/level.ts";
@@ -35,6 +35,47 @@ import {
 import { GridRenderer } from "./renderer.ts";
 
 const BUILT_IN_NAME = "First Run";
+
+/**
+ * The share gate. Spec S12: **you cannot share a level you have not beaten.**
+ *
+ * It is a quality filter, a difficulty signal and a piece of trash talk in one
+ * mechanic -- and it is nearly free, because beating it is what proves the level
+ * is beatable at all. Nobody can send a friend something impossible.
+ *
+ * Beating a level is remembered, so coming back tomorrow does not take the
+ * ability away. Day 9 replaces this with the real thing: the input log is
+ * verified before a link is produced.
+ */
+const BEATEN_KEY = "hoppa.beaten.v1";
+
+function beatenLevels(): string[] {
+  try {
+    const raw = window.localStorage.getItem(BEATEN_KEY);
+    const list = raw === null ? [] : (JSON.parse(raw) as unknown);
+    return Array.isArray(list) ? list.filter((v): v is string => typeof v === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function rememberBeaten(code: string): void {
+  try {
+    const list = beatenLevels();
+    if (!list.includes(code)) {
+      // Keep the list short; it is a convenience, not a record.
+      window.localStorage.setItem(BEATEN_KEY, JSON.stringify([code, ...list].slice(0, 40)));
+    }
+  } catch {
+    // No storage is fine: you simply have to beat it again in this sitting.
+  }
+}
+
+let beatenNow = false;
+
+function hasBeatenThis(): boolean {
+  return beatenNow;
+}
 
 /**
  * A real-time engine takes a bitmask of held buttons once per tick and is
@@ -82,6 +123,8 @@ const stage = document.getElementById("stage") as HTMLElement;
 const over = document.getElementById("over") as HTMLElement;
 const stable = document.getElementById("stable") as HTMLElement;
 const said = document.getElementById("said") as HTMLElement;
+const shareButton = document.getElementById("share") as HTMLButtonElement;
+const sendIt = document.getElementById("sendit") as HTMLButtonElement;
 const levelname = document.getElementById("levelname") as HTMLElement;
 const trait = document.getElementById("trait") as HTMLElement;
 const verdict = document.getElementById("verdict") as HTMLElement;
@@ -93,6 +136,13 @@ let blockedUntil = 0;
 
 function finished(): boolean {
   return moving === null ? engine.finished() : moving.currentStatus() !== 0;
+}
+
+/** Show or hide the two share buttons according to the gate. */
+function paintShareGate(): void {
+  const allowed = hasBeatenThis();
+  shareButton.hidden = !allowed;
+  sendIt.hidden = !allowed;
 }
 
 function paint(): void {
@@ -142,6 +192,11 @@ function paint(): void {
 
   if (finished()) {
     const won = engine.currentStatus() === STATUS_WON;
+    if (won && !beatenNow) {
+      beatenNow = true;
+      rememberBeaten(levelCode);
+      paintShareGate();
+    }
     over.className = won ? "show" : "show lost";
     verdict.textContent = won ? "out" : engine.wasCaught() ? "caught" : "lost";
     saying.textContent = engine.message() ?? "";
@@ -184,6 +239,11 @@ function paintMovingHud(): void {
 
   if (finished()) {
     const won = game.currentStatus() === STATUS_WON;
+    if (won && !beatenNow) {
+      beatenNow = true;
+      rememberBeaten(levelCode);
+      paintShareGate();
+    }
     over.className = won ? "show" : "show lost";
     verdict.textContent = won ? "out" : "down";
     saying.textContent = game.message() ?? "";
@@ -408,7 +468,11 @@ levelname.textContent = levelName;
 // tab that already has one would otherwise leave the old level on screen.
 window.addEventListener("hashchange", () => window.location.reload());
 
-(document.getElementById("share") as HTMLButtonElement).addEventListener("click", async () => {
+async function share(): Promise<void> {
+  if (!hasBeatenThis()) {
+    said.textContent = "beat it first — then you can send it";
+    return;
+  }
   const base = `${window.location.origin}${window.location.pathname}`;
   const url = linkFor(level, levelName, base);
   try {
@@ -419,11 +483,21 @@ window.addEventListener("hashchange", () => window.location.reload());
     // refused, showing the link is still a way to send it.
     said.textContent = url;
   }
+}
+
+shareButton.addEventListener("click", share);
+sendIt.addEventListener("click", (ev) => {
+  ev.stopPropagation();
+  void share();
 });
 
 if (loadError !== null) {
   said.textContent = `that link would not open (${loadError}) — playing the built-in level instead`;
 }
+
+const levelCode = encodeLevel(level);
+beatenNow = beatenLevels().includes(levelCode);
+paintShareGate();
 
 renderer.setSprite(chosen.sprite);
 paintStable();

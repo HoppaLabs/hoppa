@@ -78,7 +78,7 @@ test("a malformed creature is clamped, never a crash", () => {
 });
 
 test("presets are findable by name, case-insensitively", () => {
-  expect(presetByName("bruk")).toBe(BRUK);
+  expect(presetByName("bash")).toBe(BRUK);
   expect(presetByName("NIM")).toBe(NIM);
   expect(presetByName("nobody")).toBeUndefined();
 });
@@ -215,8 +215,8 @@ test("the engine declares the capabilities it actually reads", () => {
   expect([...engine.consumes].sort()).toEqual(["GUARD", "HASTE", "MASS", "REACH"]);
 });
 
-test("a level with no creature named still plays, as Bruk", () => {
+test("a level with no creature named still plays, as the default", () => {
   const engine = new DelveV4(level);
-  expect(engine.who().name).toBe("Bruk");
+  expect(engine.who().name).toBe(BRUK.name);
   expect(engine.step(INPUT_RIGHT)).toBe(STATUS_PLAYING);
 });

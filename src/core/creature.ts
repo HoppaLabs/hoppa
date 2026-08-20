@@ -231,7 +231,7 @@ const PELL_ROWS = [
  */
 export const BRUK = creatureFromBuild(
   "01J8XK4M2P7Q",
-  "Bruk",
+  "Bash",
   "@",
   // All the strength there is, some nerve, and nothing left over.
   { FORCE: 5, HASTE: 0, GUARD: 3, REACH: 0 },
