@@ -14,6 +14,19 @@ export const GLYPH_START = "@";
 export const GLYPH_TREASURE = "$";
 export const GLYPH_EXIT = ">";
 export const GLYPH_GUARD = "G";
+/**
+ * The other two enemies.
+ *
+ * They walk, patrol, chase, hurt and die exactly as a "G" does -- the letter
+ * chooses the ART, and nothing else. Which is why they can be added without
+ * an engine version: hard rule 4, cosmetics never touch stateHash(), and this
+ * never reaches an engine at all.
+ */
+export const GLYPH_BAT = "B";
+export const GLYPH_DRAGON = "D";
+
+/** Every glyph that puts an enemy in a room, in wire order. */
+export const ENEMY_GLYPHS: readonly string[] = [GLYPH_GUARD, GLYPH_BAT, GLYPH_DRAGON];
 /** A ladder. Side-on engines climb it; from above it is ordinary floor. */
 export const GLYPH_LADDER = "H";
 /**
@@ -54,6 +67,13 @@ export interface Level {
    * glyph in a level editor is the whole edit.
    */
   readonly guardCells: Int16Array;
+  /**
+   * Which art each guard wears, indexed alongside guardCells.
+   *
+   * PRESENTATION. The engine never reads it, it is not in stateHash(), and a
+   * run replays identically whichever creature was drawn. See ENEMY_GLYPHS.
+   */
+  readonly guardArt: Uint8Array;
   /**
    * 1 where a cell is a ladder. Ladders are open ground that a side-on engine
    * can climb; engines from above ignore them entirely.
@@ -129,6 +149,7 @@ export function parseLevel(text: string): Level {
   const treasureSlot = new Int8Array(GRID_AREA).fill(-1);
   const found: number[] = [];
   const guards: number[] = [];
+  const guardKinds: number[] = [];
   const ladders = new Uint8Array(GRID_AREA);
   const fires = new Uint8Array(GRID_AREA);
   const burning: number[] = [];
@@ -164,9 +185,13 @@ export function parseLevel(text: string): Level {
         walls[idx(x, y)] = 0;
         treasureSlot[idx(x, y)] = found.length | 0;
         found.push(idx(x, y));
-      } else if (ch === GLYPH_GUARD) {
+      } else if (ENEMY_GLYPHS.includes(ch)) {
         walls[idx(x, y)] = 0;
         guards.push(idx(x, y));
+        // The kind rides alongside in the SAME order, because the engine spawns
+        // enemies straight down guardCells and enemy N has to keep meaning
+        // guard N. Nothing reads this but the renderer and the editor.
+        guardKinds.push(ENEMY_GLYPHS.indexOf(ch) | 0);
       } else if (ch === GLYPH_LADDER) {
         walls[idx(x, y)] = 0;
         ladders[idx(x, y)] = 1;
@@ -194,6 +219,11 @@ export function parseLevel(text: string): Level {
     guardCells[i] = guards[i] as number;
   }
 
+  const guardArt = new Uint8Array(guardKinds.length);
+  for (let i = 0; i < guardKinds.length; i = (i + 1) | 0) {
+    guardArt[i] = guardKinds[i] as number;
+  }
+
   const fireCells = new Int16Array(burning.length);
   for (let i = 0; i < burning.length; i = (i + 1) | 0) {
     fireCells[i] = burning[i] as number;
@@ -214,6 +244,7 @@ export function parseLevel(text: string): Level {
     treasureCells,
     treasureSlot,
     guardCells,
+    guardArt,
     ladders,
     fireCells,
     fires,

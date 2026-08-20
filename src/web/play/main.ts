@@ -558,7 +558,13 @@ function paint(): void {
         // seen from above have neither idea, and get no jump animation.
         ...(airborneOf(moving)),
       },
-      moving.enemyPositions(),
+      // The engine spawns enemies straight down guardCells, so enemy N is
+      // guard N and the art comes along by index. The engine is never told --
+      // hard rule 4, and every one of them behaves exactly alike.
+      moving.enemyPositions().map((enemy, at) => ({
+        ...enemy,
+        art: level.guardArt[at] ?? 0,
+      })),
       reachFor(chosen),
     );
     paintMovingHud();

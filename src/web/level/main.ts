@@ -12,6 +12,7 @@
 
 import { GRID_H, GRID_W } from "../../core/grid.ts";
 import {
+  GLYPH_BAT, GLYPH_DRAGON,
   GLYPH_EXIT, GLYPH_FIRE, GLYPH_FLOOR, GLYPH_GUARD, GLYPH_LADDER,
   GLYPH_START, GLYPH_TREASURE, GLYPH_WALL,
 } from "../../core/level.ts";
@@ -73,7 +74,12 @@ const TOOLS: readonly Tool[] = [
   { glyph: GLYPH_START, label: "start" },
   { glyph: GLYPH_EXIT, label: "door / exit" },
   { glyph: GLYPH_TREASURE, label: "treasure", limit: 8 },
-  { glyph: GLYPH_GUARD, label: "enemy", limit: 10 },
+  // Three enemies, one tool each. They walk, chase and die exactly alike --
+  // what changes is what a child sees walking towards them, which at nine
+  // years old is most of what an enemy IS.
+  { glyph: GLYPH_GUARD, label: "goblin", limit: 10 },
+  { glyph: GLYPH_BAT, label: "bat", limit: 10 },
+  { glyph: GLYPH_DRAGON, label: "dragon", limit: 10 },
   { glyph: GLYPH_LADDER, label: "ladder", engines: ["dash"] },
   // One tool, two names. It is the same entity either way -- what changes is
   // what the world draws, because a flame standing on grass looks like a
@@ -106,6 +112,8 @@ const TILE_OF: Record<string, number> = {
   [GLYPH_EXIT]: TILE_EXIT_LOCKED,
   [GLYPH_TREASURE]: TILE_TREASURE,
   [GLYPH_GUARD]: TILE_GUARD,
+  [GLYPH_BAT]: TILE_GUARD,
+  [GLYPH_DRAGON]: TILE_GUARD,
   [GLYPH_LADDER]: TILE_LADDER,
   [GLYPH_FIRE]: TILE_FIRE,
 };

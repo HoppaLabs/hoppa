@@ -7,6 +7,7 @@ import { GRID_H, GRID_W } from "../../core/grid.ts";
 import { colourFor } from "../../core/palette.ts";
 import { SPRITE_H, SPRITE_W, spriteIndex, type Sprite } from "../../core/sprite.ts";
 import { ONE } from "../../core/fixed.ts";
+import { ENEMIES } from "../../core/enemies.ts";
 import { TILE_PX, inkOf, tilesetFor, type Pattern, type Tileset } from "../../core/tileset.ts";
 import {
   TILE_ACTOR,
@@ -435,6 +436,38 @@ export class GridRenderer {
     return COLOUR[tile] ?? (COLOUR[TILE_VOID] as string);
   }
 
+  /**
+   * The six enemy frames, stamped once: three creatures, two frames each.
+   *
+   * Built the same way the player's sprite is -- a 16x16 canvas with one
+   * fillRect per pixel, then blitted whole with smoothing off. That is the
+   * entire fix for "the animation breaks the 8bit look": a stamp cannot be
+   * anti-aliased, cannot be scaled by a fraction, and cannot tween.
+   */
+  private enemyStamps: HTMLCanvasElement[][] = [];
+
+  private stampEnemies(): void {
+    if (this.enemyStamps.length > 0) return;
+    this.enemyStamps = ENEMIES.map((one) =>
+      one.frames.map((frame) => {
+        const stamp = document.createElement("canvas");
+        stamp.width = SPRITE_W;
+        stamp.height = SPRITE_H;
+        const ctx = stamp.getContext("2d");
+        if (ctx === null) return stamp;
+        for (let y = 0; y < SPRITE_H; y++) {
+          for (let x = 0; x < SPRITE_W; x++) {
+            const colour = colourFor(frame.sub, frame.pixels[spriteIndex(x, y)] as number);
+            if (colour === null) continue;
+            ctx.fillStyle = colour;
+            ctx.fillRect(x, y, 1, 1);
+          }
+        }
+        return stamp;
+      })
+    );
+  }
+
   setSprite(sprite: Sprite | null): void {
     this.sprite = sprite;
     this.stamp = null;
@@ -516,7 +549,11 @@ export class GridRenderer {
       /** Subcells per tick, negative going up. Drives the squash and stretch. */
       vy?: number;
     },
-    enemies: ReadonlyArray<{ x: number; y: number; stunned: boolean; chasing: boolean }>,
+    enemies: ReadonlyArray<{
+      x: number; y: number; stunned: boolean; chasing: boolean;
+      /** Which of the three it is drawn as. Presentation only. */
+      art?: number;
+    }>,
     reach: number,
   ): void {
     // Draw the map with the moving things left out; they go on top, in between
@@ -527,68 +564,71 @@ export class GridRenderer {
     const ctx = this.ctx;
     const px = (value: number) => (value * t) / ONE;
 
+    this.stampEnemies();
+
     for (const enemy of enemies) {
-      const size = Math.max(4, Math.floor(t * 0.72));
-
-      // A WADDLE, driven by where it is rather than by a clock: the phase comes
-      // from its own position, so it bounces as it walks and stands still when
-      // it stands still. A timer would have it jogging on the spot at the end
-      // of its patrol, which reads as agitated rather than bored.
+      // Whole pixels, always.
       //
-      // Chasing, it bounces faster and higher. That is a second way of saying
-      // "this one has seen you", for a child who has not noticed the colour.
-      const travelled = (enemy.x + enemy.y) / ONE;
-      const beat = enemy.chasing ? 2.6 : 1.6;
-      const wave = enemy.stunned ? 0 : Math.sin(travelled * beat * Math.PI);
-      const lift = enemy.chasing ? 0.16 : 0.1;
+      // The old drawing was fillRects at fractional coordinates, scaled every
+      // frame by a non-integer squash factor. Sampled on the canvas that patch
+      // held SEVENTEEN distinct colours; real pixel art holds three or four.
+      // Hardware of the era could not position at half a pixel and could not
+      // scale at all, and that is exactly why its sprites look the way they do.
+      const size = Math.max(4, Math.floor(t * 0.86));
+      const left = Math.round(px(enemy.x) - size / 2);
+      const foot = Math.round(px(enemy.y) + size / 2);
 
-      // Squashed at the bottom of the bounce, stretched at the top, the way
-      // anything with legs looks when it is moving.
-      const squash = 1 - wave * 0.12;
-      const drawW = size * squash;
-      const drawH = size / squash;
-      const x = px(enemy.x) - drawW / 2;
-      // Feet on the ground, so the bounce lifts it rather than sinking it.
-      const foot = px(enemy.y) + size / 2;
-      const y = foot - drawH - Math.abs(wave) * size * lift;
+      // A two-frame walk, stepped by DISTANCE rather than by a clock: it
+      // strides while it walks and stands still when it stands still. A timer
+      // would have it marching on the spot at the end of its patrol.
+      //
+      // Stepped, not tweened. The era had no interpolation -- every frame was
+      // drawn -- and the snap between two poses IS the look.
+      const travelled = ((enemy.x + enemy.y) / (ONE >> 1)) | 0;
+      const frame = enemy.stunned ? 0 : (((travelled % 2) + 2) % 2);
 
-      // A wand freezes rather than stuns, and it should look like it: ice, not
-      // seeing stars. Same state underneath -- this is only how it is drawn.
-      const downColour = this.weapon === "wand" ? "#7fd8ee" : "#7a5c86";
-      // ...and it FLICKERS. "Not moving" is not a signal -- a guard at the end
-      // of its patrol is not moving either. A child has to be able to tell at a
-      // glance which ones cannot touch them, without waiting to see if it walks.
-      const flickering = enemy.stunned && (Date.now() >> 7) % 2 === 0;
-      ctx.fillStyle = enemy.stunned
-        ? (flickering ? "#ffffff" : downColour)
-        : enemy.chasing ? "#ff8a3d" : (this.ink(TILE_GUARD));
-      ctx.fillRect(x, y, drawW, drawH);
+      const art = this.enemyStamps[enemy.art ?? 0] ?? this.enemyStamps[0];
+      const stamp = art?.[frame];
 
-      if (t >= 10 && !enemy.stunned) {
-        // Two eyes, and they LOOK AT YOU once it is chasing. Being watched is
-        // the thing a child needs to feel, and a pair of eyes swinging round
-        // says it before any colour does.
-        const eye = Math.max(1, Math.round(size / 5));
-        const gap = Math.max(1, Math.round(size / 5));
-        let gazeX = 0;
-        let gazeY = 0;
-        if (enemy.chasing) {
-          const dx = actor.x - enemy.x;
-          const dy = actor.y - enemy.y;
-          const far = Math.max(1, Math.hypot(dx, dy));
-          gazeX = (dx / far) * eye * 0.6;
-          gazeY = (dy / far) * eye * 0.6;
+      // A one-pixel bob on the walk beat, which is the era's whole vocabulary
+      // for "this thing is alive". One pixel: any more and it hops.
+      const bob = enemy.stunned || frame === 0 ? 0 : 1;
+      const top = foot - size + bob;
+
+      if (stamp !== undefined) {
+        // Stunned reads as flickering white, and frozen as ice: "not moving" is
+        // not a signal, because a guard at the end of its patrol is not moving
+        // either. A child has to tell at a glance which ones cannot touch them.
+        const flickering = enemy.stunned && (Date.now() >> 7) % 2 === 0;
+        if (enemy.stunned) {
+          ctx.globalAlpha = flickering ? 0.35 : 0.75;
+        } else if (enemy.chasing) {
+          // Chasing is a state worth shouting about, and a tint is the one
+          // thing that can say it without a second set of drawings.
+          ctx.globalAlpha = 0.92;
         }
-        const midX = x + drawW / 2;
-        const midY = y + drawH * 0.42;
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(midX - gap - eye / 2, midY - eye / 2, eye, eye);
-        ctx.fillRect(midX + gap - eye / 2, midY - eye / 2, eye, eye);
-        const pupil = Math.max(1, Math.round(eye / 2));
-        ctx.fillStyle = this.ink(TILE_VOID);
-        ctx.fillRect(midX - gap - pupil / 2 + gazeX, midY - pupil / 2 + gazeY, pupil, pupil);
-        ctx.fillRect(midX + gap - pupil / 2 + gazeX, midY - pupil / 2 + gazeY, pupil, pupil);
+        ctx.drawImage(stamp, left, top, size, size);
+        ctx.globalAlpha = 1;
+
+        if (enemy.stunned && flickering) {
+          ctx.fillStyle = this.weapon === "wand" ? "#7fd8ee" : "#ffffff";
+          ctx.globalAlpha = 0.5;
+          ctx.fillRect(left, top, size, size);
+          ctx.globalAlpha = 1;
+        }
+        if (enemy.chasing) {
+          ctx.fillStyle = "#ff8a3d";
+          ctx.globalAlpha = 0.28;
+          ctx.fillRect(left, top, size, size);
+          ctx.globalAlpha = 1;
+        }
+        continue;
       }
+
+      // No stamp built yet: the day-one square still says "this is a thing that
+      // hurts" perfectly well.
+      ctx.fillStyle = enemy.stunned ? "#7a5c86" : this.ink(TILE_GUARD);
+      ctx.fillRect(left, top, size, size);
     }
 
     // The sword. It SWEEPS: over the few ticks a swing lasts, the blade starts

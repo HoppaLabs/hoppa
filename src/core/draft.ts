@@ -14,6 +14,9 @@ import {
   GLYPH_EXIT,
   GLYPH_FLOOR,
   GLYPH_FIRE,
+  ENEMY_GLYPHS,
+  GLYPH_BAT,
+  GLYPH_DRAGON,
   GLYPH_GUARD,
   GLYPH_LADDER,
   GLYPH_START,
@@ -49,6 +52,8 @@ export type Glyph =
   | typeof GLYPH_EXIT
   | typeof GLYPH_TREASURE
   | typeof GLYPH_GUARD
+  | typeof GLYPH_BAT
+  | typeof GLYPH_DRAGON
   | typeof GLYPH_LADDER
   | typeof GLYPH_FIRE;
 
@@ -64,6 +69,13 @@ export interface PaintResult {
   readonly draft: Draft;
   readonly changed: boolean;
   readonly reason: string;
+}
+
+/** How many cells hold any of these glyphs. */
+function countOfAny(cells: readonly Glyph[], glyphs: readonly string[]): number {
+  let n = 0;
+  for (const cell of cells) if (glyphs.includes(cell)) n = (n + 1) | 0;
+  return n;
 }
 
 function countOf(cells: readonly Glyph[], glyph: Glyph): number {
@@ -185,8 +197,11 @@ export function paint(draft: Draft, x: number, y: number, glyph: Glyph): PaintRe
   if (glyph === GLYPH_TREASURE && countOf(cells, GLYPH_TREASURE) >= MAX_TREASURE) {
     return { draft, changed: false, reason: `${MAX_TREASURE} treasure is the most a level can hold` };
   }
-  if (glyph === GLYPH_GUARD && countOf(cells, GLYPH_GUARD) >= MAX_GUARDS) {
-    return { draft, changed: false, reason: `${MAX_GUARDS} guards is plenty` };
+  // The limit is on ENEMIES, not on each kind: the engine holds so many walking
+  // things, and it does not care which of them is a bat. Counting each kind
+  // separately would have let a room carry thirty.
+  if (ENEMY_GLYPHS.includes(glyph) && countOfAny(cells, ENEMY_GLYPHS) >= MAX_GUARDS) {
+    return { draft, changed: false, reason: `${MAX_GUARDS} enemies is plenty` };
   }
   if (glyph === GLYPH_FIRE && countOf(cells, GLYPH_FIRE) >= MAX_FIRE) {
     return { draft, changed: false, reason: `${MAX_FIRE} is as much fire as a level can hold` };
@@ -245,7 +260,10 @@ export function draftFromLevel(level: {
     if (level.treasureSlot[i] !== -1) cells[i] = GLYPH_TREASURE;
   }
   for (let i = 0; i < level.guardCells.length; i = (i + 1) | 0) {
-    cells[level.guardCells[i] as number] = GLYPH_GUARD;
+    // ...as the kind it was drawn with, so opening a level in the editor gives
+    // back the room somebody made rather than a room of goblins.
+    cells[level.guardCells[i] as number] =
+      (ENEMY_GLYPHS[level.guardArt[i] ?? 0] ?? GLYPH_GUARD) as Glyph;
   }
   for (let i = 0; i < level.fireCells.length; i = (i + 1) | 0) {
     cells[level.fireCells[i] as number] = GLYPH_FIRE;

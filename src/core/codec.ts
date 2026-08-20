@@ -34,6 +34,7 @@ import { BitReader, BitReaderError, BitWriter, fromBase64url, toBase64url } from
 import { hashBytes, hashInit } from "./hash.ts";
 import { GRID_AREA, GRID_H, GRID_W, idx } from "./grid.ts";
 import {
+  ENEMY_GLYPHS,
   GLYPH_EXIT, GLYPH_FLOOR, GLYPH_GUARD, GLYPH_LADDER, GLYPH_START, GLYPH_TREASURE,
   type Level,
 } from "./level.ts";
@@ -52,6 +53,14 @@ const KIND_GUARD = 3;
 // nothing: every link ever sent still decodes to exactly what it decoded to
 // before. Kinds 5, 6 and 7 are still free after this.
 const KIND_FIRE = 4;
+// ...and two of those three went to the other enemies. Same 12 bits an entity
+// has always cost: the kind field had the room already, so three enemies cost
+// exactly what one did. Kind 7 is still free.
+const KIND_BAT = 5;
+const KIND_DRAGON = 6;
+
+/** Wire kind for each enemy art, indexed as ENEMY_GLYPHS is. */
+const ENEMY_KINDS: readonly number[] = [KIND_GUARD, KIND_BAT, KIND_DRAGON];
 
 const MAX_ENTITIES = 31; // 5-bit count
 
@@ -166,7 +175,10 @@ export function encodeLevel(level: Level): string {
     entities.push([level.treasureCells[i] as number, KIND_TREASURE]);
   }
   for (let i = 0; i < level.guardCells.length; i = (i + 1) | 0) {
-    entities.push([level.guardCells[i] as number, KIND_GUARD]);
+    entities.push([
+      level.guardCells[i] as number,
+      ENEMY_KINDS[level.guardArt[i] ?? 0] ?? KIND_GUARD,
+    ]);
   }
   for (let i = 0; i < level.fireCells.length; i = (i + 1) | 0) {
     entities.push([level.fireCells[i] as number, KIND_FIRE]);
@@ -280,6 +292,7 @@ export function decodeLevel(code: string): Level {
     const treasureSlot = new Int8Array(GRID_AREA).fill(-1);
     const treasures: number[] = [];
     const guards: number[] = [];
+    const guardArt: number[] = [];
     let startX = -1;
     let startY = -1;
     let exitX = -1;
@@ -306,8 +319,12 @@ export function decodeLevel(code: string): Level {
       } else if (kind === KIND_TREASURE) {
         treasureSlot[cell] = treasures.length | 0;
         treasures.push(cell);
-      } else if (kind === KIND_GUARD) {
+      } else if (kind === KIND_GUARD || kind === KIND_BAT || kind === KIND_DRAGON) {
+        // Same entity as a guard in every way an engine cares about, so it
+        // lands in the same list, in the same order. Only the art differs, and
+        // that rides alongside.
         guards.push(cell);
+        guardArt.push(ENEMY_KINDS.indexOf(kind) | 0);
       } else if (kind === KIND_FIRE) {
         fires[cell] = 1;
         burning.push(cell);
@@ -343,6 +360,8 @@ export function decodeLevel(code: string): Level {
     }
     const guardCells = new Int16Array(guards.length);
     for (let i = 0; i < guards.length; i = (i + 1) | 0) guardCells[i] = guards[i] as number;
+    const guardArtOut = new Uint8Array(guardArt.length);
+    for (let i = 0; i < guardArt.length; i = (i + 1) | 0) guardArtOut[i] = guardArt[i] as number;
     const fireCells = new Int16Array(burning.length);
     for (let i = 0; i < burning.length; i = (i + 1) | 0) fireCells[i] = burning[i] as number;
 
@@ -363,6 +382,7 @@ export function decodeLevel(code: string): Level {
       treasureCells,
       treasureSlot,
       guardCells,
+      guardArt: guardArtOut,
       ladders,
       fireCells,
       fires,
@@ -407,6 +427,16 @@ export function sameLevel(a: Level, b: Level): boolean {
 }
 
 /** A Level back to the .lvl text it came from. */
+/** Which letter this guard was drawn with. Falls back to the plain one. */
+function enemyGlyphAt(level: Level, cell: number): string {
+  for (let i = 0; i < level.guardCells.length; i = (i + 1) | 0) {
+    if ((level.guardCells[i] as number) === cell) {
+      return ENEMY_GLYPHS[level.guardArt[i] ?? 0] ?? GLYPH_GUARD;
+    }
+  }
+  return GLYPH_GUARD;
+}
+
 export function levelToText(level: Level): string {
   const rows: string[] = [
     `hoppa/${level.schema} ${level.engine} seed=${level.seedText} ` +
@@ -419,7 +449,9 @@ export function levelToText(level: Level): string {
       if (x === level.startX && y === level.startY) row += GLYPH_START;
       else if (x === level.exitX && y === level.exitY) row += GLYPH_EXIT;
       else if (level.treasureSlot[cell] !== -1) row += GLYPH_TREASURE;
-      else if (isGuard(level, cell)) row += GLYPH_GUARD;
+      // ...and it writes back the letter it came in as, so a round trip through
+      // a link and back to text is the level somebody actually drew.
+      else if (isGuard(level, cell)) row += enemyGlyphAt(level, cell);
       else if (level.ladders[cell] === 1) row += GLYPH_LADDER;
       else row += level.walls[cell] === 1 ? "#" : GLYPH_FLOOR;
     }
