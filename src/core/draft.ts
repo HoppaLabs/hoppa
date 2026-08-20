@@ -118,7 +118,7 @@ export function paint(draft: Draft, x: number, y: number, glyph: Glyph): PaintRe
     return { draft, changed: false, reason: "that is where you start -- move it with the start tool" };
   }
   if (was === GLYPH_EXIT) {
-    return { draft, changed: false, reason: "that is the way out -- move it with the door tool" };
+    return { draft, changed: false, reason: "that is the way out -- pick the door / exit tool to move it" };
   }
 
   if (glyph === GLYPH_TREASURE && countOf(cells, GLYPH_TREASURE) >= MAX_TREASURE) {

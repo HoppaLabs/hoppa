@@ -49,7 +49,7 @@ const TOOLS: readonly Tool[] = [
   { glyph: GLYPH_WALL, label: "wall", colour: "#39485c" },
   { glyph: GLYPH_FLOOR, label: "clear", colour: "#222a35" },
   { glyph: GLYPH_START, label: "start", colour: "#e8b76a" },
-  { glyph: GLYPH_EXIT, label: "door", colour: "#b07acb" },
+  { glyph: GLYPH_EXIT, label: "door / exit", colour: "#b07acb" },
   { glyph: GLYPH_TREASURE, label: "treasure", colour: "#5fd3f3", limit: 8 },
   { glyph: GLYPH_GUARD, label: "enemy", colour: "#ff5f4d", limit: 10 },
   { glyph: GLYPH_LADDER, label: "ladder", colour: "#c8a26a", engines: ["dash"] },
