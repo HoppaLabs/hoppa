@@ -34,6 +34,7 @@ import { normaliseSubPalette } from "../core/palette.ts";
 
 const KEY = "hoppa.character.v2";
 const DRAFT_KEY = "hoppa.level.v1";
+const PLAYED_KEY = "hoppa.played.v1";
 
 interface Stored {
   readonly name: string;
@@ -197,5 +198,68 @@ export function loadDraft(): { draft: Draft; name: string } | null {
     return { draft, name: typeof record.name === "string" ? record.name : "my level" };
   } catch {
     return null;
+  }
+}
+
+// --- levels you have played -------------------------------------------------
+//
+// A level is only ever a link, which is the whole design -- and the cost of
+// that is that closing the tab loses it. A kid who played their cousin's level
+// on Tuesday has no way back to it on Wednesday unless they still have the
+// message.
+//
+// So the last few are kept here. Not the levels themselves: the same codes
+// that were in the links, which is all a link ever was.
+
+const KEEP_PLAYED = 6;
+
+export interface Played {
+  readonly code: string;
+  readonly name: string;
+}
+
+/** Newest first, deduplicated by code, oldest dropped past KEEP_PLAYED. */
+export function rememberPlayed(code: string, name: string): void {
+  const kept = [{ code, name }, ...playedBefore().filter((was) => was.code !== code)];
+  try {
+    window.localStorage.setItem(PLAYED_KEY, JSON.stringify(kept.slice(0, KEEP_PLAYED)));
+  } catch {
+    // Then there is no list. Nobody loses a level they still have the link to.
+  }
+}
+
+export function playedBefore(): readonly Played[] {
+  let raw: string | null = null;
+  try {
+    raw = window.localStorage.getItem(PLAYED_KEY);
+  } catch {
+    return [];
+  }
+  if (raw === null) return [];
+
+  try {
+    const found = JSON.parse(raw) as unknown;
+    if (!Array.isArray(found)) return [];
+    const out: Played[] = [];
+    for (const entry of found) {
+      const record = entry as Partial<Played>;
+      // A tampered or half-written record is skipped, never trusted into a URL.
+      if (typeof record.code !== "string" || record.code === "") continue;
+      if (typeof record.name !== "string") continue;
+      if (out.some((was) => was.code === record.code)) continue;
+      out.push({ code: record.code, name: record.name.slice(0, 24) });
+      if (out.length === KEEP_PLAYED) break;
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+export function forgetPlayed(): void {
+  try {
+    window.localStorage.removeItem(PLAYED_KEY);
+  } catch {
+    // the caller only wanted it gone
   }
 }

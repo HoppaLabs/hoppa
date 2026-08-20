@@ -102,6 +102,14 @@ stale cache. If a new build lands while you are looking at the page and have not
 touched it, the page quietly reloads into it; the moment you start playing, it
 does not. See [`docs/adr/0023`](docs/adr/0023-offline.md).
 
+## The last few levels you played
+
+A level is only ever a link, which is the whole design — and the cost is that
+closing the tab used to be the end of it. The last six levels you played are
+kept as the codes that were in their links, so **played before** under the game
+is somewhere to go back to. Tapping one is the same act as tapping it in a
+message. See [`docs/adr/0026`](docs/adr/0026-levels-you-played.md).
+
 ## Nothing asks you to install it
 
 You can add it to a home screen if you want one — there is a manifest, and the

@@ -187,6 +187,18 @@
     color: var(--gold); font-size: 14px; text-align: center; max-width: 34ch;
     line-height: 1.35; margin: 0 0 2px;
   }
+  #played {
+    display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+    max-width: 36ch;
+  }
+  #played a {
+    font: inherit; font-size: 11px; color: var(--ink); text-decoration: none;
+    background: var(--key); border: 1px solid var(--edge); border-radius: 8px;
+    padding: 5px 9px; max-width: 15ch; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+  }
+  #played a b { color: var(--ink-bright); font-weight: 400; }
+  #played span { font-size: 11px; align-self: center; }
   #said {
     color: var(--ink); font-size: 12px; min-height: 1.3em; text-align: center;
     max-width: 40ch; word-break: break-all;
@@ -231,6 +243,9 @@
     <a id="draw" href="./make/">edit character</a>
     <a id="build" href="./level/">make a level</a>
   </footer>
+  <!-- The last few levels you played. A level is only ever a link, so closing
+       the tab used to be the end of it. See src/web/stash.ts. -->
+  <nav id="played" hidden aria-label="levels you played before"></nav>
   <div id="said"></div>
   <script type="module" src="./app.js"></script>
 </body>

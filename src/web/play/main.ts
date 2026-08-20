@@ -14,9 +14,9 @@
 import { ROAM4_LEVEL_TEXT } from "../../core/fixtures.ts";
 import { PRESETS, SPENDABLE, capsToBuild, spent, type Creature } from "../../core/creature.ts";
 import { CodecError, encodeLevel } from "../../core/codec.ts";
-import { levelFromHash, linkFor, resultFromHash, resultLinkFor } from "./link.ts";
+import { levelFromHash, linkFor, resultFromHash, resultLinkFor, slugify } from "./link.ts";
 import { encodeQr, QrError } from "../../core/qr.ts";
-import { loadCharacter, loadDraft } from "../stash.ts";
+import { loadCharacter, loadDraft, playedBefore, rememberPlayed } from "../stash.ts";
 import { draftToText } from "../../core/draft.ts";
 import { parseLevel } from "../../core/level.ts";
 import { hashHex } from "../../core/hash.ts";
@@ -917,6 +917,48 @@ if (loadError !== null) {
 }
 
 const levelCode = encodeLevel(level);
+
+/**
+ * The last few levels you played, as the links they arrived as.
+ *
+ * A level is only ever a link -- no accounts, no server, nothing to come back
+ * to. The cost of that is real: play your cousin's level on Tuesday, close the
+ * tab, and on Wednesday it is gone unless you still have the message. Keeping
+ * the codes costs nothing and takes that cost away.
+ *
+ * Only levels that came from a link. The built-in one is always here, and a
+ * list whose first entry is "the level you are already on" is furniture.
+ */
+function paintPlayed(): void {
+  const row = document.getElementById("played") as HTMLElement;
+  const others = playedBefore().filter((was) => was.code !== levelCode);
+  row.innerHTML = "";
+  if (others.length === 0) {
+    row.hidden = true;
+    return;
+  }
+  // Without this the entries read as two more buttons with no explanation.
+  const label = document.createElement("span");
+  label.textContent = "played before";
+  row.appendChild(label);
+  for (const was of others) {
+    const link = document.createElement("a");
+    // The same shape the link arrived as, so tapping one is exactly the same
+    // act as tapping it in a message. hashchange reloads the page.
+    // slugify and textContent, because this came out of storage: a tampered
+    // record must not be able to put markup on the page or anything but a
+    // slug in the URL.
+    link.href = `#p/${slugify(was.name)}/${encodeURIComponent(was.code)}`;
+    const label = document.createElement("b");
+    label.textContent = was.name.replace(/-/g, " ");
+    link.appendChild(label);
+    row.appendChild(link);
+  }
+  row.hidden = false;
+}
+
+if (shared !== null) rememberPlayed(levelCode, shared.slug);
+paintPlayed();
 
 // Re-checked, not trusted: a stored proof is replayed before it counts.
 proven = provenBefore();
