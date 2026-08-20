@@ -17,6 +17,7 @@ import { RoamV3, ROAM_V3_BEHAVIOUR } from "./roam/v3.ts";
 import { RoamV4, ROAM_V4_BEHAVIOUR } from "./roam/v4.ts";
 import { RoamV5, ROAM_V5_BEHAVIOUR } from "./roam/v5.ts";
 import { RoamV6, ROAM_V6_BEHAVIOUR } from "./roam/v6.ts";
+import { RoamV7, ROAM_V7_BEHAVIOUR } from "./roam/v7.ts";
 import { DashV1, DASH_V1_BEHAVIOUR } from "./dash/v1.ts";
 import { DashV2, DASH_V2_BEHAVIOUR } from "./dash/v2.ts";
 import { DashV3, DASH_V3_BEHAVIOUR } from "./dash/v3.ts";
@@ -117,6 +118,14 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
     `roam/${ROAM_V6_BEHAVIOUR}`,
     (level, creature) =>
       creature === undefined ? new RoamV6(level) : new RoamV6(level, creature),
+  ],
+  // v7: a chasing enemy moves one direction at a time, the way a thumb does.
+  // Up to v6 it applied both axes in a tick and cut diagonals at 1.41x the
+  // speed anything else in the game could manage.
+  [
+    `roam/${ROAM_V7_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new RoamV7(level) : new RoamV7(level, creature),
   ],
   [
     `dash/${DASH_V6_BEHAVIOUR}`,

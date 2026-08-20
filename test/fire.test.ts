@@ -194,14 +194,19 @@ test("v5 plays exactly as it did: v6 is a new version, not an edit", () => {
   }
 });
 
-test("every build still routes, and v6 is what a new level pins", () => {
+test("every build still routes, and a new level pins the newest", () => {
+  // The versions this file is ABOUT are the ones fire arrived in, and they
+  // stay reachable forever. What a new level pins is a separate question and
+  // moves on -- roam/7 came along afterwards to stop chasing enemies cutting
+  // diagonals -- so it is asked of the registry rather than written down here.
   const builds = knownBuilds();
-  expect(builds).toContain("roam/6");
-  expect(builds).toContain("dash/6");
-  expect(builds).toContain("roam/5");
-  expect(builds).toContain("dash/5");
-  expect(newestBuild("roam")).toBe(6);
-  expect(newestBuild("dash")).toBe(6);
+  for (const build of ["roam/5", "roam/6", "dash/5", "dash/6"]) {
+    expect(builds).toContain(build);
+  }
+  expect(builds).toContain(`roam/${newestBuild("roam")}`);
+  expect(builds).toContain(`dash/${newestBuild("dash")}`);
+  expect(newestBuild("roam")).toBeGreaterThanOrEqual(6);
+  expect(newestBuild("dash")).toBeGreaterThanOrEqual(6);
 });
 
 test("a winning run through fire is a proof the share gate accepts", () => {

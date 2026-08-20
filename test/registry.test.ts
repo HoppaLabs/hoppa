@@ -24,7 +24,10 @@ test("every build ships: retiring one would break every link that pinned it", ()
     "delve/1", "delve/2", "delve/3", "delve/4", "delve/5",
     "roam/1", "roam/2", "roam/3", "roam/4", "roam/5",
     "dash/1", "dash/2", "dash/3", "dash/4", "dash/5",
-    "roam/6", "dash/6",
+    // Append-only, and in the order the table declares them rather than in
+    // version order: roam/7 sits next to roam/6 because that is where it was
+    // added. What matters is that nothing ever LEAVES.
+    "roam/6", "roam/7", "dash/6",
   ]);
 });
 

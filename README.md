@@ -116,6 +116,14 @@ The generator measures each body colour against the square it is drawn on and
 refuses anything under 4:1, because the first four picked by eye were
 invisible. See [`docs/adr/0033`](docs/adr/0033-what-a-real-user-said.md).
 
+## Enemies move the way you do
+
+A chasing enemy used to apply both axes in a tick, so it cut diagonals — and a
+diagonal covers 1.41 times the ground of an axis step, free, for the one
+character in the game that never had to press a button. `roam/7` moves the axis
+with further to go, and tries the other when that one is blocked. See
+[`docs/adr/0035`](docs/adr/0035-one-direction-at-a-time.md).
+
 ## Fire, and spikes
 
 The first danger that does not move. A guard is a timing problem; fire is a
