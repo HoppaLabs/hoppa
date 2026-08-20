@@ -11,7 +11,7 @@
 // The engine is chosen by the level's behaviour= field, never hardcoded here.
 // That is what lets a link from day 5 onwards pin the rules it was beaten under.
 
-import { ROAM1_LEVEL_TEXT } from "../../core/fixtures.ts";
+import { ROAM2_LEVEL_TEXT } from "../../core/fixtures.ts";
 import { PRESETS, SPENDABLE, capsToBuild, type Creature } from "../../core/creature.ts";
 import { CodecError, encodeLevel } from "../../core/codec.ts";
 import { levelFromHash, linkFor } from "./link.ts";
@@ -23,7 +23,7 @@ import { engineFor } from "../../engines/registry.ts";
 import { Readout } from "./readout.ts";
 import { Buttons, KEY_BITS, Loop, type Moving } from "./realtime.ts";
 import { HELD_ACT, HELD_DOWN, HELD_LEFT, HELD_RIGHT, HELD_UP } from "../../engines/types.ts";
-import { reachFor } from "../../engines/roam/v1.ts";
+import { reachFor } from "../../engines/roam/v2.ts";
 import {
   INPUT_DOWN,
   INPUT_LEFT,
@@ -98,7 +98,7 @@ try {
   loadError = err instanceof CodecError ? err.message : String(err);
 }
 
-const level = shared === null ? parseLevel(ROAM1_LEVEL_TEXT) : shared.level;
+const level = shared === null ? parseLevel(ROAM2_LEVEL_TEXT) : shared.level;
 const levelName = shared === null ? BUILT_IN_NAME : shared.slug.replace(/-/g, " ");
 // A character you made wins over the ready-made ones: it is yours, and it is
 // the reason the spec says never to cut the drawing day.

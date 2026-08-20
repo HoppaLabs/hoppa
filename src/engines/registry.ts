@@ -12,6 +12,7 @@ import { DelveV3, DELVE_V3_BEHAVIOUR } from "./delve/v3.ts";
 import { DelveV4, DELVE_V4_BEHAVIOUR } from "./delve/v4.ts";
 import { DelveV5, DELVE_V5_BEHAVIOUR } from "./delve/v5.ts";
 import { RoamV1, ROAM_V1_BEHAVIOUR } from "./roam/v1.ts";
+import { RoamV2, ROAM_V2_BEHAVIOUR } from "./roam/v2.ts";
 import { DashV1, DASH_V1_BEHAVIOUR } from "./dash/v1.ts";
 import type { Engine } from "./types.ts";
 
@@ -40,6 +41,13 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
     `roam/${ROAM_V1_BEHAVIOUR}`,
     (level, creature) =>
       creature === undefined ? new RoamV1(level) : new RoamV1(level, creature),
+  ],
+  // v2: enemies stay out of walls, and they can be killed. v1 is still here
+  // and still exact -- every link that pinned roam/1 replays as it always did.
+  [
+    `roam/${ROAM_V2_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new RoamV2(level) : new RoamV2(level, creature),
   ],
   // From the side, one screen, everything falls.
   [

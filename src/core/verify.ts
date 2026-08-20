@@ -35,6 +35,8 @@ export interface VerifyResult {
   readonly ok: boolean;
   /** Open cells the start can actually walk to. Handy when L3 or L4 fails. */
   readonly reachableCells: number;
+  /** Treasure cells the start cannot walk to. Empty when L4 passes. */
+  readonly strandedTreasure: readonly number[];
 }
 
 function skipped(id: string, title: string): Check {
@@ -58,6 +60,7 @@ export function verifyLevelText(text: string): VerifyResult {
       ],
       ok: false,
       reachableCells: 0,
+      strandedTreasure: [],
     };
   }
 
@@ -96,10 +99,12 @@ export function verifyLevelText(text: string): VerifyResult {
         : `exit (${level.exitX},${level.exitY}) is walled off from the start`,
   });
 
+  const strandedTreasure: number[] = [];
   const stranded: string[] = [];
   for (let i = 0; i < level.treasureCells.length; i = (i + 1) | 0) {
     const cell = level.treasureCells[i] as number;
     if (seen[cell] !== 1) {
+      strandedTreasure.push(cell);
       stranded.push(`(${cell % GRID_W},${(cell / GRID_W) | 0})`);
     }
   }
@@ -160,5 +165,6 @@ export function verifyLevelText(text: string): VerifyResult {
     checks,
     ok: checks.every((c) => c.ok !== false),
     reachableCells,
+    strandedTreasure,
   };
 }
