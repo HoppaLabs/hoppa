@@ -37,7 +37,7 @@ TypeScript, bundles the browser build and runs the tests.
 ```
 src/core/      grid, level, verify, reach, patrol, creature, sprite,
                palette, codec, hash                                  DETERMINISM ZONE
-src/engines/   Engine interface, registry, delve/v1..v4               DETERMINISM ZONE
+src/engines/   Engine interface, registry, delve+roam+dash builds      DETERMINISM ZONE
 src/cli/       util.parseArgs front end, ASCII debug view
 src/web/play/  canvas renderer, play page
 src/web/make/  sprite editor
@@ -117,6 +117,17 @@ has to finish each room with all three ready-made creatures, with the winning
 run replayed cold. Reachability is not beatability — L3 and L4 know nothing
 about guards, hearts or the clock. See
 [`docs/adr/0030`](docs/adr/0030-the-six-rooms.md).
+
+## A level you share carries your time
+
+Beat a level, share it, and the link carries how long you took: the friend who
+opens it reads **"Bash did this in 8 seconds — can you do better?"** before
+anything else. A new link shape, `#c/<slug>/<score>/<who>/<code>`, sitting
+beside the reply link rather than bolted onto the plain one — a level code is
+base64url, so a run of digits on the end of a `#p/` link is indistinguishable
+from part of the level. Under 12 characters more than a plain link, and the
+time sent is the time that *won*, not whatever is on the clock. See
+[`docs/adr/0032`](docs/adr/0032-a-level-with-a-time-on-it.md).
 
 ## The last few levels you played
 

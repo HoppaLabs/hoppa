@@ -47,6 +47,78 @@ export function linkFor(level: Level, title: string, base: string): string {
   return `${base}#p/${slugify(title)}/${encodeLevel(level)}`;
 }
 
+// --- sending a level WITH your time -----------------------------------------
+//
+// Shape:  <site>/#c/<slug>/<score>/<who>/<code>
+//
+// A level and nothing else is an invitation. A level with the time you did it
+// in is a challenge, and a challenge is the thing a child actually wants to
+// send. The share button is only open once you have beaten the level, so there
+// is always a time to put in it.
+//
+// A separate kind rather than an extra piece on the end of `#p/`, because a
+// level code is base64url and a run of digits is a perfectly good code: there
+// is no way to look at the last segment of a `#p/` link and know whether it is
+// a time or part of the level. Every `#p/` link ever sent still means exactly
+// what it meant.
+//
+// What it does NOT carry is the creature itself. A whole character is about
+// 130 characters on top of the level, which is what a reply pays because a
+// reply is ABOUT the creature. Here the creature is a footnote to the number,
+// so only its name travels -- and a name is what makes the number mean
+// anything, since a quick creature and a strong one are not racing the same
+// race.
+
+export interface SharedChallenge {
+  readonly level: Level;
+  readonly slug: string;
+  /** In whatever the engine counts: seconds in real time, turns otherwise. */
+  readonly score: number;
+  /** What they played it as. Never empty -- see UNNAMED. */
+  readonly who: string;
+}
+
+export function challengeLinkFor(
+  level: Level,
+  title: string,
+  score: number,
+  who: string,
+  base: string,
+): string {
+  const safe = Math.max(0, score | 0);
+  return `${base}#c/${slugify(title)}/${safe}/${slugify(who)}/${encodeLevel(level)}`;
+}
+
+/**
+ * The challenge this URL is carrying, or null when it is not a challenge link.
+ *
+ * The LEVEL is what a child tapped the link to play, so it is decoded first
+ * and strictly. A damaged time or name loses the boast, which is a shame; if
+ * it took the level with it there would be nothing to do at all.
+ */
+export function challengeFromHash(hash: string): SharedChallenge | null {
+  const raw = hash.startsWith("#") ? hash.slice(1) : hash;
+  if (raw.length === 0) return null;
+
+  const parts = raw.split("/");
+  if (parts.length < 5 || parts[0] !== "c") return null;
+
+  const slug = parts[1] as string;
+  const score = Number.parseInt(parts[2] as string, 10);
+  const who = parts[3] as string;
+  const code = parts.slice(4).join("/");
+  if (code.length === 0) throw new CodecError("that link has a name but no level in it");
+
+  return {
+    level: decodeLevel(code),
+    slug: slug === "" ? UNNAMED : slug,
+    // A time that did not survive the trip is shown as no time at all, rather
+    // than as NaN seconds.
+    score: Number.isFinite(score) && score >= 0 ? score | 0 : -1,
+    who: who === "" ? UNNAMED : who,
+  };
+}
+
 // --- sending a result back ---------------------------------------------------
 //
 // Spec S16 day 11: "send back a result: they watch how you beat it". The

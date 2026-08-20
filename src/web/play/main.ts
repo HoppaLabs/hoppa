@@ -14,7 +14,10 @@
 import { PACK } from "../../core/pack.ts";
 import { PIP_MAX, PRESETS, capsToBuild, type Creature } from "../../core/creature.ts";
 import { CodecError, decodeLevel, encodeLevel } from "../../core/codec.ts";
-import { levelFromHash, linkFor, resultFromHash, resultLinkFor, slugify } from "./link.ts";
+import {
+  challengeFromHash, challengeLinkFor, levelFromHash, linkFor, resultFromHash, resultLinkFor,
+  slugify,
+} from "./link.ts";
 import { encodeQr, QrError } from "../../core/qr.ts";
 import { loadCharacter, loadDraft, playedBefore, rememberPlayed, setSoundOn, soundOn } from "../stash.ts";
 import { Sounds, soundsFor, type Moment } from "./sound.ts";
@@ -25,7 +28,7 @@ import { SPRITE_H, SPRITE_W, spriteIndex } from "../../core/sprite.ts";
 import { hashHex } from "../../core/hash.ts";
 import { engineFor, UnknownBehaviourError } from "../../engines/registry.ts";
 import { Readout } from "./readout.ts";
-import { Recorder, beats, proofKey, type Replayable } from "../../core/proof.ts";
+import { Recorder, beats, proofKey, replay, type Replayable } from "../../core/proof.ts";
 import { Buttons, KEY_BITS, Loop, type Moving } from "./realtime.ts";
 import { HELD_ACT, HELD_DOWN, HELD_LEFT, HELD_RIGHT, HELD_SWING, HELD_UP } from "../../engines/types.ts";
 import { reachFor } from "../../engines/roam/v5.ts";
@@ -105,12 +108,25 @@ function hasBeatenThis(): boolean {
   return proven;
 }
 
+/**
+ * The time on the run that actually won, which is not the time on the clock.
+ *
+ * The share button opens as soon as you have beaten the level, and it stays
+ * open -- including on a fresh load, off a proof kept from yesterday, with the
+ * clock at zero. Sending "beaten in 0s" would be a lie, and sending the time
+ * of a run still in progress would be a different one.
+ *
+ * -1 until a win is known.
+ */
+let wonIn = -1;
+
 /** Replay what was just played. Only a win here opens the button. */
 function proveIt(): boolean {
   const log = recorder.log();
   if (!beats(log, () => engineFor(level, chosen) as unknown as Replayable, STATUS_WON)) {
     return false;
   }
+  wonIn = myScore();
   keepProof({
     level: levelCode,
     creature: chosen.id,
@@ -130,7 +146,12 @@ function provenBefore(): boolean {
   for (const proof of storedProofs()) {
     if (proof.level !== levelCode || proof.creature !== chosen.id) continue;
     if (proof.key !== proofKey(levelCode, chosen.id, proof.log)) continue;
-    if (beats(proof.log, () => engineFor(level, chosen) as unknown as Replayable, STATUS_WON)) {
+    const run = replay(proof.log, () => engineFor(level, chosen) as unknown as Replayable);
+    if (run.status === STATUS_WON) {
+      // The kept log IS the run, so its length is the time it took. Counted the
+      // way this engine counts: seconds where the world moves on its own, turns
+      // where it waits for you.
+      wonIn = moving === null ? run.ticks : (run.ticks / 30) | 0;
       return true;
     }
   }
@@ -158,11 +179,22 @@ let shared: ReturnType<typeof levelFromHash> = null;
  * comes back is the outcome and the creature. See link.ts.
  */
 let reply: ReturnType<typeof resultFromHash> = null;
+/**
+ * A challenge: a level sent WITH the time the sender did it in.
+ *
+ * The difference from a reply is who is on the other end. A reply goes back to
+ * the person whose level it is; a challenge goes out to somebody who has never
+ * seen it. Same idea either way -- here is a number, go on then.
+ */
+let challenge: ReturnType<typeof challengeFromHash> = null;
 try {
   reply = resultFromHash(window.location.hash);
-  shared = reply === null
-    ? levelFromHash(window.location.hash)
-    : { level: reply.level, slug: reply.slug };
+  challenge = reply === null ? challengeFromHash(window.location.hash) : null;
+  shared = reply !== null
+    ? { level: reply.level, slug: reply.slug }
+    : challenge !== null
+    ? { level: challenge.level, slug: challenge.slug }
+    : levelFromHash(window.location.hash);
 } catch (err) {
   loadError = err instanceof CodecError ? err.message : String(err);
 }
@@ -1034,6 +1066,11 @@ levelname.textContent = levelName;
 window.addEventListener("hashchange", () => window.location.reload());
 
 /** Seconds on a real-time level, turns on a turn-based one, as the HUD shows. */
+/** Short form, for a line in a group chat: "22s" rather than "22 seconds". */
+function scoreUnit(): string {
+  return moving === null ? " turns" : "s";
+}
+
 function myScore(): number {
   return moving === null ? engine.turns() : (moving as Moving).seconds();
 }
@@ -1101,6 +1138,9 @@ async function share(): Promise<void> {
     return;
   }
   const base = `${window.location.origin}${window.location.pathname}`;
+  // A level and nothing else is an invitation; a level with the time you did it
+  // in is a challenge, and a challenge is what a child actually wants to send.
+  // The button only opens once you have beaten it, so there is always a time.
   const url = sendingBack
     ? resultLinkFor(
         level,
@@ -1112,6 +1152,8 @@ async function share(): Promise<void> {
         myScore(),
         base,
       )
+    : wonIn >= 0
+    ? challengeLinkFor(level, levelName, wonIn, chosen.name, base)
     : linkFor(level, levelName, base);
 
   const say = (words: string, bad = false): void => {
@@ -1126,6 +1168,8 @@ async function share(): Promise<void> {
         title: "hoppa",
         text: sendingBack
         ? `I did it in ${myScore()}. Beat that.`
+        : wonIn >= 0
+        ? `${mine ? "My level" : levelName}: I did it in ${wonIn}${scoreUnit()}. Beat that.`
         : mine
         ? `Play my level: ${levelName}`
         : `Play this level: ${levelName}`,
@@ -1175,6 +1219,13 @@ sendIt.addEventListener("click", (ev) => {
 if (reply !== null && reply.creature !== null) {
   const unit = moving === null ? "turns" : "seconds";
   boast.textContent = `${reply.who} beat this in ${reply.score} ${unit} — can you?`;
+  boast.hidden = false;
+} else if (challenge !== null && challenge.score >= 0) {
+  // Same thing said to a different person: a reply goes back to whoever made
+  // the level, a challenge goes out to somebody who has never seen it.
+  const unit = moving === null ? "turns" : "seconds";
+  const who = challenge.who.replace(/-/g, " ");
+  boast.textContent = `${who} did this in ${challenge.score} ${unit} — can you do better?`;
   boast.hidden = false;
 }
 
