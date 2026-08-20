@@ -35,13 +35,13 @@ export const PACK: readonly PackLevel[] = [
     slug: "up-and-over",
     name: "up and over",
     teaches: "from the side: ladders go up, and gravity does the rest",
-    code: "ETEEAAxyowekOkOkOkOkOkOkgWWkOkOkOlBkkQXhWCW63BhxBxBxBxBSgFk",
+    code: "ETFEAAxyo______-f-RhRfY-RJEF4Vglut6QcQcQcQcQcQUohQ",
   },
   {
     slug: "the-tall-room",
     name: "the tall room",
     teaches: "three floors, and the ladders are never above one another",
-    code: "ETEEAA9gdwekOkOkOlRAukOkOkgWWkOkOlBmkQOhMaailKZjzJBxBxBxBAhxBxBxBSjB",
+    code: "ETFEAA9gd______-f8MkCfAmFF8D5GkQOhMaailKZjzwhxBxBxBAhghAhxBxBxBSgPM",
   },
   {
     slug: "the-gauntlet",

@@ -22,10 +22,9 @@ class Room {
 
   constructor(fill: string = OPEN) {
     this.cells = Array.from({ length: GRID_H }, () => Array.from({ length: GRID_W }, () => fill));
-    this.border();
   }
 
-  /** Walls all the way round. Every level in the pack is a closed room. */
+  /** Walls all the way round: what a room underground is. */
   border(): this {
     for (let x = 0; x < GRID_W; x++) {
       (this.cells[0] as string[])[x] = WALL;
@@ -36,6 +35,36 @@ class Room {
       (this.cells[y] as string[])[GRID_W - 1] = WALL;
     }
     return this;
+  }
+
+  /**
+   * Just the ground, for a room with sky in it.
+   *
+   * A side-on room does not need walls up the sides or across the top: the
+   * grid edge already stops you, in `fits()` in the engine, so those cells
+   * were never felt -- only drawn. And drawn is the problem. Walls in the
+   * side-on world are grass-topped earth, so a border put a bright green
+   * frame around the sky.
+   */
+  ground(): this {
+    return this.line(0, GRID_H - 1, GRID_W - 1, GRID_H - 1, WALL);
+  }
+
+  /**
+   * A ladder up to a deck, poking ONE CELL above it.
+   *
+   * This is not decoration, it is the difference between a ladder that works
+   * and one that does not. A ladder whose top rung is level with the deck
+   * gives you nothing to hold at the top: the engine keeps you climbing only
+   * while your body overlaps a ladder tile, and the cell you would stand on is
+   * the gap the ladder came through, so there is no floor either. You rise,
+   * lose the ladder, fall, catch it again, and bounce -- measured, and it is
+   * exactly what "the character falls when it gets to the top" looks like.
+   *
+   * One rung higher and you climb clear of the deck, then walk off it.
+   */
+  ladder(x: number, deckY: number, bottomY: number): this {
+    return this.line(x, deckY - 1, x, bottomY, "H");
   }
 
   put(x: number, y: number, glyph: string): this {
@@ -70,6 +99,20 @@ class Room {
     return this;
   }
 
+  /**
+   * A floor in a room with no side walls, so it runs edge to edge.
+   *
+   * `wallRow` stops one cell short at each end, which is right inside a
+   * bordered room and wrong without one: it would leave a one-cell hole at
+   * either end of every floor, which reads as a mistake rather than a way
+   * down.
+   */
+  deck(y: number, gaps: readonly number[]): this {
+    this.line(0, y, GRID_W - 1, y, WALL);
+    for (const x of gaps) this.put(x, y, OPEN);
+    return this;
+  }
+
   text(header: string): string {
     const rows = this.cells.map((row) => row.join(""));
     for (const row of rows) {
@@ -89,13 +132,13 @@ export interface PackLevel {
 }
 
 const roam = (seed: string) => `hoppa/1 roam seed=${seed} tiles=1 behaviour=5`;
-const dash = (seed: string) => `hoppa/1 dash seed=${seed} tiles=1 behaviour=4`;
+const dash = (seed: string) => `hoppa/1 dash seed=${seed} tiles=1 behaviour=5`;
 
 /* -------------------------------------------------------------------------- */
 
 /** 1. An empty room with two gems. Nothing can go wrong here. */
 function firstSteps(): string {
-  const room = new Room();
+  const room = new Room().border();
   room.box(6, 5, 15, 8, WALL).box(7, 6, 14, 7, OPEN);
   // ...with a way into the middle, so the block reads as a room and not a lump.
   room.put(10, 5, OPEN);
@@ -113,7 +156,7 @@ function firstSteps(): string {
  * which L5 refuses and which no child could time anyway.
  */
 function theLongWay(): string {
-  const room = new Room();
+  const room = new Room().border();
   // One floor across the middle with a way up at the far right. Two rooms, and
   // the gems are deliberately not all on the way to the door.
   room.wallRow(6, [21]).wallRow(7, [21]);
@@ -135,7 +178,7 @@ function theLongWay(): string {
  * allows. Guards in an open room pace the whole room and the check refuses it.
  */
 function fourCorners(): string {
-  const room = new Room();
+  const room = new Room().border();
   for (const y of [2, 3, 4]) room.wallRow(y, [3, 10, 20]);
   for (const y of [6, 7, 8]) room.wallRow(y, [7, 15, 21]);
   for (const y of [10, 11]) room.wallRow(y, [5, 11, 18]);
@@ -147,10 +190,11 @@ function fourCorners(): string {
 
 /** 4. The first side-on room: one ladder, and everything else is walking. */
 function upAndOver(): string {
-  const room = new Room();
+  // Ground and sky, no frame: see Room.ground().
+  const room = new Room().ground();
   // Two floors. The gap in the upper floor is where the ladder comes through.
-  room.wallRow(8, [4]);
-  room.line(4, 8, 4, 12, "H");
+  room.deck(8, [4]);
+  room.ladder(4, 8, 12);
   room.put(8, 7, "$").put(15, 7, "$");
   room.put(2, 12, "@").put(20, 7, ">");
   return room.text(dash("4dd4"));
@@ -163,11 +207,11 @@ function upAndOver(): string {
  * the room is a climb rather than a lift.
  */
 function theTallRoom(): string {
-  const room = new Room();
-  room.wallRow(5, [18]);
-  room.wallRow(9, [4]);
-  room.line(18, 5, 18, 8, "H");
-  room.line(4, 9, 4, 12, "H");
+  const room = new Room().ground();
+  room.deck(5, [18]);
+  room.deck(9, [4]);
+  room.ladder(18, 5, 8);
+  room.ladder(4, 9, 12);
   room.put(3, 4, "$").put(20, 8, "$").put(9, 12, "$");
   room.put(12, 8, "G");
   room.put(2, 12, "@").put(20, 4, ">");
@@ -183,7 +227,7 @@ function theTallRoom(): string {
  * everything. Two guards, and a second way through every band.
  */
 function theGauntlet(): string {
-  const room = new Room();
+  const room = new Room().border();
   // The same three-band skeleton as room 3, because it is the only shape that
   // keeps a guard's patrol inside the eight-turn limit -- but every gap is
   // offset from the one above it, so there is no straight run anywhere.

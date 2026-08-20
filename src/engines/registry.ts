@@ -20,6 +20,7 @@ import { DashV1, DASH_V1_BEHAVIOUR } from "./dash/v1.ts";
 import { DashV2, DASH_V2_BEHAVIOUR } from "./dash/v2.ts";
 import { DashV3, DASH_V3_BEHAVIOUR } from "./dash/v3.ts";
 import { DashV4, DASH_V4_BEHAVIOUR } from "./dash/v4.ts";
+import { DashV5, DASH_V5_BEHAVIOUR } from "./dash/v5.ts";
 import type { Engine } from "./types.ts";
 
 export class UnknownBehaviourError extends Error {}
@@ -98,6 +99,14 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
     `dash/${DASH_V4_BEHAVIOUR}`,
     (level, creature) =>
       creature === undefined ? new DashV4(level) : new DashV4(level, creature),
+  ],
+  // v5: grabbing a ladder puts you on it, centred. A body is wider than the
+  // gap a ladder comes up through, so until now you had to be within 32
+  // subcells of the column to climb at all. See docs/adr/0031.
+  [
+    `dash/${DASH_V5_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new DashV5(level) : new DashV5(level, creature),
   ],
 ]);
 

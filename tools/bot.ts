@@ -261,10 +261,15 @@ function ladderFromHere(
   let best = -1;
   for (const column of ladderColumns(ladders)) {
     if (ladders[idx(column, row)] !== 1) continue;
-    // It has to lead the way we want to go.
+    // It has to lead the way we want to go -- and "not a wall above me" is not
+    // that. Once ladders stand one rung proud of the deck they serve, the
+    // ladder you have just climbed still has a tile at your feet and open air
+    // above it, so it passed this test and the bot walked back onto the ladder
+    // it was already standing on top of, forever. The next rung has to exist.
     const next = row + (going < row ? -1 : 1);
     if (next < 0 || next >= GRID_H) continue;
     if (walls[idx(column, next)] === 1) continue;
+    if (ladders[idx(column, next)] !== 1) continue;
     if (best < 0 || Math.abs(column - near) < Math.abs(best - near)) best = column;
   }
   return best;
