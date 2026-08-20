@@ -7,6 +7,7 @@ import { GRID_H, GRID_W } from "../../core/grid.ts";
 import { colourFor } from "../../core/palette.ts";
 import { SPRITE_H, SPRITE_W, spriteIndex, type Sprite } from "../../core/sprite.ts";
 import { ONE } from "../../core/fixed.ts";
+import { TILE_PX, inkOf, tilesetFor, type Pattern, type Tileset } from "../../core/tileset.ts";
 import {
   TILE_ACTOR,
   TILE_GUARD_REELING,
@@ -88,6 +89,17 @@ export class GridRenderer {
    * animated gem would be frozen at whatever angle the last edit caught it at.
    */
   private spinning = true;
+  /**
+   * One pre-drawn canvas per terrain tile, at the size we are drawing at.
+   *
+   * A tile is 64 pixels and there are 336 cells, so painting them pixel by
+   * pixel would be twenty thousand fills a frame. Stamped once here and then
+   * blitted, it is 336 drawImage calls -- which is what the old flat squares
+   * cost anyway.
+   */
+  private stamps: Map<number, HTMLCanvasElement> | null = null;
+  private stampedAt = -1;
+  private stampedSet = "";
   /** Frames of landing squash left to draw, and what we saw last frame. */
   private squash = 0;
   private wasAirborne = false;
@@ -111,6 +123,82 @@ export class GridRenderer {
   /** Turn the spinning treasure off, for a view that is not redrawn each frame. */
   setSpinning(spinning: boolean): void {
     this.spinning = spinning;
+  }
+
+  /** The tileset this world uses. Presentation only; see core/tileset.ts. */
+  private tiles(): Tileset {
+    return tilesetFor(this.sideOn);
+  }
+
+  /**
+   * Stamp each terrain tile onto its own little canvas at the current size.
+   *
+   * Rebuilt when the size or the world changes, and never per frame.
+   */
+  private restamp(): void {
+    const t = this.scale;
+    const set = this.tiles();
+    if (this.stamps !== null && this.stampedAt === t && this.stampedSet === set.name) return;
+
+    const made = new Map<number, HTMLCanvasElement>();
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const patterns: ReadonlyArray<readonly [number, Pattern]> = [
+      [TILE_WALL, set.wall],
+      [TILE_FLOOR, set.floor],
+      [TILE_LADDER, set.ladder],
+    ];
+
+    for (const [tile, pattern] of patterns) {
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(t * dpr));
+      canvas.height = Math.max(1, Math.round(t * dpr));
+      const ctx = canvas.getContext("2d");
+      if (ctx === null) continue;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // Whole-pixel steps where they divide evenly, so the art stays crisp.
+      const step = t / TILE_PX;
+      for (let y = 0; y < TILE_PX; y++) {
+        const row = pattern[y] as string;
+        for (let x = 0; x < TILE_PX; x++) {
+          const ink = inkOf(set, row[x] as string);
+          if (ink === null) continue;
+          ctx.fillStyle = ink;
+          ctx.fillRect(
+            Math.floor(x * step),
+            Math.floor(y * step),
+            Math.ceil(step),
+            Math.ceil(step),
+          );
+        }
+      }
+      made.set(tile, canvas);
+    }
+
+    this.stamps = made;
+    this.stampedAt = t;
+    this.stampedSet = set.name;
+  }
+
+  /**
+   * The ground a thing is standing on.
+   *
+   * Anything the engine puts in a cell -- a gem, an enemy, the door -- replaces
+   * the floor tile there, so it has to paint the floor back in behind itself.
+   * It used to paint a flat colour, which matched when the floor WAS a flat
+   * colour; against a tiled world it left every gem sitting on a pale square.
+   */
+  private paintUnder(x: number, y: number): void {
+    const t = this.scale;
+    const floor = this.stamps?.get(TILE_FLOOR);
+    if (floor === undefined) {
+      this.ctx.fillStyle = this.ink(TILE_FLOOR);
+      this.ctx.fillRect(x * t, y * t, t, t);
+      return;
+    }
+    // The world's own ground first, because a floor tile may be transparent.
+    this.ctx.fillStyle = this.tiles().ground;
+    this.ctx.fillRect(x * t, y * t, t, t);
+    this.ctx.drawImage(floor, x * t, y * t, t, t);
   }
 
   /** The colour for a tile, in whichever world this level is. */
@@ -393,7 +481,11 @@ export class GridRenderer {
     const t = this.scale;
     const ctx = this.ctx;
 
-    ctx.fillStyle = this.ink(TILE_VOID);
+    this.restamp();
+    // Painted behind everything, so the parts a tile leaves transparent -- the
+    // sky between two platforms, the gaps in a ladder -- show the world, not
+    // whatever was on the canvas last frame.
+    ctx.fillStyle = this.tiles().ground;
     ctx.fillRect(0, 0, t * GRID_W, t * GRID_H);
 
     for (let y = 0; y < GRID_H; y++) {
@@ -417,8 +509,7 @@ export class GridRenderer {
         // Each one starts at its own point in the turn, from its cell number,
         // so a row of them ripples instead of pulsing in lockstep.
         if (tile === TILE_TREASURE) {
-          ctx.fillStyle = this.ink(TILE_FLOOR);
-          ctx.fillRect(x * t, y * t, t, t);
+          this.paintUnder(x, y);
           const cx = x * t + t / 2;
           const cy = y * t + t / 2;
           const r = Math.max(2, (t / 2) - Math.max(1, Math.floor(t / 5)));
@@ -468,8 +559,7 @@ export class GridRenderer {
           const left = x * t;
           const top = y * t;
 
-          ctx.fillStyle = this.ink(TILE_FLOOR);
-          ctx.fillRect(left, top, t, t);
+          this.paintUnder(x, y);
 
           // The doorway: taller than it is wide, and standing on the ground.
           const pad = Math.max(1, Math.round(t * 0.14));
@@ -530,8 +620,7 @@ export class GridRenderer {
         // never the actor's colour -- "am I about to touch that" has to be
         // answerable at a glance and at arm's length.
         if (tile === TILE_GUARD) {
-          ctx.fillStyle = this.ink(TILE_FLOOR);
-          ctx.fillRect(x * t, y * t, t, t);
+          this.paintUnder(x, y);
           const pad = Math.max(1, Math.floor(t / 8));
           ctx.fillStyle = this.ink(TILE_GUARD);
           ctx.fillRect(x * t + pad, y * t + pad, t - pad * 2, t - pad * 2);
@@ -548,29 +637,19 @@ export class GridRenderer {
           continue;
         }
 
-        // A ladder: two rails and rungs, so it reads as climbable rather than
-        // as a differently-coloured wall.
+        // A ladder is the tileset's, and it sits ON the floor: its rungs have
+        // gaps, and through them you should see the ground of the room rather
+        // than whatever is behind the whole world.
         if (tile === TILE_LADDER) {
-          ctx.fillStyle = this.ink(TILE_FLOOR);
-          ctx.fillRect(x * t, y * t, t, t);
-          const rail = Math.max(1, Math.floor(t / 8));
-          const inset = Math.max(1, Math.floor(t / 5));
-          ctx.fillStyle = this.ink(TILE_LADDER);
-          ctx.fillRect(x * t + inset, y * t, rail, t);
-          ctx.fillRect(x * t + t - inset - rail, y * t, rail, t);
-          if (t >= 8) {
-            const rungs = 2;
-            for (let r = 0; r < rungs; r++) {
-              const ry = y * t + Math.floor((t * (r * 2 + 1)) / (rungs * 2));
-              ctx.fillRect(x * t + inset, ry, t - inset * 2, rail);
-            }
-          }
+          const floor = this.stamps?.get(TILE_FLOOR);
+          const rungs = this.stamps?.get(TILE_LADDER);
+          if (floor !== undefined) ctx.drawImage(floor, x * t, y * t, t, t);
+          if (rungs !== undefined) ctx.drawImage(rungs, x * t, y * t, t, t);
           continue;
         }
 
         if (tile === TILE_ACTOR) {
-          ctx.fillStyle = this.ink(TILE_FLOOR);
-          ctx.fillRect(x * t, y * t, t, t);
+          this.paintUnder(x, y);
 
           if (this.stamp !== null && !blocked) {
             // Nearest-neighbour, whole cell. A 16x16 sprite in a 14px tile is
@@ -584,6 +663,14 @@ export class GridRenderer {
           const pad = Math.max(1, Math.floor(t / 8));
           ctx.fillStyle = blocked ? ACTOR_BLOCKED : (this.ink(TILE_ACTOR));
           ctx.fillRect(x * t + pad, y * t + pad, t - pad * 2, t - pad * 2);
+          continue;
+        }
+
+        // Terrain comes from the tileset; anything that moves or is personal
+        // is still drawn by hand above.
+        const stamp = this.stamps?.get(tile);
+        if (stamp !== undefined) {
+          ctx.drawImage(stamp, x * t, y * t, t, t);
           continue;
         }
 

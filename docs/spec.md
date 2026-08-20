@@ -148,6 +148,13 @@ sand floor, yellow treasure, red hazard, near-black void.
 
 **No colour picker. No custom colours.** The constraint is the feature.
 
+*Implemented for tiles as well as sprites (`src/core/tileset.ts`): the terrain
+is 8×8 patterns, three colours plus transparent, drawn under exactly the rule a
+creature is drawn under — which is what makes a level and the creature standing
+in it look like one world. Two tilesets so far: stone and dark floor
+underground, grass-topped earth under open sky for the side-on game. Purely
+presentation, so it never touches `stateHash()` and no shipped link notices.*
+
 ---
 
 ## 5. Creature sprites
