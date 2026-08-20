@@ -12,7 +12,7 @@
 // That is what lets a link from day 5 onwards pin the rules it was beaten under.
 
 import { ROAM4_LEVEL_TEXT } from "../../core/fixtures.ts";
-import { PRESETS, SPENDABLE, capsToBuild, spent, type Creature } from "../../core/creature.ts";
+import { PRESETS, capsToBuild, type Creature } from "../../core/creature.ts";
 import { CodecError, encodeLevel } from "../../core/codec.ts";
 import { levelFromHash, linkFor, resultFromHash, resultLinkFor, slugify } from "./link.ts";
 import { encodeQr, QrError } from "../../core/qr.ts";
@@ -691,32 +691,6 @@ function paintActionButton(): void {
  */
 const WEAPON_ENGINES: ReadonlySet<string> = new Set(["dash/3"]);
 
-/**
- * The one thing this creature is best at, for the button face -- as a plain
- * comparative, "Stronger" or "Faster". The full picture goes in the trait line
- * underneath.
- *
- * An even split is not "Stronger": with only two characteristics a tie is a
- * shape a kid will actually build (three and three is the obvious first try),
- * and labelling it with either word is a lie they can feel in the first room.
- */
-function bestAt(creature: Creature): string {
-  const build = capsToBuild(creature.caps);
-  // A brand-new character has spent nothing, and "A bit of both" would be a
-  // lie -- it is a bit of neither. Say what to do about it instead.
-  if (spent(build) === 0) return "Spend its points";
-  let best = SPENDABLE[0] as (typeof SPENDABLE)[number];
-  let tied = false;
-  for (const spend of SPENDABLE) {
-    if (build[spend.key] > build[best.key]) {
-      best = spend;
-      tied = false;
-    } else if (spend !== best && build[spend.key] === build[best.key]) {
-      tied = true;
-    }
-  }
-  return tied ? "A bit of both" : best.compare;
-}
 
 /**
  * A creature's own face, for its button.
@@ -757,14 +731,20 @@ function paintStable(): void {
     button.className = selected ? "on" : "";
     // The friend's creature can share a name with a preset -- if they beat your
     // level on Nim, the row has two Nims and "theirs" means nothing. Say which.
-    const under = at === guestAt ? "beat your level" : bestAt(creature);
     if (at === guestAt) button.classList.add("guest");
     const words = document.createElement("span");
     words.className = "words";
     const named = document.createElement("b");
     named.textContent = creature.name;
     words.appendChild(named);
-    words.appendChild(document.createTextNode(under));
+    // The face and the name, and nothing else. What a creature DOES is the
+    // line underneath -- and that line says far more than the one word that
+    // used to sit here ("hits hard · slow · 3 hearts" against "Stronger").
+    //
+    // The guest keeps a label, because it is not a description: if a friend
+    // beat your level on a preset, their creature has that preset's name AND
+    // its drawing, and nothing else on the button tells them apart.
+    if (at === guestAt) words.appendChild(document.createTextNode("beat your level"));
     button.appendChild(faceOf(creature));
     button.appendChild(words);
     button.setAttribute("aria-pressed", String(selected));
