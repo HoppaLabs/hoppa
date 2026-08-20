@@ -53,6 +53,19 @@ const SKY: Record<number, string> = {
   [TILE_VOID]: "#8fc4e8",
   [TILE_FLOOR]: "#a8d4f0",
   [TILE_WALL]: "#5c7a4a",
+  // Cyan was picked to stand out against a DARK room. Against sky it very
+  // nearly vanished, so the gem gets its own colour out here.
+  //
+  // Gold was the obvious answer and the wrong one: measured against this sky
+  // it is 1.01:1 -- gold and pale blue differ in hue but barely in brightness,
+  // so it disappears for anyone who cannot separate those, and in sunlight for
+  // everyone. Mario's coins work because Mario's sky is far darker than this.
+  //
+  // This magenta was picked by measuring, not by eye: 4.8:1 against the sky,
+  // 4.0:1 against the void behind it, and further from every other thing on a
+  // side-on screen -- enemy, door, lock, ladder, ground -- than any of them are
+  // from each other.
+  [TILE_TREASURE]: "#a3006f",
 };
 
 const ACTOR_BLOCKED = "#ff5f4d";
@@ -420,14 +433,25 @@ export class GridRenderer {
           const rx = Math.max(1, r * wide);
 
           // Edge-on it catches less light, which is what sells the turn.
-          ctx.fillStyle = wide > 0.35 ? this.ink(TILE_TREASURE) : "#3fa7c9";
+          const face = this.ink(TILE_TREASURE);
+          const edge = this.sideOn ? "#6b0049" : "#3fa7c9";
           ctx.beginPath();
           ctx.moveTo(cx, cy - r);
           ctx.lineTo(cx + rx, cy);
           ctx.lineTo(cx, cy + r);
           ctx.lineTo(cx - rx, cy);
           ctx.closePath();
+          ctx.fillStyle = wide > 0.35 ? face : edge;
           ctx.fill();
+          // An outline, so it reads on ANY background rather than only on the
+          // one it was picked for. A gem you have to hunt for is not treasure.
+          if (t >= 10) {
+            // Thick enough to carry the shape on its own, so the gem survives a
+            // background nobody has thought of yet.
+            ctx.strokeStyle = this.sideOn ? "#3d0029" : "#0e3b4a";
+            ctx.lineWidth = Math.max(1, Math.round(t / 10));
+            ctx.stroke();
+          }
           continue;
         }
 
