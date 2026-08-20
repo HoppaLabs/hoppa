@@ -281,11 +281,11 @@ test("the panel can be waved away, and stays away", async () => {
   expect(reset.slice(0, reset.indexOf("\n}\n")).includes("panelShut = false;")).toBe(true);
 });
 
-test("the page a friend opens is called hoppa, not hoppa \u2014 real time", async () => {
+test("the page a friend opens is called Hoppa - Open Games", async () => {
   // The title is what a browser tab shows and what a link preview picks up. It
-  // said "real time", which is a note about how the engine works.
+  // said "hoppa — real time", which is a note about how the engine works.
   const html = await Bun.file("src/web/play/index.html").text();
-  expect(html.includes("<title>hoppa</title>")).toBe(true);
+  expect(html.includes("<title>Hoppa - Open Games</title>")).toBe(true);
   expect(html.includes("real time")).toBe(false);
   // The two editors say what they are for, which is right -- you only reach
   // them from inside the game.
