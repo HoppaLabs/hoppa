@@ -29,7 +29,7 @@ test("there is a way to reach the other rooms from the game", () => {
   // left the play page opening on room one with no way to reach room two. A
   // player who never opened the editor saw one room and reported not being
   // able to find the fire.
-  expect(html.includes('<button id="another">another level</button>')).toBe(true);
+  expect(html.includes('<button id="another">play another level</button>')).toBe(true);
   // An ordinary #p/ link, so tapping it is the same act as tapping one in a
   // message -- nothing new is reachable this way.
   expect(main.includes("return `#p/${pick.slug}/${pick.code}`;")).toBe(true);
