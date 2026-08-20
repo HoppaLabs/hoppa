@@ -48,19 +48,17 @@ test("a see-through pixel stays see-through, so the button shows behind it", asy
   expect(main.includes("if (colour === null) continue;")).toBe(true);
 });
 
-test("the trait line shows the value and what the value buys", async () => {
+test("the trait line is the two values and nothing else", async () => {
   const main = await Bun.file("src/web/play/main.ts").text();
-  // It used to be three adjectives -- "hits hard · slow · 8 hearts" -- which
-  // hid the numbers a child had just spent points on, and read identically for
-  // strength 4 and strength 5.
-  expect(main.includes('pipRow("strong"')).toBe(true);
-  expect(main.includes('pipRow("fast"')).toBe(true);
+  // Three adjectives hid the numbers; numbers plus what they buy was more than
+  // anybody reads with a guard walking towards them. Just the values.
+  expect(main.includes('<b class="what">strong</b>')).toBe(true);
+  expect(main.includes('<b class="what">fast</b>')).toBe(true);
   // The pips are the same count the make page hands out, so "I gave it four"
   // and "it has four" are the same picture on both pages.
-  expect(main.includes("PIP_MAX - pips")).toBe(true);
-  // Read out of the running engine and the checker's own table, never
-  // recomputed here -- the same rule the heart count had to learn.
-  for (const asked of ["hitsToKillFor(creature)", "(moving as Moving).health().max", "stepTableFor(level.behaviourVersion)"]) {
-    expect({ asked, there: main.includes(asked) }).toEqual({ asked, there: true });
+  expect(main.includes("PIP_MAX - n")).toBe(true);
+  // ...and nothing else is worked out here to go stale.
+  for (const gone of ["hitsToKillFor", "stepTableFor", "an enemy's pace", "hearts`"]) {
+    expect({ gone, still: main.includes(gone) }).toEqual({ gone, still: false });
   }
 });

@@ -20,7 +20,6 @@ import { loadCharacter, loadDraft, playedBefore, rememberPlayed, setSoundOn, sou
 import { Sounds, soundsFor, type Moment } from "./sound.ts";
 import { draftToText } from "../../core/draft.ts";
 import { parseLevel } from "../../core/level.ts";
-import { stepTableFor } from "../../core/playable.ts";
 import { colourFor } from "../../core/palette.ts";
 import { SPRITE_H, SPRITE_W, spriteIndex } from "../../core/sprite.ts";
 import { hashHex } from "../../core/hash.ts";
@@ -29,7 +28,7 @@ import { Readout } from "./readout.ts";
 import { Recorder, beats, proofKey, type Replayable } from "../../core/proof.ts";
 import { Buttons, KEY_BITS, Loop, type Moving } from "./realtime.ts";
 import { HELD_ACT, HELD_DOWN, HELD_LEFT, HELD_RIGHT, HELD_SWING, HELD_UP } from "../../engines/types.ts";
-import { ENEMY_SPEED, hitsToKillFor, reachFor, speedFor } from "../../engines/roam/v5.ts";
+import { reachFor } from "../../engines/roam/v5.ts";
 import {
   INPUT_DOWN,
   INPUT_LEFT,
@@ -631,55 +630,25 @@ function reset(): void {
  * of the budget is that a kid can predict what their creature will do.
  */
 /**
- * What this creature is, as two rows a kid can read across.
+ * What this creature is: two numbers, and nothing else.
  *
- * It used to be three adjectives -- "hits hard · slow · 8 hearts" -- which hid
- * the numbers a child had just spent points on. Two builds that felt different
- * read identically, because strength 4 and strength 5 were both "hits hard".
+ * This has now been three things. It began as three adjectives -- "hits hard ·
+ * slow · 8 hearts" -- which hid the numbers a child had just spent points on.
+ * Then it was the numbers AND what they buy, which was accurate and was too
+ * much to read while a guard was walking towards you.
  *
- * So: the value, then what the value buys. The pips are the same thing the
- * make page counts out, so "I gave it four" and "it has four" are the same
- * picture in both places.
- *
- * The noun is fixed and the verb is the engine's (spec §6): strength is a
- * harder sword from above and a higher jump from the side, and saying "hits
- * hard" on a platformer would be a small lie.
+ * So: the two values, as the same pips the make page counts out. "I gave it
+ * four" and "it has four" are now literally the same picture, and everything
+ * the numbers buy is discoverable by playing, which is the better way to find
+ * it out anyway.
  */
-function pipRow(label: string, pips: number, says: string): string {
-  const filled = "\u25cf".repeat(pips) + "\u25cb".repeat(PIP_MAX - pips);
-  return (
-    `<span class="row"><b class="what">${label}</b>` +
-    `<b class="pips">${filled}</b><span class="buys">${says}</span></span>`
-  );
-}
-
 function traitLine(creature: Creature): string {
   const build = capsToBuild(creature.caps);
-  const sideOn = level.engine === "dash";
-
-  // What strength actually buys, in the units of THIS game rather than an
-  // adjective. Read out of the engine that is running, never recomputed here.
-  const hearts = moving === null ? null : (moving as Moving).health().max;
-  const strongBuys: string[] = [];
-  if (sideOn) {
-    // This creature's own step, from the table the checker uses, so the picker
-    // and "can this level be finished" never disagree about the same jump.
-    const cells = stepTableFor(level.behaviourVersion)[build.FORCE] ?? 1;
-    strongBuys.push(`jumps ${cells} ${cells === 1 ? "cell" : "cells"} up`);
-  } else if (creature.weapon === "wand") {
-    // A wand never kills, whatever its strength. That is the trade.
-    strongBuys.push("freezes for longer");
-  } else {
-    const hits = hitsToKillFor(creature);
-    strongBuys.push(`${hits} ${hits === 1 ? "hit" : "hits"} to down an enemy`);
-  }
-  if (hearts !== null) strongBuys.push(`${hearts} hearts`);
-
-  const speed = speedFor(creature);
-  const fastBuys = `${(speed / ENEMY_SPEED).toFixed(1)}× an enemy's pace`;
-
+  const pips = (n: number): string =>
+    "\u25cf".repeat(n) + "\u25cb".repeat(PIP_MAX - n);
   return (
-    pipRow("strong", build.FORCE, strongBuys.join(", ")) + pipRow("fast", build.HASTE, fastBuys)
+    `<span class="pair"><b class="what">strong</b><b class="pips">${pips(build.FORCE)}</b></span>` +
+    `<span class="pair"><b class="what">fast</b><b class="pips">${pips(build.HASTE)}</b></span>`
   );
 }
 

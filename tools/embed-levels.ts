@@ -23,6 +23,7 @@ export const EMBEDDED: ReadonlyArray<readonly [string, string]> = [
   ["DASH1_LEVEL_TEXT", "levels/dash1.lvl"],
   ["DASH2_LEVEL_TEXT", "levels/dash2.lvl"],
   ["DASH3_LEVEL_TEXT", "levels/dash3.lvl"],
+  ["DASH4_LEVEL_TEXT", "levels/dash4.lvl"],
 ];
 
 export async function renderEmbedModule(): Promise<string> {

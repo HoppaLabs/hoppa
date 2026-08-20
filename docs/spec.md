@@ -374,7 +374,13 @@ or **swing at it**. The weapon works exactly as it does from above, with the
 same reach, so what you built carries between both games (`docs/adr/0019`).
 Jump and swing are separate buttons, because jump already owns the action key.
 
-`dash/1` and `dash/2` are retired but still shipped: under `dash/1` a creature
+**Treasure is picked up by going to it**, at exactly the reach `roam/5` uses —
+a creature carries between the two games, and how close you must be should not
+change when the camera moves. Up to `dash/3` it was the weapon's reach, which
+from the side meant collecting a gem off the platform above you without ever
+climbing to it (`docs/adr/0029`).
+
+`dash/1`, `dash/2` and `dash/3` are retired but still shipped: under `dash/1` a creature
 with no strength could not climb a single step, which made spending everything
 on speed a trap (`docs/adr/0018`); neither had a weapon at all.
 
