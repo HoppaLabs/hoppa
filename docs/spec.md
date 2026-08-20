@@ -334,8 +334,12 @@ through walls (`docs/adr/0013`); in v2 the wand was still a costume
 Donkey-Kong-shaped. Platforms, ladders, gravity. You run, jump, and land on
 enemies from above to squash them. Fall too far and it costs you.
 
-- **Stronger** — you jump higher, and you have more hearts
+- **Stronger** — you jump higher (1, 2 or 3 cells), and you have more hearts
 - **Faster** — you run quicker, so a jump carries you further
+
+`dash/1` is retired but still shipped: under it a creature with no strength
+could not climb a single step, which made spending everything on speed a trap
+(`docs/adr/0018`).
 
 The same creature plays both. A strong creature muscles through Roam and reaches
 platforms a fast one has to route around; a fast one outruns Roam's enemies and

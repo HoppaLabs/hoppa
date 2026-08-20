@@ -7,8 +7,7 @@ import { starterSprite } from "../src/core/sprite.ts";
 import { toCell } from "../src/core/fixed.ts";
 import { HELD_ACT, HELD_RIGHT, STATUS_PLAYING } from "../src/engines/types.ts";
 import {
-  BEST_STEP_UP, STEP_UP_BY_PIP, TYPICAL_STEP_UP,
-  landingFrom, reachableWithGravity,
+  bestStepUp, landingFrom, reachableWithGravity, stepTableFor,
 } from "../src/core/playable.ts";
 import { adviceFor } from "../src/core/advice.ts";
 import { reachableFrom } from "../src/core/reach.ts";
@@ -52,7 +51,7 @@ function engineCanMount(pips: number, h: number): boolean {
   return false;
 }
 
-test("STEP_UP_BY_PIP matches what the engine actually does, at every strength", () => {
+test("dash/1's step table matches what dash/1 actually does, at every strength", () => {
   const measured: number[] = [];
   for (let pips = 0; pips <= 5; pips++) {
     let best = 0;
@@ -60,15 +59,15 @@ test("STEP_UP_BY_PIP matches what the engine actually does, at every strength", 
     measured.push(best);
   }
   console.log(`\n  step-up measured from dash/1: ${JSON.stringify(measured)}`);
-  expect(measured).toEqual([...STEP_UP_BY_PIP]);
-  expect(Math.max(...measured)).toBe(BEST_STEP_UP);
+  expect(measured).toEqual([...stepTableFor(1)]);
+  expect(Math.max(...measured)).toBe(bestStepUp(1));
 });
 
-test("a creature with no strength cannot climb a step at all", () => {
-  // Worth its own test because it is a trap: spend everything on speed and the
-  // side-on game becomes ladders-and-flat-ground only. Flagged, not fixed --
-  // changing it means a new dash behaviour version.
-  expect(STEP_UP_BY_PIP[0]).toBe(0);
+test("in dash/1 a creature with no strength cannot climb a step at all", () => {
+  // The trap dash/2 exists to fix: spend everything on speed under these rules
+  // and the side-on game is ladders and flat ground only. Pinned here because
+  // dash/1 is shipped and must keep behaving exactly this way (adr 0018).
+  expect(stepTableFor(1)[0]).toBe(0);
   expect(engineCanMount(0, 1)).toBe(false);
 });
 
@@ -94,7 +93,7 @@ const LEDGE = parseLevel([
 
 test("a ledge out of jumping range is not reachable, however open the air is", () => {
   const start = landingFrom(LEDGE, LEDGE.startX, LEDGE.startY);
-  const seen = reachableWithGravity(LEDGE, start.x, start.y, BEST_STEP_UP);
+  const seen = reachableWithGravity(LEDGE, start.x, start.y, bestStepUp(1));
   // Standing ON the ledge means the row directly above it.
   expect(seen[idx(15, 2)]).toBe(0);
   // ...while the floor you started on is of course fine.
@@ -112,7 +111,7 @@ test("a plain flood fill would have called it reachable, which is the bug", () =
   const flat = reachableFrom(LEDGE, LEDGE.startX, LEDGE.startY);
   expect(flat[idx(15, 2)]).toBe(1); // says yes
   const start = landingFrom(LEDGE, LEDGE.startX, LEDGE.startY);
-  expect(reachableWithGravity(LEDGE, start.x, start.y, BEST_STEP_UP)[idx(15, 2)]).toBe(0); // says no
+  expect(reachableWithGravity(LEDGE, start.x, start.y, bestStepUp(1))[idx(15, 2)]).toBe(0); // says no
 });
 
 test("ladders get you up regardless of how weak your jump is", () => {

@@ -15,6 +15,7 @@ import { RoamV1, ROAM_V1_BEHAVIOUR } from "./roam/v1.ts";
 import { RoamV2, ROAM_V2_BEHAVIOUR } from "./roam/v2.ts";
 import { RoamV3, ROAM_V3_BEHAVIOUR } from "./roam/v3.ts";
 import { DashV1, DASH_V1_BEHAVIOUR } from "./dash/v1.ts";
+import { DashV2, DASH_V2_BEHAVIOUR } from "./dash/v2.ts";
 import type { Engine } from "./types.ts";
 
 export class UnknownBehaviourError extends Error {}
@@ -61,6 +62,13 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
     `dash/${DASH_V1_BEHAVIOUR}`,
     (level, creature) =>
       creature === undefined ? new DashV1(level) : new DashV1(level, creature),
+  ],
+  // v2: everybody can climb a step. In v1 a creature with no strength could
+  // not, which made a whole build a trap.
+  [
+    `dash/${DASH_V2_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new DashV2(level) : new DashV2(level, creature),
   ],
 ]);
 

@@ -16,9 +16,7 @@ import { GRID_W, idx } from "./grid.ts";
 import { encodeLevel } from "./codec.ts";
 import { parseLevel, type Level } from "./level.ts";
 import { verifyLevelText } from "./verify.ts";
-import {
-  BEST_STEP_UP, TYPICAL_STEP_UP, landingFrom, reachableWithGravity,
-} from "./playable.ts";
+import { bestStepUp, landingFrom, reachableWithGravity, typicalStepUp } from "./playable.ts";
 import { sideOn } from "./draft.ts";
 
 /** Above this a link starts getting awkward in a group chat. Spec S13's L7. */
@@ -123,8 +121,11 @@ function jumpNotes(level: Level): Note[] {
   const notes: Note[] = [];
   const start = landingFrom(level, level.startX, level.startY);
 
-  const best = reachableWithGravity(level, start.x, start.y, BEST_STEP_UP);
-  const typical = reachableWithGravity(level, start.x, start.y, TYPICAL_STEP_UP);
+  // Judged by the rules THIS level pins, not by the newest ones: a level drawn
+  // under dash/1 still has dash/1's weaker jump when somebody opens the link.
+  const version = level.behaviourVersion | 0;
+  const best = reachableWithGravity(level, start.x, start.y, bestStepUp(version));
+  const typical = reachableWithGravity(level, start.x, start.y, typicalStepUp(version));
 
   const targets: Array<{ cell: number; what: string }> = [];
   if (level.exitX >= 0) targets.push({ cell: idx(level.exitX, level.exitY), what: "door" });

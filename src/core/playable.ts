@@ -22,23 +22,52 @@ import { GRID_AREA, GRID_H, GRID_W, idx } from "./grid.ts";
 import { isLadder, isWall, type Level } from "./level.ts";
 
 /**
- * The tallest step each strength can climb, in cells, by pips 0..5.
+ * The tallest step each strength can climb, in cells, by pips 0..5 -- one table
+ * per side-on behaviour version, because a level pins the rules it was drawn
+ * under and an old link must be judged by the jump it actually had.
  *
- * MEASURED from dash/1, not derived: `test/playable.test.ts` drives the real
- * engine at every strength and every step height and fails if this table drifts
- * from what the game actually does. A jump arc is velocity, gravity, body size
- * and landing checks together, and an arithmetic guess at it would be wrong in
- * exactly the cases that matter.
+ * MEASURED, not derived: `test/playable.test.ts` and `test/dash-v2.test.ts`
+ * drive the real engines at every strength and every step height and fail if
+ * these drift from what the games do. A jump arc is velocity, gravity, body
+ * size and landing checks together, and an arithmetic guess at it would be
+ * wrong in exactly the cases that matter.
  *
- * Note the first entry. A creature with NO strength cannot climb any step at
- * all -- it goes where flat ground and ladders take it and nowhere else.
+ * Note dash/1's first entry: a creature with no strength could not climb any
+ * step at all, which made a whole build a trap. That is what dash/2 fixes, and
+ * why there are two tables rather than one (docs/adr/0018).
  */
-export const STEP_UP_BY_PIP: readonly number[] = [0, 1, 1, 1, 2, 2];
+const STEP_UP_BY_VERSION: Readonly<Record<number, readonly number[]>> = {
+  1: [0, 1, 1, 1, 2, 2],
+  2: [1, 1, 1, 2, 2, 3],
+};
 
-/** The best any creature can manage, for "is this broken for everybody". */
-export const BEST_STEP_UP = 2;
-/** What a middling creature manages, for "you would need to be strong". */
-export const TYPICAL_STEP_UP = 1;
+/** The newest side-on rules, for anything that does not name a version. */
+export const STEP_UP_BY_PIP: readonly number[] = STEP_UP_BY_VERSION[2] as readonly number[];
+
+/** The step table for a side-on behaviour version, newest rules if unknown. */
+export function stepTableFor(behaviourVersion: number): readonly number[] {
+  return STEP_UP_BY_VERSION[behaviourVersion | 0] ?? STEP_UP_BY_PIP;
+}
+
+/** The best any creature can manage here, for "is this broken for everybody". */
+export function bestStepUp(behaviourVersion: number): number {
+  const table = stepTableFor(behaviourVersion);
+  let best = 0;
+  for (let i = 0; i < table.length; i = (i + 1) | 0) {
+    const step = table[i] as number;
+    if (step > best) best = step;
+  }
+  return best;
+}
+
+/**
+ * What a creature that did NOT spend on strength manages, for "you would have
+ * to be strong". Two pips is the most you can have while still being properly
+ * fast, so it is the honest baseline for "a fast one will not make it".
+ */
+export function typicalStepUp(behaviourVersion: number): number {
+  return stepTableFor(behaviourVersion)[2] as number;
+}
 
 function open(level: Level, x: number, y: number): boolean {
   if (x < 0 || y < 0 || x >= GRID_W || y >= GRID_H) return false;

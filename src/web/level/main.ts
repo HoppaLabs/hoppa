@@ -62,7 +62,7 @@ const TOOLS: readonly Tool[] = [
 
 const GAMES = [
   { engine: "roam", behaviour: 3, label: "from above" },
-  { engine: "dash", behaviour: 1, label: "from the side" },
+  { engine: "dash", behaviour: 2, label: "from the side" },
 ] as const;
 
 const TILE_OF: Record<string, number> = {
