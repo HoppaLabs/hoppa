@@ -16,11 +16,13 @@ import { RoamV2, ROAM_V2_BEHAVIOUR } from "./roam/v2.ts";
 import { RoamV3, ROAM_V3_BEHAVIOUR } from "./roam/v3.ts";
 import { RoamV4, ROAM_V4_BEHAVIOUR } from "./roam/v4.ts";
 import { RoamV5, ROAM_V5_BEHAVIOUR } from "./roam/v5.ts";
+import { RoamV6, ROAM_V6_BEHAVIOUR } from "./roam/v6.ts";
 import { DashV1, DASH_V1_BEHAVIOUR } from "./dash/v1.ts";
 import { DashV2, DASH_V2_BEHAVIOUR } from "./dash/v2.ts";
 import { DashV3, DASH_V3_BEHAVIOUR } from "./dash/v3.ts";
 import { DashV4, DASH_V4_BEHAVIOUR } from "./dash/v4.ts";
 import { DashV5, DASH_V5_BEHAVIOUR } from "./dash/v5.ts";
+import { DashV6, DASH_V6_BEHAVIOUR } from "./dash/v6.ts";
 import type { Engine } from "./types.ts";
 
 export class UnknownBehaviourError extends Error {}
@@ -107,6 +109,19 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
     `dash/${DASH_V5_BEHAVIOUR}`,
     (level, creature) =>
       creature === undefined ? new DashV5(level) : new DashV5(level, creature),
+  ],
+  // v6, both games: a hazard that does not move. Fire below ground, spikes
+  // above it -- one entity, one tile index, two ways of drawing it. It costs a
+  // heart and nothing puts it out. See docs/adr/0034.
+  [
+    `roam/${ROAM_V6_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new RoamV6(level) : new RoamV6(level, creature),
+  ],
+  [
+    `dash/${DASH_V6_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new DashV6(level) : new DashV6(level, creature),
   ],
 ]);
 

@@ -12,7 +12,7 @@
 
 import { GRID_H, GRID_W } from "../../core/grid.ts";
 import {
-  GLYPH_EXIT, GLYPH_FLOOR, GLYPH_GUARD, GLYPH_LADDER,
+  GLYPH_EXIT, GLYPH_FIRE, GLYPH_FLOOR, GLYPH_GUARD, GLYPH_LADDER,
   GLYPH_START, GLYPH_TREASURE, GLYPH_WALL,
 } from "../../core/level.ts";
 import { parseLevel } from "../../core/level.ts";
@@ -27,6 +27,7 @@ import { slugify } from "../play/link.ts";
 import { GridRenderer } from "../play/renderer.ts";
 import { PACK } from "../../core/pack.ts";
 import {
+  TILE_FIRE,
   TILE_ACTOR, TILE_EXIT_LOCKED, TILE_FLOOR, TILE_GUARD,
   TILE_LADDER, TILE_TREASURE, TILE_WALL,
 } from "../../core/tiles.ts";
@@ -47,6 +48,14 @@ interface Tool {
    * button showing dark grey that paints green is a button that lies.
    */
   readonly skyColour?: string;
+  /**
+   * What it is called in the side-on game.
+   *
+   * The same entity is a flame below ground and spikes out in the open, so a
+   * button labelled "fire" that paints spikes is a button that lies -- exactly
+   * what skyColour exists to stop, one level up.
+   */
+  readonly skyLabel?: string;
   /** Only offered for the games that have it. */
   readonly engines?: readonly string[];
   /** Shows "3 of 8" under the button when there is a limit worth knowing. */
@@ -61,6 +70,10 @@ const TOOLS: readonly Tool[] = [
   { glyph: GLYPH_TREASURE, label: "treasure", colour: "#5fd3f3", limit: 8 },
   { glyph: GLYPH_GUARD, label: "enemy", colour: "#ff5f4d", limit: 10 },
   { glyph: GLYPH_LADDER, label: "ladder", colour: "#c8a26a", engines: ["dash"] },
+  // One tool, two names. It is the same entity either way -- what changes is
+  // what the world draws, because a flame standing on grass looks like a
+  // mistake and spikes in a cave look like a floor. See src/core/tileset.ts.
+  { glyph: GLYPH_FIRE, label: "fire", skyLabel: "spikes", colour: "#ff9f3d", limit: 10 },
 ];
 
 /**
@@ -89,6 +102,7 @@ const TILE_OF: Record<string, number> = {
   [GLYPH_TREASURE]: TILE_TREASURE,
   [GLYPH_GUARD]: TILE_GUARD,
   [GLYPH_LADDER]: TILE_LADDER,
+  [GLYPH_FIRE]: TILE_FIRE,
 };
 
 // --- the page -----------------------------------------------------------------
@@ -623,7 +637,8 @@ function paintTools(): void {
       draft.engine === "dash" && entry.skyColour !== undefined ? entry.skyColour : entry.colour;
 
     const label = document.createElement("span");
-    label.textContent = entry.label;
+    label.textContent =
+      draft.engine === "dash" && entry.skyLabel !== undefined ? entry.skyLabel : entry.label;
 
     button.append(chip, label);
 

@@ -17,6 +17,15 @@ export const TILE_GUARD = 7;
 export const TILE_GUARD_REELING = 8;
 /** A ladder. Side-on engines climb it; from above it is ordinary floor. */
 export const TILE_LADDER = 9;
+/**
+ * A hazard that does not move.
+ *
+ * ONE tile, drawn differently by each world -- a flame underground, spikes out
+ * in the open, where a flame standing on grass would look like a mistake. Hard
+ * rule 5: an engine emits this index and knows nothing about which it is, and
+ * hard rule 4: the choice is presentation, so it cannot reach stateHash().
+ */
+export const TILE_FIRE = 10;
 
 // Grows as engines gain tiles; capped at 16 per engine.
-export const TILE_COUNT = 10;
+export const TILE_COUNT = 11;

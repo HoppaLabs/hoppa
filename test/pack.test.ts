@@ -18,8 +18,12 @@ const rooms = await Promise.all(
   })),
 );
 
-test("six rooms ship, and the file on disk is the code in the bundle", () => {
-  expect(PACK.length).toBe(6);
+test("nine rooms ship, and the file on disk is the code in the bundle", () => {
+  // Six taught the game; three more teach the hazard that does not move. Nine
+  // also fills the editor's three-wide grid, which is the same reason the
+  // characters went to sixteen.
+  expect(PACK.length).toBe(9);
+  expect(PACK.length % 3).toBe(0);
   for (const room of rooms) {
     // The .lvl file is the source; the code is generated from it. If they drift,
     // the level somebody plays is not the level anybody checked.
@@ -175,10 +179,10 @@ test("the play page is for playing: neither list is on it any more", () => {
   expect(stash).not.toContain("playedBefore");
 });
 
-test("but the six are still shipped, and still known to be shipped", () => {
+test("but the shipped rooms are still known to be shipped", () => {
   // Which matters for one thing that is NOT a list: a room the game ships with
   // has nobody to send a score back to, so it shares as a level.
-  expect(PACK.length).toBe(6);
+  expect(PACK.length).toBe(9);
   expect(play.includes("const shipped = new Set(PACK.map((room) => room.code));")).toBe(true);
   expect(play.includes("const isShipped = shipped.has(levelCode);")).toBe(true);
 });
@@ -232,10 +236,10 @@ test("the play page is for playing: neither list is on it any more", () => {
   expect(stash).not.toContain("playedBefore");
 });
 
-test("but the six are still shipped, and still known to be shipped", () => {
+test("but the shipped rooms are still known to be shipped", () => {
   // Which matters for one thing that is NOT a list: a room the game ships with
   // has nobody to send a score back to, so it shares as a level.
-  expect(PACK.length).toBe(6);
+  expect(PACK.length).toBe(9);
   expect(play.includes("const shipped = new Set(PACK.map((room) => room.code));")).toBe(true);
   expect(play.includes("const isShipped = shipped.has(levelCode);")).toBe(true);
 });

@@ -97,6 +97,18 @@ export interface Tileset {
   readonly wall: Pattern;
   readonly floor: Pattern;
   readonly ladder: Pattern;
+  /** The hazard that does not move: a flame below ground, spikes above it. */
+  readonly fire: Pattern;
+  /**
+   * Three colours for the hazard alone.
+   *
+   * It is a different MATERIAL from the terrain, and it borrowed the terrain's
+   * palette at first: underground that made the flame stone grey, so it read
+   * as a rock with a pointed top rather than as something that hurts. Nothing
+   * else on screen needs its own palette, because nothing else is trying to
+   * look hot.
+   */
+  readonly fireSub: SubPalette;
   /** Painted behind everything, for the parts a pattern leaves transparent. */
   readonly ground: string;
 }
@@ -107,6 +119,43 @@ export interface Tileset {
  * The sub-palette indices are into PALETTE and are append-only there, so these
  * three numbers keep meaning the same colours forever.
  */
+/**
+ * Fire, for the world seen from above: a flame with a pale heart.
+ *
+ * It has to read as DANGER at fourteen pixels, and it has to be told apart
+ * from a gem at a glance -- both are small bright things standing on dark
+ * floor. So it fills its tile from the bottom, where a gem floats in the
+ * middle, and it is drawn in the palette's brightest colour.
+ */
+const FLAME: Pattern = [
+  "....3...",
+  "...33...",
+  "..3323..",
+  ".332233.",
+  ".322123.",
+  "3221123.",
+  "3211123.",
+  "33222233",
+];
+
+/**
+ * The same hazard for the side-on world: spikes coming up out of the ground.
+ *
+ * A flame standing on a grass ledge reads as a mistake -- fire belongs in a
+ * cave. Spikes are what a side-on game puts on a floor, and they sit on the
+ * ground rather than floating over it, so the shape says which way is down.
+ */
+const SPIKES: Pattern = [
+  "..1..1..",
+  "..2..2..",
+  ".222.222",
+  ".222.222",
+  "22222222",
+  "22222222",
+  "33333333",
+  "33333333",
+];
+
 export const UNDERGROUND: Tileset = {
   id: 1,
   name: "underground",
@@ -114,6 +163,9 @@ export const UNDERGROUND: Tileset = {
   wall: STONE,
   floor: GROUND,
   ladder: LADDER,
+  fire: FLAME,
+  // Pale core, orange body, red edge: hot, and nothing else down here is warm.
+  fireSub: [29, 34, 40], // #ffe9a3, #ff9f3d, #ff5f4d
   ground: PALETTE[0] as string, // #0d1014
 };
 
@@ -125,6 +177,12 @@ export const OUTSIDE: Tileset = {
   wall: EARTH,
   floor: AIR,
   ladder: LADDER,
+  // Spikes, not a flame: see SPIKES.
+  fire: SPIKES,
+  // Dark metal with a bright tip, which is the way round that reads: a pale
+  // spike is lost against the sky above it, and a dark one stands out against
+  // both the sky and the green it is standing on.
+  fireSub: [4, 2, 1], // #cdd6e0 tips, #39485c body, #1a212b base
   ground: "#8fc4e8",
 };
 
@@ -143,10 +201,10 @@ export function tilesetFor(sideOn: boolean): Tileset {
 }
 
 /** The colour of one pattern character, or null where it is transparent. */
-export function inkOf(set: Tileset, ch: string): string | null {
-  if (ch === "1") return PALETTE[set.sub[0]] as string;
-  if (ch === "2") return PALETTE[set.sub[1]] as string;
-  if (ch === "3") return PALETTE[set.sub[2]] as string;
+export function inkOf(set: Tileset, ch: string, sub: SubPalette = set.sub): string | null {
+  if (ch === "1") return PALETTE[sub[0]] as string;
+  if (ch === "2") return PALETTE[sub[1]] as string;
+  if (ch === "3") return PALETTE[sub[2]] as string;
   return null;
 }
 

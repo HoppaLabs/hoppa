@@ -11,6 +11,7 @@ import { TILE_PX, inkOf, tilesetFor, type Pattern, type Tileset } from "../../co
 import {
   TILE_ACTOR,
   TILE_GUARD_REELING,
+  TILE_FIRE,
   TILE_LADDER,
   TILE_EXIT_LOCKED,
   TILE_EXIT_OPEN,
@@ -35,6 +36,9 @@ const COLOUR: Record<number, string> = {
   [TILE_GUARD]: "#ff5f4d",
   [TILE_GUARD_REELING]: "#7a5c86",
   [TILE_LADDER]: "#9a6b38",
+  // Only ever seen if a tileset stamp fails to build. Orange, because whatever
+  // else goes wrong, "this square hurts" must survive it.
+  [TILE_FIRE]: "#ff9f3d",
 };
 
 /**
@@ -142,13 +146,17 @@ export class GridRenderer {
 
     const made = new Map<number, HTMLCanvasElement>();
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    const patterns: ReadonlyArray<readonly [number, Pattern]> = [
-      [TILE_WALL, set.wall],
-      [TILE_FLOOR, set.floor],
-      [TILE_LADDER, set.ladder],
+    // The hazard is the one thing that does not use the terrain palette: it is
+    // a different material, and borrowing the terrain's colours made the flame
+    // stone grey. See Tileset.fireSub.
+    const patterns: ReadonlyArray<readonly [number, Pattern, typeof set.sub]> = [
+      [TILE_WALL, set.wall, set.sub],
+      [TILE_FLOOR, set.floor, set.sub],
+      [TILE_LADDER, set.ladder, set.sub],
+      [TILE_FIRE, set.fire, set.fireSub],
     ];
 
-    for (const [tile, pattern] of patterns) {
+    for (const [tile, pattern, sub] of patterns) {
       const canvas = document.createElement("canvas");
       canvas.width = Math.max(1, Math.round(t * dpr));
       canvas.height = Math.max(1, Math.round(t * dpr));
@@ -160,7 +168,7 @@ export class GridRenderer {
       for (let y = 0; y < TILE_PX; y++) {
         const row = pattern[y] as string;
         for (let x = 0; x < TILE_PX; x++) {
-          const ink = inkOf(set, row[x] as string);
+          const ink = inkOf(set, row[x] as string, sub);
           if (ink === null) continue;
           ctx.fillStyle = ink;
           ctx.fillRect(
@@ -645,6 +653,22 @@ export class GridRenderer {
           const rungs = this.stamps?.get(TILE_LADDER);
           if (floor !== undefined) ctx.drawImage(floor, x * t, y * t, t, t);
           if (rungs !== undefined) ctx.drawImage(rungs, x * t, y * t, t, t);
+          continue;
+        }
+
+        // Fire is the tileset's too, and it stands ON the floor the same way a
+        // ladder does -- its shape has gaps, and a hazard cut out of the world
+        // behind it reads as a hole rather than as a thing in the room.
+        if (tile === TILE_FIRE) {
+          const floor = this.stamps?.get(TILE_FLOOR);
+          const flame = this.stamps?.get(TILE_FIRE);
+          if (floor !== undefined) ctx.drawImage(floor, x * t, y * t, t, t);
+          if (flame !== undefined) {
+            ctx.drawImage(flame, x * t, y * t, t, t);
+          } else {
+            ctx.fillStyle = COLOUR[TILE_FIRE] as string;
+            ctx.fillRect(x * t, y * t, t, t);
+          }
           continue;
         }
 

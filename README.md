@@ -116,10 +116,26 @@ The generator measures each body colour against the square it is drawn on and
 refuses anything under 4:1, because the first four picked by eye were
 invisible. See [`docs/adr/0033`](docs/adr/0033-what-a-real-user-said.md).
 
-## The six rooms it opens with
+## Fire, and spikes
 
-Six levels ship, in order, one idea at a time: an empty room, then a route,
-then guards, then the side-on game, then a climb, then everything at once. They
+The first danger that does not move. A guard is a timing problem; fire is a
+route problem, and it has no patrol so spec L5 has nothing to say about it —
+which makes open rooms designable again. It costs a heart on contact, nothing
+puts it out, and it never blocks a route: the level checks treat it the way
+they treat a guard, and the editor warns rather than refuses when the only way
+through is on fire.
+
+One entity, drawn as a flame below ground and as spikes out in the open, where
+a flame on a grass ledge would look like a mistake. It cost the wire format
+nothing — the entity kind field is 3 bits and only four of eight values were
+ever used — so every link ever sent still means what it meant. See
+[`docs/adr/0034`](docs/adr/0034-a-hazard-that-does-not-move.md).
+
+## The nine rooms it ships with
+
+Nine levels ship, in order, one idea at a time: an empty room, then a route,
+then guards, then the side-on game, then a climb, then everything at once, then
+three that use the hazard which does not move. They
 are ordinary `#p/` links — tapping one in the **levels** list is the same act as
 tapping one in a message, and **edit level** opens the room you are looking at,
 so every one of them is a starting point.

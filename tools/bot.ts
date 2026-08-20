@@ -48,6 +48,7 @@ import {
 interface LevelBits {
   readonly walls: Uint8Array;
   readonly ladders: Uint8Array;
+  readonly fires: Uint8Array;
 }
 
 /** What the engine has to tell us for the bot to steer at all. */
@@ -110,7 +111,12 @@ function goal(tiles: Uint8Array, fromX: number, fromY: number): number {
  * standing in a corridor is not a wall -- walking into one costs a heart, and
  * routing around every guard would make the bot better at this than a child.
  */
-function routeFrom(walls: Uint8Array, from: number, to: number): number[] {
+function routeFrom(
+  walls: Uint8Array,
+  from: number,
+  to: number,
+  fires: Uint8Array | null = null,
+): number[] {
   const seen = new Int32Array(GRID_W * GRID_H).fill(-1);
   const queue: number[] = [from];
   seen[from] = from;
@@ -130,6 +136,7 @@ function routeFrom(walls: Uint8Array, from: number, to: number): number[] {
       if (nx < 0 || ny < 0 || nx >= GRID_W || ny >= GRID_H) continue;
       const next = idx(nx, ny);
       if (walls[next] === 1 || seen[next] !== -1) continue;
+      if (fires !== null && fires[next] === 1) continue;
       seen[next] = cell;
       queue.push(next);
     }
@@ -138,6 +145,20 @@ function routeFrom(walls: Uint8Array, from: number, to: number): number[] {
   const path: number[] = [];
   for (let cell = to; cell !== from; cell = seen[cell] as number) path.push(cell);
   return path.reverse();
+}
+
+/**
+ * The way round the fire if there is one, and through it if there is not.
+ *
+ * Fire never blocks a route -- walking through costs a heart and you carry on
+ * -- so refusing to cross it would make the bot fail levels a child would
+ * finish. But taking a heart when a dry way exists would make the bot WORSE
+ * than a child, and the point of it is to be no better than one.
+ */
+function routeAvoidingFire(bits: LevelBits, from: number, to: number): number[] {
+  const dry = routeFrom(bits.walls, from, to, bits.fires);
+  if (dry.length > 0) return dry;
+  return routeFrom(bits.walls, from, to);
 }
 
 /** Which way to hold to get from one cell to the next one along. */
@@ -161,7 +182,7 @@ function towards(from: number, to: number): number {
  * is picked up and because a bot that follows a stale plan into a wall tells you
  * nothing about the room.
  */
-function playFromAbove(engine: Playable, walls: Uint8Array, cap: number): number[] {
+function playFromAbove(engine: Playable, level: LevelBits, cap: number): number[] {
   const log: number[] = [];
   for (let tick = 0; tick < cap; tick++) {
     if (engine.currentStatus() !== STATUS_PLAYING) break;
@@ -171,7 +192,7 @@ function playFromAbove(engine: Playable, walls: Uint8Array, cap: number): number
     const want = goal(tiles, here.x, here.y);
     if (want < 0) break;
 
-    const path = routeFrom(walls, at, want);
+    const path = routeAvoidingFire(level, at, want);
     let held = 0;
     if (path.length > 0) {
       // Line up on the other axis first, THEN turn. Never a diagonal.
@@ -348,6 +369,21 @@ function playFromTheSide(engine: Playable, level: LevelBits, cap: number): numbe
       }
     }
 
+    // Spikes ahead: jump them.
+    //
+    // The top-down loop routes round fire, because from above there is always
+    // a way round if there is one at all. From the side there is no round --
+    // the floor is the floor -- so the answer is over, which is what the jump
+    // button is for. Without this the bot walked into the same bed of spikes
+    // until it ran out of hearts, on a level all three creatures can clear.
+    const facing = (held & HELD_RIGHT) !== 0 ? 1 : (held & HELD_LEFT) !== 0 ? -1 : 0;
+    if (facing !== 0) {
+      const ahead = here.x + facing;
+      if (ahead >= 0 && ahead < GRID_W && level.fires[idx(ahead, here.y)] === 1) {
+        held |= HELD_ACT;
+      }
+    }
+
     // Still nowhere? Jump. Covers a step up and a ledge that walking will not
     // clear.
     if (stalled > 8) held |= HELD_ACT;
@@ -366,7 +402,7 @@ export function botPlays(text: string, creature: Creature, cap = 3600): Attempt 
 
   const log = sideOn
     ? playFromTheSide(engine, level, cap)
-    : playFromAbove(engine, level.walls, cap);
+    : playFromAbove(engine, level, cap);
 
   const status = engine.currentStatus();
   const health = engine.health?.() ?? { hp: 0, max: 0 };

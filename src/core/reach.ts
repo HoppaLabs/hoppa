@@ -7,8 +7,21 @@
 import { GRID_AREA, GRID_H, GRID_W, idx } from "./grid.ts";
 import type { Level } from "./level.ts";
 
-/** 1 where the cell is open and walkable from (fromX, fromY). Length GRID_AREA. */
-export function reachableFrom(level: Level, fromX: number, fromY: number): Uint8Array {
+/**
+ * 1 where the cell is open and walkable from (fromX, fromY). Length GRID_AREA.
+ *
+ * `avoidingFire` treats a burning cell as if it were a wall. That is NOT what
+ * L3 and L4 do -- fire is like a guard there, something that makes a route
+ * expensive rather than impossible, and you can walk through it and lose a
+ * heart. It is used to answer a narrower question: is the only way through on
+ * fire? Which is worth telling somebody, and is not a reason to refuse a level.
+ */
+export function reachableFrom(
+  level: Level,
+  fromX: number,
+  fromY: number,
+  avoidingFire = false,
+): Uint8Array {
   const seen = new Uint8Array(GRID_AREA);
   if (level.walls[idx(fromX, fromY)] === 1) return seen;
 
@@ -32,6 +45,7 @@ export function reachableFrom(level: Level, fromX: number, fromY: number): Uint8
       if (nx < 0 || nx >= GRID_W || ny < 0 || ny >= GRID_H) continue;
       const n = idx(nx, ny);
       if (seen[n] === 1 || level.walls[n] === 1) continue;
+      if (avoidingFire && level.fires[n] === 1) continue;
       seen[n] = 1;
       queue[tail] = n | 0;
       tail = (tail + 1) | 0;

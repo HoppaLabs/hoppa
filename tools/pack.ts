@@ -131,8 +131,8 @@ export interface PackLevel {
   readonly text: string;
 }
 
-const roam = (seed: string) => `hoppa/1 roam seed=${seed} tiles=1 behaviour=5`;
-const dash = (seed: string) => `hoppa/1 dash seed=${seed} tiles=1 behaviour=5`;
+const roam = (seed: string) => `hoppa/1 roam seed=${seed} tiles=1 behaviour=6`;
+const dash = (seed: string) => `hoppa/1 dash seed=${seed} tiles=1 behaviour=6`;
 
 /* -------------------------------------------------------------------------- */
 
@@ -240,6 +240,81 @@ function theGauntlet(): string {
   return room.text(roam("6ff6"));
 }
 
+/**
+ * 7. Fire, and a way round it.
+ *
+ * The first room where the danger does not move. A guard is a question about
+ * timing; fire is a question about which way you go, and this room asks it as
+ * plainly as possible -- the short way is on fire and the long way is not.
+ */
+function theHotFloor(): string {
+  const room = new Room().border();
+  // A wall across the middle with three gaps. The near one is the short way
+  // and it is burning; the far one costs you the length of the room.
+  room.wallRow(7, [4, 12, 20]);
+  room.put(4, 7, "^").put(12, 7, "^");
+  room.line(9, 3, 14, 3, "^");
+  room.put(2, 2, "$").put(21, 2, "$").put(11, 10, "$");
+  room.put(3, 11, "@").put(20, 11, ">");
+  return room.text(roam("7gg7"));
+}
+
+/**
+ * 8. Every doorway is watched or burning, and never both.
+ *
+ * The two dangers finally in one room, doing the two different jobs they are
+ * for: a guard you can wait out, a fire you cannot. The point of the room is
+ * that waiting and walking are different answers.
+ */
+function theNarrowWay(): string {
+  const room = new Room().border();
+  // The three-band skeleton exactly: bands at 2-4, 6-8 and 10-11, ONE open row
+  // between them. A guard's shaft is bounded by the open rows either side of
+  // its band, so widening that gap to three rows gives a 7-cell run and L5
+  // refuses it -- measured twice while drawing this room. See docs/adr/0030.
+  for (const y of [2, 3, 4]) room.wallRow(y, [3, 11, 19]);
+  for (const y of [6, 7, 8]) room.wallRow(y, [6, 15, 21]);
+  for (const y of [10, 11]) room.wallRow(y, [4, 13, 19]);
+  // Fire in one gap of each band, so there is always another way and it is
+  // always longer.
+  room.put(11, 3, "^").put(15, 7, "^").put(13, 10, "^");
+  room.put(3, 3, "G");
+  room.put(2, 1, "$").put(21, 1, "$").put(2, 9, "$").put(21, 9, "$");
+  room.put(11, 12, "@").put(19, 12, ">");
+  return room.text(roam("8hh8"));
+}
+
+/**
+ * 9. Spikes, from the side, where fire would look like a mistake.
+ *
+ * Same entity, same rules, drawn as spikes because the world here is grass and
+ * sky. Gravity does the rest of the work: a bed of spikes under a gap is a
+ * question about where you land.
+ */
+function mindTheSpikes(): string {
+  const room = new Room().ground();
+  // Nothing here asks for a stunt, and it took two drafts to get there.
+  //
+  // The first made you jump a bed of spikes on the ground: a jump clears two
+  // cells and lands short of a third, so every creature timed out on a
+  // precision no child would enjoy discovering. The second put a hole in the
+  // deck with spikes under it, which reads well and kills the bot outright --
+  // it does not jump gaps, so it fell in every time.
+  //
+  // What is left is the honest version: spikes IN the way, two cells of them,
+  // walk through for a heart or go round. Which is what a hazard that does not
+  // move is for.
+  room.deck(8, [4]);
+  room.ladder(4, 8, 12);
+  // On the deck, in the way, and only two cells of it. You can walk through
+  // for a heart or you can go back down and round -- which is the same
+  // question the top-down rooms ask, asked with gravity in the room.
+  room.line(12, 7, 13, 7, "^");
+  room.put(7, 7, "$").put(18, 7, "$").put(8, 12, "$");
+  room.put(2, 12, "@").put(21, 7, ">");
+  return room.text(dash("9ii9"));
+}
+
 export const PACK: readonly PackLevel[] = [
   {
     file: "1-first-steps.lvl",
@@ -276,6 +351,24 @@ export const PACK: readonly PackLevel[] = [
     name: "the gauntlet",
     teaches: "pick the doorway that is not being walked through",
     text: theGauntlet(),
+  },
+  {
+    file: "7-the-hot-floor.lvl",
+    name: "the hot floor",
+    teaches: "the short way is on fire; the long way is not",
+    text: theHotFloor(),
+  },
+  {
+    file: "8-the-narrow-way.lvl",
+    name: "the narrow way",
+    teaches: "a guard you can wait out, a fire you cannot",
+    text: theNarrowWay(),
+  },
+  {
+    file: "9-mind-the-spikes.lvl",
+    name: "mind the spikes",
+    teaches: "walk through for a heart, or go round the long way",
+    text: mindTheSpikes(),
   },
 ];
 

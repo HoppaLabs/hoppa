@@ -16,6 +16,15 @@ export const GLYPH_EXIT = ">";
 export const GLYPH_GUARD = "G";
 /** A ladder. Side-on engines climb it; from above it is ordinary floor. */
 export const GLYPH_LADDER = "H";
+/**
+ * Fire. A hazard that does not move.
+ *
+ * Every other danger in the game walks: a guard is a TIMING problem -- wait,
+ * dodge, or hit it. Fire is a ROUTE problem, which is a different question and
+ * the one a level's shape can actually pose. It also has no patrol, so spec L5
+ * has nothing to say about it, and an open room becomes designable again.
+ */
+export const GLYPH_FIRE = "^";
 
 export interface Level {
   readonly schema: number;
@@ -50,6 +59,17 @@ export interface Level {
    * can climb; engines from above ignore them entirely.
    */
   readonly ladders: Uint8Array;
+  /**
+   * Fire cell indices in reading order.
+   *
+   * Reading order is a shipped-link concern for treasure, because position is
+   * the bit in the collected mask. Fire collects nothing and is never removed,
+   * so order is only the order it is drawn -- but it stays reading order
+   * anyway, so that two levels with the same fires encode to the same bytes.
+   */
+  readonly fireCells: Int16Array;
+  /** GRID_AREA lookup: 1 where a cell is on fire. */
+  readonly fires: Uint8Array;
 }
 
 export class LevelParseError extends Error {}
@@ -110,6 +130,8 @@ export function parseLevel(text: string): Level {
   const found: number[] = [];
   const guards: number[] = [];
   const ladders = new Uint8Array(GRID_AREA);
+  const fires = new Uint8Array(GRID_AREA);
+  const burning: number[] = [];
   let startX = -1;
   let startY = -1;
   let exitX = -1;
@@ -148,6 +170,12 @@ export function parseLevel(text: string): Level {
       } else if (ch === GLYPH_LADDER) {
         walls[idx(x, y)] = 0;
         ladders[idx(x, y)] = 1;
+      } else if (ch === GLYPH_FIRE) {
+        // Fire stands on open ground, like every other entity. It is not a
+        // wall: you CAN walk into it, which is the whole point of it.
+        walls[idx(x, y)] = 0;
+        fires[idx(x, y)] = 1;
+        burning.push(idx(x, y));
       } else {
         fail(`row ${y + 1} col ${x + 1}: glyph "${ch}" is not in the tile set`);
       }
@@ -166,6 +194,11 @@ export function parseLevel(text: string): Level {
     guardCells[i] = guards[i] as number;
   }
 
+  const fireCells = new Int16Array(burning.length);
+  for (let i = 0; i < burning.length; i = (i + 1) | 0) {
+    fireCells[i] = burning[i] as number;
+  }
+
   return {
     schema: header.schema,
     engine: header.engine,
@@ -182,7 +215,14 @@ export function parseLevel(text: string): Level {
     treasureSlot,
     guardCells,
     ladders,
+    fireCells,
+    fires,
   };
+}
+
+/** Is this cell on fire? */
+export function isFire(level: Level, x: number, y: number): boolean {
+  return level.fires[idx(x, y)] === 1;
 }
 
 export function isWall(level: Level, x: number, y: number): boolean {

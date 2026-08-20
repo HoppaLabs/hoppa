@@ -16,6 +16,7 @@ import { GRID_W, idx } from "./grid.ts";
 import { encodeLevel } from "./codec.ts";
 import { parseLevel, type Level } from "./level.ts";
 import { verifyLevelText } from "./verify.ts";
+import { reachableFrom } from "./reach.ts";
 import { bestStepUp, landingFrom, reachableWithGravity, typicalStepUp } from "./playable.ts";
 import { sideOn } from "./draft.ts";
 
@@ -70,6 +71,35 @@ export function adviceFor(text: string): Advice {
   const l3 = byId.get("L3");
   if (l3 !== undefined && l3.ok === false) {
     notes.push({ fatal: true, text: "you cannot get from the start to the door -- there is a wall in the way" });
+  }
+
+  // Fire never blocks a route -- you can walk through it and lose a heart, the
+  // same way a guard makes a route expensive rather than impossible. But "the
+  // only way through is on fire" is worth saying out loud, because it is the
+  // difference between a level that is hard and one that a creature with two
+  // hearts cannot finish.
+  if (result.level.fireCells.length > 0 && l3 !== undefined && l3.ok) {
+    const dry = reachableFrom(result.level, result.level.startX, result.level.startY, true);
+    const exitCell = idx(result.level.exitX, result.level.exitY);
+    const trappedExit = result.level.exitX >= 0 && dry[exitCell] !== 1;
+    let trappedTreasure = 0;
+    for (let i = 0; i < result.level.treasureCells.length; i = (i + 1) | 0) {
+      if (dry[result.level.treasureCells[i] as number] !== 1) trappedTreasure++;
+    }
+    if (trappedExit) {
+      notes.push({
+        fatal: false,
+        text: "the only way to the door is through the fire -- that costs a heart every time",
+      });
+    } else if (trappedTreasure > 0) {
+      notes.push({
+        fatal: false,
+        text:
+          trappedTreasure === 1
+            ? "one treasure can only be reached through the fire"
+            : `${trappedTreasure} treasure can only be reached through the fire`,
+      });
+    }
   }
 
   const walled = result.strandedTreasure.length;

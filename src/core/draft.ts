@@ -13,6 +13,7 @@ import { GRID_AREA, GRID_H, GRID_W, idx } from "./grid.ts";
 import {
   GLYPH_EXIT,
   GLYPH_FLOOR,
+  GLYPH_FIRE,
   GLYPH_GUARD,
   GLYPH_LADDER,
   GLYPH_START,
@@ -30,6 +31,17 @@ export const MAX_TREASURE = 8;
  */
 export const MAX_GUARDS = 10;
 
+/**
+ * How much fire one level can hold.
+ *
+ * Not a taste judgement -- arithmetic. The wire format holds 31 entities in
+ * total, shared: a start, an exit, up to 8 treasure and up to 10 guards is 20,
+ * which leaves 11. Ten keeps a whole level codeable however the rest of it is
+ * filled, and a level wanting more than ten hazards that never move is a level
+ * about walls, not about fire.
+ */
+export const MAX_FIRE = 10;
+
 export type Glyph =
   | typeof GLYPH_WALL
   | typeof GLYPH_FLOOR
@@ -37,7 +49,8 @@ export type Glyph =
   | typeof GLYPH_EXIT
   | typeof GLYPH_TREASURE
   | typeof GLYPH_GUARD
-  | typeof GLYPH_LADDER;
+  | typeof GLYPH_LADDER
+  | typeof GLYPH_FIRE;
 
 export interface Draft {
   readonly engine: string;
@@ -175,6 +188,9 @@ export function paint(draft: Draft, x: number, y: number, glyph: Glyph): PaintRe
   if (glyph === GLYPH_GUARD && countOf(cells, GLYPH_GUARD) >= MAX_GUARDS) {
     return { draft, changed: false, reason: `${MAX_GUARDS} guards is plenty` };
   }
+  if (glyph === GLYPH_FIRE && countOf(cells, GLYPH_FIRE) >= MAX_FIRE) {
+    return { draft, changed: false, reason: `${MAX_FIRE} is as much fire as a level can hold` };
+  }
 
   cells[cell] = glyph;
   return { draft: { ...draft, cells }, changed: true, reason: "" };
@@ -216,6 +232,7 @@ export function draftFromLevel(level: {
   exitY: number;
   treasureSlot: Int8Array;
   guardCells: Int16Array;
+  fireCells: Int16Array;
 }): Draft {
   const cells: Glyph[] = new Array<Glyph>(GRID_AREA);
   for (let i = 0; i < GRID_AREA; i = (i + 1) | 0) {
@@ -229,6 +246,9 @@ export function draftFromLevel(level: {
   }
   for (let i = 0; i < level.guardCells.length; i = (i + 1) | 0) {
     cells[level.guardCells[i] as number] = GLYPH_GUARD;
+  }
+  for (let i = 0; i < level.fireCells.length; i = (i + 1) | 0) {
+    cells[level.fireCells[i] as number] = GLYPH_FIRE;
   }
   if (level.exitX >= 0) cells[idx(level.exitX, level.exitY)] = GLYPH_EXIT;
   cells[idx(level.startX, level.startY)] = GLYPH_START;

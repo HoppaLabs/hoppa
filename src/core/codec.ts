@@ -48,6 +48,10 @@ const KIND_START = 0;
 const KIND_EXIT = 1;
 const KIND_TREASURE = 2;
 const KIND_GUARD = 3;
+// The kind field is 3 bits and only four values were ever used, so fire costs
+// nothing: every link ever sent still decodes to exactly what it decoded to
+// before. Kinds 5, 6 and 7 are still free after this.
+const KIND_FIRE = 4;
 
 const MAX_ENTITIES = 31; // 5-bit count
 
@@ -164,6 +168,9 @@ export function encodeLevel(level: Level): string {
   for (let i = 0; i < level.guardCells.length; i = (i + 1) | 0) {
     entities.push([level.guardCells[i] as number, KIND_GUARD]);
   }
+  for (let i = 0; i < level.fireCells.length; i = (i + 1) | 0) {
+    entities.push([level.fireCells[i] as number, KIND_FIRE]);
+  }
   if (entities.length > MAX_ENTITIES) {
     throw new CodecError(`${entities.length} entities; the wire format holds ${MAX_ENTITIES}`);
   }
@@ -277,6 +284,8 @@ export function decodeLevel(code: string): Level {
     let startY = -1;
     let exitX = -1;
     let exitY = -1;
+    const fires = new Uint8Array(GRID_AREA);
+    const burning: number[] = [];
 
     for (let i = 0; i < count; i = (i + 1) | 0) {
       const cell = bits.read(9);
@@ -299,6 +308,9 @@ export function decodeLevel(code: string): Level {
         treasures.push(cell);
       } else if (kind === KIND_GUARD) {
         guards.push(cell);
+      } else if (kind === KIND_FIRE) {
+        fires[cell] = 1;
+        burning.push(cell);
       } else {
         throw new CodecError(`unknown entity kind ${kind}`);
       }
@@ -331,6 +343,8 @@ export function decodeLevel(code: string): Level {
     }
     const guardCells = new Int16Array(guards.length);
     for (let i = 0; i < guards.length; i = (i + 1) | 0) guardCells[i] = guards[i] as number;
+    const fireCells = new Int16Array(burning.length);
+    for (let i = 0; i < burning.length; i = (i + 1) | 0) fireCells[i] = burning[i] as number;
 
     return {
       schema,
@@ -350,6 +364,8 @@ export function decodeLevel(code: string): Level {
       treasureSlot,
       guardCells,
       ladders,
+      fireCells,
+      fires,
     };
   } catch (err) {
     if (err instanceof CodecError) throw err;
