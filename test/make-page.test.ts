@@ -62,3 +62,12 @@ test("what pasting a code says appears next to the box you pasted into", () => {
   // It used to sit at the very bottom of the page, under something else.
   expect(html.indexOf('id="forget"')).toBeGreaterThan(answer);
 });
+
+test("a section whose own words say what it is does not also need a heading", () => {
+  const headings = [...html.matchAll(/<h2>([^<]*)<\/h2>/g)].map((found) => found[1]);
+  // "what it is good at" sat directly above "you have 6 points to spend", which
+  // already says what the section is, and says it in words a child can act on.
+  expect(headings).not.toContain("what it is good at");
+  expect(html.includes('you have <b id="left">6</b> points to spend')).toBe(true);
+  expect(headings.length).toBeLessThanOrEqual(4);
+});
