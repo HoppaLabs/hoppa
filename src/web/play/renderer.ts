@@ -41,6 +41,22 @@ const COLOUR: Record<number, string> = {
   [TILE_FIRE]: "#ff9f3d",
 };
 
+/** The gem's shape: a diamond, so a spin is a change of width and nothing else. */
+function diamond(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  rx: number,
+  ry: number,
+): void {
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - ry);
+  ctx.lineTo(cx + rx, cy);
+  ctx.lineTo(cx, cy + ry);
+  ctx.lineTo(cx - rx, cy);
+  ctx.closePath();
+}
+
 /**
  * Which flame frame this cell is showing.
  *
@@ -505,10 +521,14 @@ export class GridRenderer {
       const hilt = t * 0.34;
       const len = px(reach) * extend * 0.72 - hilt;
       const cx = px(actor.x);
-      // The arc turns about a point ABOVE the body's centre -- roughly where a
-      // hand would be, not where the legs are. Swung from the centre, the
-      // downward part of the sweep came out from between them.
-      const cy = px(actor.y) - t * 0.22;
+      // The arc turns about a point a little above the body's centre -- roughly
+      // where a hand would be, not where the legs are. Swung from dead centre,
+      // the downward half of the sweep came out from between them.
+      //
+      // A little: it was a fifth of a tile up, which put the pivot at the
+      // shoulder and made the blade look hinged off the top of the head on the
+      // upswing. Halved, so it reads as an arm rather than an antenna.
+      const cy = px(actor.y) - t * 0.1;
       const thick = Math.max(2, Math.floor(t / 5));
 
       ctx.save();
@@ -629,7 +649,14 @@ export class GridRenderer {
           this.paintUnder(x, y);
           const cx = x * t + t / 2;
           const cy = y * t + t / 2;
-          const r = Math.max(2, (t / 2) - Math.max(1, Math.floor(t / 5)));
+          // As big as the tile allows, less the lip below.
+          //
+          // It used to hold back a fifth of the tile AND then stroke its own
+          // outline, and a stroke is centred on the path -- so a 14px tile got
+          // a gem 5 across whose coloured part was 4.5. Reported as looking
+          // small, which it was: a third of the tile was margin.
+          const lip = t >= 10 ? Math.max(1, Math.round(t / 14)) : 0;
+          const r = Math.max(3, (t / 2) - lip);
 
           // A full turn every 1.6 seconds. Frozen mid-face when nothing is
           // animating, so the level editor never draws one as a sliver.
@@ -643,23 +670,24 @@ export class GridRenderer {
           // Edge-on it catches less light, which is what sells the turn.
           const face = this.ink(TILE_TREASURE);
           const edge = this.sideOn ? "#6b0049" : "#3fa7c9";
-          ctx.beginPath();
-          ctx.moveTo(cx, cy - r);
-          ctx.lineTo(cx + rx, cy);
-          ctx.lineTo(cx, cy + r);
-          ctx.lineTo(cx - rx, cy);
-          ctx.closePath();
+
+          // The lip goes UNDER the gem, not around it.
+          //
+          // It still earns its place, and the numbers say where: side-on the
+          // gem is 4.03:1 against the sky and only 1.44:1 against the grass it
+          // sits on, so without a lip a gem on a ledge is nearly invisible.
+          // Underground it is 9.88:1 against the floor and the lip is worth
+          // 1.20:1 -- nothing at all. But drawn as a slightly larger diamond
+          // behind, rather than as a stroke centred on the edge, it costs the
+          // gem no size anywhere: it adds outside instead of eating inside.
+          if (lip > 0) {
+            diamond(ctx, cx, cy, rx + lip, r + lip);
+            ctx.fillStyle = this.sideOn ? "#3d0029" : "#0e3b4a";
+            ctx.fill();
+          }
+          diamond(ctx, cx, cy, rx, r);
           ctx.fillStyle = wide > 0.35 ? face : edge;
           ctx.fill();
-          // An outline, so it reads on ANY background rather than only on the
-          // one it was picked for. A gem you have to hunt for is not treasure.
-          if (t >= 10) {
-            // Thick enough to carry the shape on its own, so the gem survives a
-            // background nobody has thought of yet.
-            ctx.strokeStyle = this.sideOn ? "#3d0029" : "#0e3b4a";
-            ctx.lineWidth = Math.max(1, Math.round(t / 10));
-            ctx.stroke();
-          }
           continue;
         }
 

@@ -256,6 +256,10 @@
     font: inherit; color: var(--ink-bright); background: var(--key);
     border: 1px solid var(--gold); border-radius: 6px; padding: 6px 12px;
     cursor: pointer; text-decoration: none;
+    /* Three of them on a phone means two words over two lines, and a label
+       that wraps is a label that has to be centred: ranged left inside a
+       centred button it reads as a mistake. */
+    text-align: center; line-height: 1.25;
   }
   #another:active, #draw:active, #build:active { background: var(--key-lit); }
   /* One row, always. They are a pair, and a pair that wraps reads as two

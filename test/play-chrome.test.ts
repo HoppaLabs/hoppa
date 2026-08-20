@@ -16,6 +16,9 @@ test("the two things you can make are drawn the same, because they are peers", (
   // background gold is 11.8:1 and --edge is 1.18:1 on a fill of 1.32:1 -- so
   // the gold was never decoration, it was the only outline that button had.
   expect(rule("#another, #draw, #build")).toContain("border: 1px solid var(--gold)");
+  // Three buttons on a phone wrap to two lines, and a wrapped label ranged
+  // left inside a centred button reads as a mistake.
+  expect(rule("#another, #draw, #build")).toContain("text-align: center");
   // ...and nothing may quietly take it off one of them again.
   expect(html).not.toMatch(/#build\s*\{\s*border-color/);
   expect(html).not.toMatch(/#draw\s*\{\s*border-color/);

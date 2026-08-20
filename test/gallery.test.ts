@@ -17,13 +17,22 @@ test("the art is well formed and every one of them can be seen", () => {
   expect(check()).toEqual([]);
 });
 
-test("sixteen, because fourteen leaves a hole in the last row", () => {
+test("a whole number of rows, because a gap reads as a broken character", () => {
   // Reported as "looks like you are missing a character, there is a blank
-  // slot". Sixteen fills a grid of two, four or eight; fourteen fills none of
-  // them, and the gap reads as a character that failed to load.
-  expect(GALLERY.length).toBe(16);
+  // slot". The grid is four wide, so what matters is not the count but that it
+  // divides by four: fourteen left a hole, and so would eighteen. Asking for a
+  // knight and a princess is therefore asking for four -- a wizard and a
+  // pirate came along to fill the row, which are the other two a child names.
+  expect(GALLERY.length).toBe(20);
   expect(GALLERY.length % 4).toBe(0);
   expect(html).toContain("grid-template-columns: repeat(4, 1fr)");
+});
+
+test("the four somebodies are there, and they are first", () => {
+  // Everything else in here is an animal or a shape. These are the four a child
+  // asks for by name, so they lead.
+  const first = GALLERY.slice(0, 4).map((one) => one.name);
+  expect(first).toEqual(["knight", "princess", "wizard", "pirate"]);
 });
 
 test("what ships is what was drawn", () => {
