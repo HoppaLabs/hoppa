@@ -244,3 +244,18 @@ test("the same text always makes the same code", () => {
   expect([...a.modules]).toEqual([...b.modules]);
   expect(a.mask).toBe(b.mask);
 });
+
+test("the play page still shows the square, and shows the right one", async () => {
+  // Checked in a browser by winning a level and reading the canvas back: 37x37
+  // modules at 4px with a 4-module quiet zone, and 0 of 1369 modules different
+  // from what encodeQr() produces for that level's link. This pins the wiring
+  // that check depends on, which is the part that quietly rots.
+  const main = await Bun.file("src/web/play/main.ts").text();
+  // The square carries the LEVEL link, never the score link -- somebody next to
+  // you wants to play it, not read about your time.
+  expect(main.includes("const url = linkFor(level, levelName, base);")).toBe(true);
+  // Four modules of white all round, or no camera locks on.
+  expect(main.includes("const quiet = 4;")).toBe(true);
+  // Painted once per win, and shown only after a win.
+  expect(main.includes("if (won) paintQr();")).toBe(true);
+});

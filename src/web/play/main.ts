@@ -338,6 +338,12 @@ function paintQr(): void {
   }
 
   qrCanvas.hidden = false;
+  // The square always carries the LEVEL, even on a run where the button sends
+  // a score back -- somebody sitting next to you wants to play it, not read
+  // about your time. But it is only "your level" when it actually is yours.
+  qrHint.innerHTML = sendingBack
+    ? "a friend's phone can scan this to play <b>this level</b>"
+    : "a friend's phone can scan this to play <b>your level</b>";
   qrHint.hidden = false;
   qrDrawn = true;
 }
