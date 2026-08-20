@@ -11,8 +11,8 @@
 // The engine is chosen by the level's behaviour= field, never hardcoded here.
 // That is what lets a link from day 5 onwards pin the rules it was beaten under.
 
-import { DAY4_LEVEL_TEXT } from "../../core/fixtures.ts";
-import { PRESETS, type Creature } from "../../core/creature.ts";
+import { ROAM1_LEVEL_TEXT } from "../../core/fixtures.ts";
+import { PRESETS, SPENDABLE, capsToBuild, type Creature } from "../../core/creature.ts";
 import { CodecError } from "../../core/codec.ts";
 import { levelFromHash, linkFor } from "./link.ts";
 import { loadCreature } from "../stash.ts";
@@ -20,6 +20,9 @@ import { parseLevel } from "../../core/level.ts";
 import { hashHex } from "../../core/hash.ts";
 import { engineFor } from "../../engines/registry.ts";
 import { Readout } from "./readout.ts";
+import { Buttons, KEY_BITS, Loop, type Moving } from "./realtime.ts";
+import { HELD_ACT, HELD_DOWN, HELD_LEFT, HELD_RIGHT, HELD_UP } from "../../engines/types.ts";
+import { reachFor } from "../../engines/roam/v1.ts";
 import {
   INPUT_DOWN,
   INPUT_LEFT,
@@ -31,7 +34,17 @@ import {
 } from "../../engines/types.ts";
 import { GridRenderer } from "./renderer.ts";
 
-const BUILT_IN_NAME = "The Three Bands";
+const BUILT_IN_NAME = "First Run";
+
+/**
+ * A real-time engine takes a bitmask of held buttons once per tick and is
+ * driven by a clock; a turn-based one takes one move per press. The page
+ * supports both, because a link pins its engine and old links must keep
+ * working -- see docs/adr/0006.
+ */
+function isRealtime(engine: unknown): boolean {
+  return typeof (engine as { where?: unknown }).where === "function";
+}
 
 // A level from a link, if there is one. A broken code must say so out loud
 // rather than dumping the player into a different level and looking fine.
@@ -43,7 +56,7 @@ try {
   loadError = err instanceof CodecError ? err.message : String(err);
 }
 
-const level = shared === null ? parseLevel(DAY4_LEVEL_TEXT) : shared.level;
+const level = shared === null ? parseLevel(ROAM1_LEVEL_TEXT) : shared.level;
 const levelName = shared === null ? BUILT_IN_NAME : shared.slug.replace(/-/g, " ");
 // A creature you drew wins over the presets: it is yours, and it is the reason
 // the spec says never to cut day 6.
@@ -55,8 +68,12 @@ let chosenAt = 0;
 let chosen: Creature = roster[0] as Creature;
 // engineFor returns the Engine contract; the play page also wants the delve
 // read-outs (turns, treasure), which is what this cast is for.
-const build = () => new Readout(engineFor(level, chosen));
-let engine = build();
+const build = () => engineFor(level, chosen);
+let raw = build();
+let engine = new Readout(raw);
+let moving: Moving | null = isRealtime(raw) ? (raw as unknown as Moving) : null;
+const buttons = new Buttons();
+let loop: Loop | null = null;
 
 const canvas = document.getElementById("grid") as HTMLCanvasElement;
 const hud = document.getElementById("hud") as HTMLElement;
@@ -75,10 +92,27 @@ const renderer = new GridRenderer(canvas);
 let blockedUntil = 0;
 
 function finished(): boolean {
-  return engine.finished();
+  return moving === null ? engine.finished() : moving.currentStatus() !== 0;
 }
 
 function paint(): void {
+  if (moving !== null) {
+    renderer.drawMoving(
+      moving.render(),
+      {
+        ...moving.where(),
+        swinging: moving.swinging(),
+        blinking: moving.merciful(),
+        swingLeft: moving.swingLeft(),
+        swingLength: moving.swingLength(),
+      },
+      moving.enemyPositions(),
+      reachFor(chosen),
+    );
+    paintMovingHud();
+    return;
+  }
+
   const blocked = engine.didBump() && performance.now() < blockedUntil;
   renderer.draw(engine.render(), blocked);
 
@@ -135,42 +169,81 @@ function move(input: Input): void {
   paint();
 }
 
+/** The HUD for a real-time run: hearts, treasure, and a clock that ticks. */
+function paintMovingHud(): void {
+  const game = moving as Moving;
+  const health = game.health();
+  const hearts = "\u2665".repeat(health.hp) + "\u2661".repeat(Math.max(0, health.max - health.hp));
+  const got = game.collectedCount();
+  const total = game.treasureTotal();
+
+  hud.innerHTML =
+    `<span class="hearts hearts-${health.hp}"><b>${hearts}</b></span>` +
+    `<span class="${got === total ? "done" : "gold"}"><b>${got}/${total}</b> treasure</span>` +
+    `<span><b>${game.seconds()}</b>s</span>`;
+
+  if (finished()) {
+    const won = game.currentStatus() === STATUS_WON;
+    over.className = won ? "show" : "show lost";
+    verdict.textContent = won ? "out" : "down";
+    saying.textContent = game.message() ?? "";
+    tally.textContent = `${game.seconds()} seconds · ${got}/${total} treasure`;
+  } else {
+    over.className = "";
+  }
+}
+
 function reset(): void {
-  engine = build();
+  if (loop !== null) loop.stop();
+  raw = build();
+  engine = new Readout(raw);
+  moving = isRealtime(raw) ? (raw as unknown as Moving) : null;
+  buttons.clear();
   blockedUntil = 0;
   // Only when the creature changes: stamping 256 pixels every frame is the
   // difference between smooth and not on a cheap phone.
   renderer.setSprite(chosen.sprite);
   paintStable();
   paint();
+
+  if (moving !== null) {
+    loop = new Loop(moving, buttons, paint, finished);
+    loop.start();
+  }
 }
 
 // --- the stable -------------------------------------------------------------
 
 /**
  * What this creature is good and bad at, in one line a kid can act on.
- * Older behaviour versions ignore creatures entirely, so this says so rather
- * than promising a difference that will not arrive.
+ *
+ * Described from the BUILD rather than by asking the engine, because the same
+ * four pips mean the same four things in every engine -- which is the whole
+ * reason MASS went (docs/adr/0008). A creature reads the same whether the level
+ * it is about to enter is turn-based or real-time.
  */
 function traitLine(creature: Creature): string {
-  const probe = engineFor(level, creature) as unknown as {
-    noise?(): number;
-    alertMax?(): number;
-    reachCells?(): number;
-  };
-  if (probe.noise === undefined) {
-    return `this level was made before creatures — everyone plays it the same`;
+  const build = capsToBuild(creature.caps);
+  return [
+    build.FORCE >= 4 ? "hits hard" : build.FORCE >= 2 ? "hits all right" : "barely swings",
+    build.HASTE >= 4 ? "quick on its feet" : build.HASTE >= 2 ? "steady" : "slow",
+    `${2 + build.GUARD} hearts`,
+    build.REACH >= 4 ? "long arms" : build.REACH >= 2 ? "fair reach" : "short arms",
+  ].join(" · ");
+}
+
+/**
+ * The one thing this creature is best at, for the button face. Four abbreviated
+ * numbers do not fit on a phone, and "strength" and "speed" both start with S,
+ * so the full picture goes in the trait line underneath instead.
+ */
+function bestAt(creature: Creature): string {
+  const build = capsToBuild(creature.caps);
+  let best = SPENDABLE[0] as (typeof SPENDABLE)[number];
+  for (const spend of SPENDABLE) {
+    if (build[spend.key] > build[best.key]) best = spend;
   }
-  const ceiling = probe.alertMax?.() ?? 3;
-  const parts = [
-    probe.noise() > 1 ? "heard from far off" : "quiet on its feet",
-    `survives ${ceiling - 1} ${ceiling - 1 === 1 ? "scare" : "scares"}`,
-    creature.caps.HASTE >= 128 ? "often moves for free" : "moves at one pace",
-    (probe.reachCells?.() ?? 0) > 0
-      ? "picks up gems from a step away"
-      : "must stand on a gem to take it",
-  ];
-  return parts.join(" · ");
+  return `most ${best.label}`;
 }
 
 function paintStable(): void {
@@ -180,7 +253,7 @@ function paintStable(): void {
     const selected = at === chosenAt;
     const button = document.createElement("button");
     button.className = selected ? "on" : "";
-    button.innerHTML = `<b>${creature.name}</b>MASS ${creature.caps.MASS}`;
+    button.innerHTML = `<b>${creature.name}</b>${bestAt(creature)}`;
     button.setAttribute("aria-pressed", String(selected));
     button.addEventListener("click", () => {
       if (at === chosenAt) return;
@@ -213,12 +286,34 @@ const BUTTONS: ReadonlyArray<readonly [string, Input]> = [
   ["wait", INPUT_WAIT],
 ];
 
+/** Which held-button bit each pad key maps to in a real-time game. */
+const PAD_BITS: ReadonlyArray<readonly [string, number]> = [
+  ["up", HELD_UP],
+  ["right", HELD_RIGHT],
+  ["down", HELD_DOWN],
+  ["left", HELD_LEFT],
+  ["wait", HELD_ACT],
+];
+
 for (const [id, input] of BUTTONS) {
   const el = document.getElementById(id) as HTMLButtonElement;
+  const bit = PAD_BITS.find(([name]) => name === id)?.[1] ?? 0;
+
   el.addEventListener("pointerdown", (ev) => {
     ev.preventDefault();
+    if (moving !== null) {
+      // Held, not tapped: you keep walking while your thumb is down.
+      buttons.set(bit, true);
+      el.setPointerCapture(ev.pointerId);
+      return;
+    }
     move(input);
   });
+  for (const name of ["pointerup", "pointercancel", "pointerleave"]) {
+    el.addEventListener(name, () => {
+      if (moving !== null) buttons.set(bit, false);
+    });
+  }
 }
 
 (document.getElementById("reset") as HTMLButtonElement).addEventListener("click", reset);
@@ -235,6 +330,7 @@ let touching = false;
 const SWIPE_MIN = 18; // px before a drag counts as a direction
 
 stage.addEventListener("pointerdown", (ev) => {
+  if (moving !== null) return;
   touching = true;
   touchX = ev.clientX;
   touchY = ev.clientY;
@@ -264,7 +360,31 @@ const KEYS: Record<string, Input> = {
   " ": INPUT_WAIT, ".": INPUT_WAIT, x: INPUT_WAIT,
 };
 
+window.addEventListener("keyup", (ev) => {
+  if (moving === null) return;
+  const bit = KEY_BITS[ev.key];
+  if (bit !== undefined) {
+    ev.preventDefault();
+    buttons.set(bit, false);
+  }
+});
+
+window.addEventListener("blur", () => buttons.clear());
+
 window.addEventListener("keydown", (ev) => {
+  if (moving !== null) {
+    if (ev.key === "r" && finished()) {
+      ev.preventDefault();
+      reset();
+      return;
+    }
+    const bit = KEY_BITS[ev.key];
+    if (bit === undefined) return;
+    ev.preventDefault();
+    buttons.set(bit, true);
+    return;
+  }
+
   if (ev.key === "Enter" && finished()) {
     ev.preventDefault();
     reset();
@@ -308,3 +428,11 @@ if (loadError !== null) {
 renderer.setSprite(chosen.sprite);
 paintStable();
 resize();
+
+// A real-time level starts running the moment the page is up: the world does
+// not wait for a first press. This is the whole difference from the turn-based
+// builds, so it must not be left to reset() to switch on.
+if (moving !== null) {
+  loop = new Loop(moving, buttons, paint, finished);
+  loop.start();
+}

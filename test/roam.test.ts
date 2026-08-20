@@ -21,6 +21,30 @@ const TEXT = await Bun.file("levels/roam1.lvl").text();
 const level = parseLevel(TEXT);
 const fresh = (creature = BRUK) => new RoamV1(level, creature);
 
+/**
+ * A bare room with one guard four cells to the right of the start. The shipped
+ * level is a maze, so "walk at the nearest enemy" there depends on the layout;
+ * here it cannot. Anything about hitting and being hit is tested in this.
+ */
+const ARENA_TEXT = [
+  "hoppa/1 roam seed=1a1a tiles=1 behaviour=1",
+  "########################",
+  "#......................#",
+  "#......................#",
+  "#......................#",
+  "#......................#",
+  "#......................#",
+  "#......................#",
+  "#.@...G...............$#",
+  "#......................#",
+  "#......................#",
+  "#......................#",
+  "#......................#",
+  "#.....................>#",
+  "########################",
+].join("\n");
+const arena = parseLevel(ARENA_TEXT);
+
 /** Hold a button for a number of ticks. */
 function hold(engine: RoamV1, buttons: number, ticks: number): number {
   let status: number = STATUS_PLAYING;
@@ -97,7 +121,7 @@ test("a backgrounded tab cannot simulate a minute in one frame", () => {
 
 // --- it is a stealth game --------------------------------------------------------
 
-/** Walk at the nearest enemy until something happens. */
+/** Walk straight at the arena's one guard until something happens. */
 function chargeTheNearest(engine: RoamV1, until: () => boolean, extra = 0): void {
   for (let i = 0; i < 1200 && !until(); i++) {
     const me = engine.where();
@@ -116,14 +140,14 @@ test("the sword knocks an enemy down, and strength decides for how long", () => 
   const weak = creatureFromBuild("w", "Weak", "?", { FORCE: 0, HASTE: 2, GUARD: 3, REACH: 3 }, starterSprite());
   expect(stunFor(strong)).toBeGreaterThan(stunFor(weak));
 
-  const engine = new RoamV1(level, strong);
+  const engine = new RoamV1(arena, strong);
   chargeTheNearest(engine, () => engine.justStruck(), HELD_ACT);
   expect(engine.justStruck()).toBe(true);
   expect(engine.enemyPositions().some((e) => e.stunned)).toBe(true);
 });
 
 test("walking into an enemy without swinging costs you a heart", () => {
-  const engine = fresh();
+  const engine = new RoamV1(arena, BRUK);
   const before = engine.health().hp;
   chargeTheNearest(engine, () => engine.justHurt());
   expect(engine.justHurt()).toBe(true);
@@ -196,13 +220,15 @@ test("you are faster than a guard only if you spent pips on it", () => {
 });
 
 test("walls stop you, and you slide along them rather than sticking", () => {
-  const engine = fresh();
-  // Walk hard into the top wall; x should still be free to change.
-  hold(engine, HELD_UP, 30);
+  const engine = new RoamV1(arena, BRUK);
+  // Walk hard into the top wall. Bruk is slow, so give it long enough to
+  // actually arrive: six cells at 20 subcells a tick is over 70 ticks.
+  hold(engine, HELD_UP, 150);
   const stuck = engine.where();
   expect(toCell(stuck.y)).toBe(1); // the top open row
-  hold(engine, HELD_UP | HELD_RIGHT, 10);
-  expect(engine.where().x).toBeGreaterThan(stuck.x);
+  hold(engine, HELD_UP | HELD_LEFT, 20);
+  expect(engine.where().x).toBeLessThan(stuck.x);
+  expect(toCell(engine.where().y)).toBe(1); // still pinned to the wall
 });
 
 test("a body never ends a tick inside a wall", () => {

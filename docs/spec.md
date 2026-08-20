@@ -61,6 +61,11 @@ intentions. **`src/core` and `src/engines` are the determinism zone:**
 
 - **No floating point in authoritative state.** All arithmetic through `| 0` and
   `Math.imul`. Grids and state in `Uint8Array` / `Int32Array`.
+- **No floating point, ever.** Real-time positions are fixed-point integers,
+  256 subcells to a cell (`core/fixed.ts`). A shift, never a divide.
+- **Wall-clock time never enters the zone.** The page converts elapsed
+  milliseconds into whole ticks (`core/clock.ts`) and calls the engine that many
+  times. The engine counts ticks and knows nothing about seconds.
 - **No `Math.random`, no `Date`, no `Intl`, nothing ambient.** All randomness
   from the level seed via `mulberry32`.
 - **State hash is FNV-1a 32-bit** built on `Math.imul`. Covers authoritative
@@ -244,18 +249,38 @@ Eight axes, `0–255`. Closed set — resist adding a ninth.
 | `MASS` | Weight |
 | `SPARK` | Wildcard |
 
-**`MASS` is the point of the whole design.** It must mean something different in
-every engine:
+### `MASS` is gone. Superseded — see `docs/adr/0008`.
 
-| Engine | What `MASS` does |
-|---|---|
-| Delve | You're **loud** — guards notice you from further away |
-| Shove | You **win** — heavy creatures push blocks nothing else can |
-| Run *(stretch)* | You **sink** — rafts founder, platforms give way |
+The original design made `MASS` mean something *opposite* in every engine: loud
+in Delve, unbeatable in Shove, sinking in Run. It read well and did not survive
+contact.
 
-Same number, opposite verdicts. That's why a player wants a stable rather than
-one good creature, and it's the entire collection loop. If a new engine doesn't
-give `MASS` a distinct meaning, it probably shouldn't ship.
+Two things killed it. Every sprite is the same 16×16, so "weight" was a number
+with nothing behind it — a kid could not see why their creature was heavy. And
+in Delve it only ever made a creature *worse*: there was nothing heavy was good
+at, so it was a penalty rather than a trade.
+
+**What replaced it is a budget.** Four characteristics, five pips each, **eight
+pips to spend**:
+
+| Characteristic | Axis | What it always means |
+|---|---|---|
+| strength | `FORCE` | how hard you hit, and how long what you hit stays down |
+| speed | `HASTE` | how fast you move |
+| nerve | `GUARD` | how many hits you can take |
+| reach | `REACH` | how far your swing lands, and how far you can grab |
+
+You cannot be strong and fast and hardy and long-armed. **Deciding what to give
+up is the design**, and it is what makes one kid's creature different from
+another's — not a number that means opposite things in different rooms.
+
+These four mean **the same thing in every engine**, which is what makes a
+creature worth carrying between them. A creature is not good or bad; it is good
+at *some levels*.
+
+`MOVE_GROUND`, `MOVE_AIR`, `SPARK` and `MASS` remain in the vocabulary because
+engine builds up to `delve/4` read them and every link pinning those builds must
+keep playing identically. Nothing from `delve/5` on looks at `MASS`.
 
 ---
 

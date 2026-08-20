@@ -52,12 +52,21 @@ export const BODY = 96;
 const SPEED_BY_PIP: readonly number[] = [20, 26, 32, 38, 44, 50];
 /** Enemy speed: below a fast creature, above a slow one, so speed matters. */
 export const ENEMY_SPEED = 30;
-/** How close an enemy has to be before it gives chase. */
-export const SIGHT = ONE * 4;
+/**
+ * How close an enemy has to be before it gives chase, and how far before it
+ * gives up. Four cells was too much: a guard two cells from the start meant
+ * being hunted from the first tick with nowhere to learn the controls.
+ */
+export const SIGHT = ONE * 3;
+export const LOSE_INTEREST = ONE * 5;
 /** How long a swing stays out. */
 export const SWING_TICKS = 8;
-/** Ticks of mercy after being hit, so one bump is not three. */
-export const MERCY_TICKS = 30;
+/**
+ * Ticks of mercy after being hit. Long enough to actually get away: at 30 the
+ * mercy ran out while still inside the guard, so five hearts went in five
+ * seconds.
+ */
+export const MERCY_TICKS = 50;
 /** Ticks a struck enemy stays down, by strength pips. */
 const STUN_BY_PIP: readonly number[] = [14, 20, 26, 32, 40, 48];
 
@@ -245,7 +254,10 @@ export class RoamV1 implements Engine {
         continue;
       }
 
-      const near = chebyshev(enemy.x, enemy.y, this.x, this.y) <= SIGHT;
+      // Hysteresis: it takes SIGHT to notice you and LOSE_INTEREST to forget,
+      // so a guard does not flicker between chasing and strolling on the line.
+      const distance = chebyshev(enemy.x, enemy.y, this.x, this.y);
+      const near = enemy.chasing !== 0 ? distance <= LOSE_INTEREST : distance <= SIGHT;
       enemy.chasing = near ? 1 : 0;
 
       if (near) {
@@ -316,8 +328,10 @@ export class RoamV1 implements Engine {
       this.mercy = MERCY_TICKS;
       this.hurtThisTick = true;
 
-      const awayX = (this.x + sign((this.x - enemy.x) | 0) * ONE) | 0;
-      const awayY = (this.y + sign((this.y - enemy.y) | 0) * ONE) | 0;
+      // Thrown clear, not nudged: landing still inside the guard means the
+      // next hit arrives the moment mercy ends.
+      const awayX = (this.x + sign((this.x - enemy.x) | 0) * ONE * 2) | 0;
+      const awayY = (this.y + sign((this.y - enemy.y) | 0) * ONE * 2) | 0;
       if (this.fits(awayX, this.y)) this.x = awayX;
       if (this.fits(this.x, awayY)) this.y = awayY;
       return;
@@ -404,6 +418,9 @@ export class RoamV1 implements Engine {
   }
   merciful(): boolean { return this.mercy > 0; }
   swinging(): boolean { return this.swing > 0; }
+  /** Ticks left of the current swing, for drawing the arc. Presentation only. */
+  swingLeft(): number { return this.swing; }
+  swingLength(): number { return SWING_TICKS; }
   justStruck(): boolean { return this.struckThisTick; }
   justHurt(): boolean { return this.hurtThisTick; }
   /** True while any guard has noticed you. Presentation only. */

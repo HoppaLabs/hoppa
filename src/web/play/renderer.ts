@@ -6,8 +6,10 @@
 import { GRID_H, GRID_W } from "../../core/grid.ts";
 import { colourFor } from "../../core/palette.ts";
 import { SPRITE_H, SPRITE_W, spriteIndex, type Sprite } from "../../core/sprite.ts";
+import { ONE } from "../../core/fixed.ts";
 import {
   TILE_ACTOR,
+  TILE_GUARD_REELING,
   TILE_EXIT_LOCKED,
   TILE_EXIT_OPEN,
   TILE_FLOOR,
@@ -29,6 +31,7 @@ const COLOUR: Record<number, string> = {
   [TILE_EXIT_LOCKED]: "#7a5c86",
   [TILE_EXIT_OPEN]: "#6fe08a",
   [TILE_GUARD]: "#ff5f4d",
+  [TILE_GUARD_REELING]: "#7a5c86",
 };
 
 const ACTOR_BLOCKED = "#ff5f4d";
@@ -91,7 +94,94 @@ export class GridRenderer {
     this.ctx.imageSmoothingEnabled = false;
   }
 
-  draw(tiles: Uint8Array, blocked: boolean): void {
+  /**
+   * A real-time frame. The tile grid is drawn from the engine's tiles, but the
+   * moving things are drawn from their exact sub-cell positions instead of
+   * being snapped to a square -- that is the whole difference between "the
+   * world advances when you press" and "the world is moving".
+   */
+  drawMoving(
+    tiles: Uint8Array,
+    actor: {
+      x: number; y: number; facing: number;
+      swinging: boolean; blinking: boolean;
+      swingLeft: number; swingLength: number;
+    },
+    enemies: ReadonlyArray<{ x: number; y: number; stunned: boolean; chasing: boolean }>,
+    reach: number,
+  ): void {
+    // Draw the map with the moving things left out; they go on top, in between
+    // the squares.
+    this.draw(tiles, false, true);
+
+    const t = this.scale;
+    const ctx = this.ctx;
+    const px = (value: number) => (value * t) / ONE;
+
+    for (const enemy of enemies) {
+      const size = Math.max(4, Math.floor(t * 0.72));
+      const x = px(enemy.x) - size / 2;
+      const y = px(enemy.y) - size / 2;
+      ctx.fillStyle = enemy.stunned ? "#7a5c86" : enemy.chasing ? "#ff8a3d" : (COLOUR[TILE_GUARD] as string);
+      ctx.fillRect(x, y, size, size);
+      if (t >= 10 && !enemy.stunned) {
+        // An eye, pointing the way it is coming.
+        const eye = Math.max(1, Math.floor(size / 4));
+        ctx.fillStyle = COLOUR[TILE_VOID] as string;
+        ctx.fillRect(x + size / 2 - eye / 2, y + size / 2 - eye / 2, eye, eye);
+      }
+    }
+
+    // The sword. It SWEEPS: over the few ticks a swing lasts, the blade starts
+    // behind the shoulder, arcs through the facing direction and follows
+    // through. A bar that blinks on and off reads as a bug; an arc reads as a
+    // swing, and it is the only feedback saying "that press did something".
+    //
+    // All of this is presentation, so ordinary maths is fine here -- the
+    // determinism zone is the engine, and none of these numbers reach it.
+    if (actor.swinging && actor.swingLength > 0) {
+      const done = 1 - actor.swingLeft / actor.swingLength; // 0 -> 1 through the swing
+      const base = (Math.PI / 2) * actor.facing - Math.PI / 2; // facing, in radians
+      const sweep = (Math.PI * 5) / 6; // 150 degrees of arc
+      const angle = base - sweep / 2 + sweep * done;
+
+      // The blade is shortest at the extremes of the arc and longest through
+      // the middle, the way an actual swing looks.
+      const extend = 0.55 + 0.45 * Math.sin(Math.PI * done);
+      const len = px(reach) * extend;
+      const cx = px(actor.x);
+      const cy = px(actor.y);
+      const thick = Math.max(2, Math.floor(t / 4));
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angle);
+      // A faint trail behind the blade, so a fast swing still reads.
+      ctx.fillStyle = "rgba(255,233,163,.28)";
+      ctx.fillRect(0, -thick, len, thick * 2);
+      ctx.fillStyle = "#ffe9a3";
+      ctx.fillRect(0, -thick / 2, len, thick);
+      // A tip, so it looks like a sword rather than a stick.
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(len - thick, -thick / 2, thick, thick);
+      ctx.restore();
+    }
+
+    const size = Math.max(4, Math.floor(t * 0.8));
+    const ax = px(actor.x) - size / 2;
+    const ay = px(actor.y) - size / 2;
+    // Blink while the mercy window is open, the way every game of this shape does.
+    if (!actor.blinking || (Date.now() >> 6) % 2 === 0) {
+      if (this.stamp !== null) {
+        ctx.drawImage(this.stamp, ax, ay, size, size);
+      } else {
+        ctx.fillStyle = COLOUR[TILE_ACTOR] as string;
+        ctx.fillRect(ax, ay, size, size);
+      }
+    }
+  }
+
+  draw(tiles: Uint8Array, blocked: boolean, mapOnly = false): void {
     const t = this.scale;
     const ctx = this.ctx;
 
@@ -100,8 +190,13 @@ export class GridRenderer {
 
     for (let y = 0; y < GRID_H; y++) {
       for (let x = 0; x < GRID_W; x++) {
-        const tile = tiles[y * GRID_W + x] as number;
+        let tile = tiles[y * GRID_W + x] as number;
         if (tile === TILE_VOID) continue;
+        // In a moving frame the actors are drawn afterwards at their real
+        // positions, so their tiles are just floor here.
+        if (mapOnly && (tile === TILE_ACTOR || tile === TILE_GUARD || tile === TILE_GUARD_REELING)) {
+          tile = TILE_FLOOR;
+        }
 
         // Treasure is a diamond, not a square: shape carries the difference
         // from the actor even when the tiles are tiny or the screen is dim.

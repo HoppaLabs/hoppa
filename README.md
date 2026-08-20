@@ -3,11 +3,14 @@
 Levels that live in a link. See [`docs/spec.md`](docs/spec.md) for the design and
 [`CLAUDE.md`](CLAUDE.md) for how we work. Both are binding.
 
-**Day 6 of 14.** **Draw your own creature** — 16×16, three colours and
-see‑through — then take it into a 24×14 dungeon, collect four gems while guards
-patrol, open the exit and get out. Send the level to someone by link. What you
-draw decides how it *looks*; the body you pick decides what it can *do*, and the
-two never touch.
+**Real time now.** Draw a creature, spend eight points across **strength, speed,
+nerve and reach**, then take it into a 24×14 dungeon where guards patrol on
+their own clock, notice you, and chase. Swing a sword, grab the treasure, get
+out — then send the level to a friend, who plays it with *their* creature.
+
+Two shapes of game, both on the same grid and both in the same link: **from
+above** (Zelda-shaped, shipped) and **from the side** (Donkey Kong-shaped,
+next).
 
 ## Commands
 
@@ -61,13 +64,25 @@ politely rather than guessing — spec §13's E11.
 | `delve/2` | v1's movement, plus turns, treasure, an exit that opens once every gem is collected, a 999-turn cap, and win/loss. |
 | `delve/3` | v2's rules, plus guards that patrol geometry-derived corridors, a noise radius that raises the alarm, and capture. |
 | `delve/4` | v3's rules, with MASS, GUARD, HASTE and REACH read from a creature instead of fixed. |
+| `delve/5` | v4's rules, minus MASS, plus barging a guard with strength. |
+| `roam/1` | **Real time, from above.** Enemies patrol and chase on a clock; you walk and swing a sword. |
 
 Adding a rule means adding the next version, never editing the last one — see
 [`0003`](docs/adr/0003-delve-v2-and-the-day-2-rules.md),
 [`0004`](docs/adr/0004-guards-alert-and-capture.md),
 [`0005`](docs/adr/0005-capabilities-and-the-three-presets.md),
-[`0006`](docs/adr/0006-share-links-and-the-wire-format.md) and
-[`0007`](docs/adr/0007-drawing-your-own-creature.md).
+[`0006`](docs/adr/0006-share-links-and-the-wire-format.md),
+[`0007`](docs/adr/0007-drawing-your-own-creature.md),
+[`0008`](docs/adr/0008-mass-out-budget-in.md) and
+[`0009`](docs/adr/0009-real-time.md).
+
+## Real time, still deterministic
+
+The world advances in whole ticks, thirty a second, driven by a clock rather
+than by your thumb. Positions are fixed-point integers (256 subcells to a cell),
+never floats, and wall-clock time never reaches the engine. So a replay is still
+exact, and a share link still proves a win — see
+[`docs/adr/0009`](docs/adr/0009-real-time.md).
 
 ## Looks and capabilities are separate
 
