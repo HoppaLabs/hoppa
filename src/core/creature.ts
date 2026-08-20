@@ -209,23 +209,27 @@ export function reskin(
 
 // Three silhouettes. Three colours each, drawn shape-first the way spec S4 says
 // the constraint is meant to push you.
+// The eyes are the whole trick. Bruk used to have 2x2 eyes and read as a lumpy
+// brown blob; one big dark eye with a white glint in the corner is what makes a
+// 16x16 shape look like something a child wants to be. Cosmetic only -- hard
+// rule 4 -- so every link ever sent replays byte-identically.
 const BRUK_ROWS = [
   "................",
-  "....11111111....",
+  "..11........11..",
+  "..111......111..",
   "...1111111111...",
   "..111111111111..",
-  "..112211112211..",
-  "..112211112211..",
-  "..111111111111..",
-  "..111111111111..",
-  "..113333333311..",
-  "..111111111111..",
-  "..111111111111..",
   ".11111111111111.",
-  "11.1111111111.11",
-  "11.111....111.11",
-  "...11......11...",
-  "..111......111..",
+  ".12333111123331.",
+  ".13333111133331.",
+  ".13333111133331.",
+  ".11111111111111.",
+  ".11111133111111.",
+  ".11111111111111.",
+  "..111111111111..",
+  "...1111111111...",
+  "....11....11....",
+  "...111....111...",
 ];
 
 const NIM_ROWS = [
@@ -277,7 +281,7 @@ export const BRUK = creatureFromBuild(
   "@",
   // Everything on hitting hard and standing up to things.
   { FORCE: 5, HASTE: 1 },
-  spriteFromRows(BRUK_ROWS, [51, 53, 41]),
+  spriteFromRows(BRUK_ROWS, [16, 5, 1]),
 )
 
 /** Nim, the quick. Light, fast, and in no state to be caught twice. */

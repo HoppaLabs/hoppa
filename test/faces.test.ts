@@ -62,3 +62,34 @@ test("the trait line is the two values and nothing else", async () => {
     expect({ gone, still: main.includes(gone) }).toEqual({ gone, still: false });
   }
 });
+
+test("redrawing a creature changes nothing about how it plays", async () => {
+  // Bash was redrawn on day 15. Hard rule 4 says cosmetics never touch
+  // stateHash(), and this is the case that would prove it wrong: a preset whose
+  // pixels changed, run against a level, must hash exactly as before.
+  const { parseLevel } = await import("../src/core/level.ts");
+  const { ROAM5_LEVEL_TEXT } = await import("../src/core/fixtures.ts");
+  const { RoamV5 } = await import("../src/engines/roam/v5.ts");
+  const { hashHex } = await import("../src/core/hash.ts");
+  const { spriteFromRows } = await import("../src/core/sprite.ts");
+  const { STATUS_PLAYING, HELD_RIGHT, HELD_UP } = await import("../src/engines/types.ts");
+
+  const level = parseLevel(ROAM5_LEVEL_TEXT);
+  const bash = PRESETS[0] as (typeof PRESETS)[number];
+  // The same creature with somebody else's drawing on it.
+  const repainted = {
+    ...bash,
+    sprite: spriteFromRows(Array(16).fill("1111111111111111"), [40, 41, 5]),
+  };
+
+  const run = (creature: typeof bash): string => {
+    const engine = new RoamV5(level, creature);
+    let status: number = STATUS_PLAYING;
+    for (let t = 0; t < 400 && status === STATUS_PLAYING; t++) {
+      status = engine.step(t % 100 < 50 ? HELD_RIGHT : HELD_UP);
+    }
+    return hashHex(engine.stateHash());
+  };
+
+  expect(run(repainted)).toBe(run(bash));
+});
