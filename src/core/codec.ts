@@ -32,7 +32,7 @@ import { GLYPH_EXIT, GLYPH_FLOOR, GLYPH_GUARD, GLYPH_START, GLYPH_TREASURE, type
 export const CODEC_VERSION = 1;
 
 /** Index is the wire value. Append only -- never reorder, never remove. */
-export const ENGINE_IDS: readonly string[] = ["delve", "shove"];
+export const ENGINE_IDS: readonly string[] = ["delve", "shove", "roam", "dash"];
 
 const KIND_START = 0;
 const KIND_EXIT = 1;
