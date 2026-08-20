@@ -233,6 +233,36 @@
     color: var(--gold); font-size: 14px; text-align: center; max-width: 34ch;
     line-height: 1.35; margin: 0 0 2px;
   }
+  /* Both lists work the same way and share their look: a line you tap, and a
+     column of levels behind it. Open costs the play area a third of its height
+     on a phone, which is why neither starts open. */
+  #pack { display: flex; flex-direction: column; gap: 4px; align-items: center; width: 100%; }
+  #pack .heading, #played .heading {
+    font: inherit; font-size: 11px; color: var(--ink); background: none;
+    border: 0; padding: 2px 6px; cursor: pointer;
+  }
+  #pack .heading { color: var(--ink-bright); }
+  #pack .heading::after, #played .heading::after { content: " \25be"; }
+  #pack .heading.open::after, #played .heading.open::after { content: " \25b4"; }
+  #pack .levels {
+    display: flex; flex-direction: column; gap: 4px;
+    width: 100%; max-width: 34ch; max-height: 148px; overflow-y: auto;
+    scrollbar-width: none;
+  }
+  #pack .levels[hidden] { display: none; }
+  #pack .levels::-webkit-scrollbar { display: none; }
+  #pack a {
+    font: inherit; font-size: 12px; color: var(--ink); text-decoration: none;
+    background: var(--key); border: 1px solid var(--edge); border-radius: 8px;
+    padding: 7px 12px; flex: none; display: grid;
+    grid-template-columns: 1.6em 1fr; gap: 2px 8px; align-items: baseline;
+  }
+  #pack a:active { border-color: var(--gold); }
+  #pack a b { color: var(--ink-bright); font-weight: 400; }
+  #pack a .n { color: var(--gold); font-size: 11px; }
+  #pack a .teaches { grid-column: 2; font-size: 11px; color: var(--ink); }
+  #pack a.here { border-color: var(--gold); }
+
   /* A list, one level a line -- behind one line, because open it costs the
      level a third of its height on a phone. See paintPlayed(). */
   #played { display: flex; flex-direction: column; gap: 4px; align-items: center; width: 100%; }
@@ -314,6 +344,7 @@
   </footer>
   <!-- The last few levels you played. A level is only ever a link, so closing
        the tab used to be the end of it. See src/web/stash.ts. -->
+  <nav id="pack" aria-label="the levels that come with the game"></nav>
   <nav id="played" hidden aria-label="levels you played before"></nav>
   <div id="said"></div>
   <script type="module" src="./app.js"></script>

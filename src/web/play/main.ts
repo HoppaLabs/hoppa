@@ -11,9 +11,9 @@
 // The engine is chosen by the level's behaviour= field, never hardcoded here.
 // That is what lets a link from day 5 onwards pin the rules it was beaten under.
 
-import { ROAM5_LEVEL_TEXT } from "../../core/fixtures.ts";
+import { PACK } from "../../core/pack.ts";
 import { PIP_MAX, PRESETS, capsToBuild, type Creature } from "../../core/creature.ts";
-import { CodecError, encodeLevel } from "../../core/codec.ts";
+import { CodecError, decodeLevel, encodeLevel } from "../../core/codec.ts";
 import { levelFromHash, linkFor, resultFromHash, resultLinkFor, slugify } from "./link.ts";
 import { encodeQr, QrError } from "../../core/qr.ts";
 import { loadCharacter, loadDraft, playedBefore, rememberPlayed, setSoundOn, soundOn } from "../stash.ts";
@@ -41,7 +41,6 @@ import {
 import { GridRenderer } from "./renderer.ts";
 import { goOffline } from "../offline.ts";
 
-const BUILT_IN_NAME = "First Run";
 
 /**
  * The share gate. Spec S12: **you cannot share a level you have not beaten.**
@@ -168,8 +167,17 @@ try {
   loadError = err instanceof CodecError ? err.message : String(err);
 }
 
-let level = shared === null ? parseLevel(ROAM5_LEVEL_TEXT) : shared.level;
-let levelName = shared === null ? BUILT_IN_NAME : shared.slug.replace(/-/g, " ");
+/**
+ * The room the game opens on: the first of the six it ships with.
+ *
+ * It used to open on the level the engines were developed against -- four
+ * gems, three guards, corridors a cell wide -- because that was the only level
+ * that existed. A child who taps a link and draws nothing now gets a room with
+ * nothing in it to go wrong, and five more behind it.
+ */
+const FRONT_DOOR = PACK[0] as (typeof PACK)[number];
+let level = shared === null ? decodeLevel(FRONT_DOOR.code) : shared.level;
+let levelName = shared === null ? FRONT_DOOR.name : shared.slug.replace(/-/g, " ");
 
 /**
  * A link can decode perfectly and still be one no engine will run.
@@ -213,12 +221,14 @@ function refuses(candidate: typeof level, creature: Creature): string | null {
 const drawLink = document.getElementById("draw") as HTMLAnchorElement | null;
 
 const buildLink = document.getElementById("build") as HTMLAnchorElement | null;
-if (drawLink !== null && shared !== null) {
-  drawLink.href = `./make/#back/${slugify(levelName)}/${encodeLevel(level)}`;
-}
-if (buildLink !== null && shared !== null) {
+if (buildLink !== null) {
+  // Every room is a starting point, the six that ship included: "edit level"
+  // opens the one you are looking at rather than an empty grid.
   buildLink.href = `./level/#from/${encodeLevel(level)}`;
   buildLink.textContent = "edit level";
+}
+if (drawLink !== null && shared !== null) {
+  drawLink.href = `./make/#back/${slugify(levelName)}/${encodeLevel(level)}`;
 }
 // A character you made wins over the ready-made ones: it is yours, and it is
 // the reason the spec says never to cut the drawing day.
@@ -244,8 +254,8 @@ const refusal = refuses(level, chosen);
 if (refusal !== null) {
   loadError = refusal;
   shared = null;
-  level = parseLevel(ROAM5_LEVEL_TEXT);
-  levelName = BUILT_IN_NAME;
+  level = decodeLevel(FRONT_DOOR.code);
+  levelName = FRONT_DOOR.name;
 }
 /**
  * Is this a level I MADE, or one I was SENT?
@@ -1131,18 +1141,69 @@ if (loadError !== null) {
 const levelCode = encodeLevel(level);
 
 /**
- * The last few levels you played, as the links they arrived as.
+ * The six rooms the game ships with.
+ *
+ * Shown as ordinary level links, so everything downstream works without
+ * knowing they are special: tapping one is the same act as tapping one in a
+ * message, "edit level" opens it in the editor, and beating one offers to
+ * share it. A pack that needed its own plumbing would be a second way to play
+ * a level, and there is only one.
+ */
+function paintPack(): void {
+  const row = document.getElementById("pack") as HTMLElement;
+  row.innerHTML = "";
+
+  const list = document.createElement("div");
+  list.className = "levels";
+  list.hidden = true;
+
+  const header = document.createElement("button");
+  header.className = "heading";
+  const say = (): void => {
+    header.textContent = `levels · ${PACK.length}`;
+    header.setAttribute("aria-expanded", String(!list.hidden));
+    header.classList.toggle("open", !list.hidden);
+  };
+  header.addEventListener("click", () => {
+    list.hidden = !list.hidden;
+    say();
+    // The level is sized against everything else on screen, so opening the
+    // list has to re-measure it.
+    resize();
+  });
+  say();
+
+  const playing = encodeLevel(level);
+  for (let at = 0; at < PACK.length; at++) {
+    const room = PACK[at] as (typeof PACK)[number];
+    const link = document.createElement("a");
+    link.href = `#p/${room.slug}/${room.code}`;
+    // The one you are on is marked rather than removed: a list that changes
+    // length as you play it is a list you cannot count your way through.
+    if (room.code === playing) link.classList.add("here");
+    const number = document.createElement("span");
+    number.className = "n";
+    number.textContent = `${at + 1}`;
+    const name = document.createElement("b");
+    name.textContent = room.name;
+    const teaches = document.createElement("span");
+    teaches.className = "teaches";
+    teaches.textContent = room.teaches;
+    link.append(number, name, teaches);
+    list.appendChild(link);
+  }
+
+  row.appendChild(header);
+  row.appendChild(list);
+}
+
+/**
+ * The levels you have played before, as a list you can open.
  *
  * A level is only ever a link -- no accounts, no server, nothing to come back
  * to. The cost of that is real: play your cousin's level on Tuesday, close the
  * tab, and on Wednesday it is gone unless you still have the message. Keeping
  * the codes costs nothing and takes that cost away.
- *
- * Only levels that came from a link. The built-in one is always here, and a
- * list whose first entry is "the level you are already on" is furniture.
- */
-/**
- * The levels you have played before, as a list you can open.
  *
  * A list is the right shape -- a wrapping row of chips cut every name to
  * fifteen characters to make them fit each other, and gave each one a 24px tap
@@ -1202,7 +1263,12 @@ function paintPlayed(): void {
   row.hidden = false;
 }
 
-if (shared !== null) rememberPlayed(levelCode, shared.slug);
+// The six that ship have their own list, permanently, so remembering one here
+// would put the same room on screen twice -- and would push a level a friend
+// actually sent off the end of a list six long.
+const shipped = new Set(PACK.map((room) => room.code));
+if (shared !== null && !shipped.has(levelCode)) rememberPlayed(levelCode, shared.slug);
+paintPack();
 paintPlayed();
 
 // Re-checked, not trusted: a stored proof is replayed before it counts.

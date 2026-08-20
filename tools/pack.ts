@@ -1,0 +1,284 @@
+// The six levels the game opens with, written out rather than drawn by hand.
+//
+// A 24x14 grid typed as text is one miscounted column away from a level that
+// will not parse, and the guard rule (spec L5: no patrol cycle longer than 8)
+// is easy to break by accident -- a guard standing in a long corridor paces it
+// end to end. Building them from parts means the parts can be checked.
+//
+// Every level here is verified by tools/verify-pack.ts: L1-L5, and then beaten
+// by the bot with all three ready-made creatures.
+
+import { GRID_H, GRID_W } from "../src/core/grid.ts";
+import { encodeLevel } from "../src/core/codec.ts";
+import { parseLevel } from "../src/core/level.ts";
+import { slugify } from "../src/web/play/link.ts";
+
+const WALL = "#";
+const OPEN = ".";
+
+/** A room under construction: a grid of glyphs you can paint into. */
+class Room {
+  private readonly cells: string[][];
+
+  constructor(fill: string = OPEN) {
+    this.cells = Array.from({ length: GRID_H }, () => Array.from({ length: GRID_W }, () => fill));
+    this.border();
+  }
+
+  /** Walls all the way round. Every level in the pack is a closed room. */
+  border(): this {
+    for (let x = 0; x < GRID_W; x++) {
+      (this.cells[0] as string[])[x] = WALL;
+      (this.cells[GRID_H - 1] as string[])[x] = WALL;
+    }
+    for (let y = 0; y < GRID_H; y++) {
+      (this.cells[y] as string[])[0] = WALL;
+      (this.cells[y] as string[])[GRID_W - 1] = WALL;
+    }
+    return this;
+  }
+
+  put(x: number, y: number, glyph: string): this {
+    if (x < 0 || y < 0 || x >= GRID_W || y >= GRID_H) {
+      throw new Error(`(${x},${y}) is off the grid`);
+    }
+    (this.cells[y] as string[])[x] = glyph;
+    return this;
+  }
+
+  /** A run of glyphs. Inclusive at both ends, either direction. */
+  line(x1: number, y1: number, x2: number, y2: number, glyph: string): this {
+    const steps = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1));
+    const dx = Math.sign(x2 - x1);
+    const dy = Math.sign(y2 - y1);
+    for (let i = 0; i <= steps; i++) this.put(x1 + dx * i, y1 + dy * i, glyph);
+    return this;
+  }
+
+  box(x1: number, y1: number, x2: number, y2: number, glyph: string): this {
+    for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) this.put(x, y, glyph);
+    return this;
+  }
+
+  /**
+   * A full-width wall with a gap, which is what every floor and every barrier
+   * in the pack is. The gap is where the route goes.
+   */
+  wallRow(y: number, gaps: readonly number[], glyph: string = WALL): this {
+    this.line(1, y, GRID_W - 2, y, glyph);
+    for (const x of gaps) this.put(x, y, OPEN);
+    return this;
+  }
+
+  text(header: string): string {
+    const rows = this.cells.map((row) => row.join(""));
+    for (const row of rows) {
+      if (row.length !== GRID_W) throw new Error(`row is ${row.length} wide, not ${GRID_W}`);
+    }
+    if (rows.length !== GRID_H) throw new Error(`${rows.length} rows, not ${GRID_H}`);
+    return [header, ...rows].join("\n") + "\n";
+  }
+}
+
+export interface PackLevel {
+  readonly file: string;
+  readonly name: string;
+  /** What this room is for. One line, in the words a child would use. */
+  readonly teaches: string;
+  readonly text: string;
+}
+
+const roam = (seed: string) => `hoppa/1 roam seed=${seed} tiles=1 behaviour=5`;
+const dash = (seed: string) => `hoppa/1 dash seed=${seed} tiles=1 behaviour=4`;
+
+/* -------------------------------------------------------------------------- */
+
+/** 1. An empty room with two gems. Nothing can go wrong here. */
+function firstSteps(): string {
+  const room = new Room();
+  room.box(6, 5, 15, 8, WALL).box(7, 6, 14, 7, OPEN);
+  // ...with a way into the middle, so the block reads as a room and not a lump.
+  room.put(10, 5, OPEN);
+  room.put(4, 2, "$").put(19, 2, "$").put(10, 6, "$");
+  room.put(3, 11, "@").put(19, 11, ">");
+  return room.text(roam("1aa1"));
+}
+
+/**
+ * 2. A snake. Every corridor is a dead end except at one side, so the route is
+ * the whole room and there is nothing to work out but which way to turn.
+ *
+ * Guards go in the SHORT vertical joins, never the long corridors: a guard
+ * paces the corridor it stands in, and a 22-cell corridor is a 42-tick cycle,
+ * which L5 refuses and which no child could time anyway.
+ */
+function theLongWay(): string {
+  const room = new Room();
+  // One floor across the middle with a way up at the far right. Two rooms, and
+  // the gems are deliberately not all on the way to the door.
+  room.wallRow(6, [21]).wallRow(7, [21]);
+  // No guards at all. This room teaches the route and nothing else -- and it is
+  // also why it can be a long corridor: a guard paces the corridor it stands
+  // in, and everything here is twenty cells wide.
+  room.put(3, 10, "$").put(20, 3, "$").put(3, 3, "$");
+  room.put(3, 12, "@").put(12, 12, ">");
+  return room.text(roam("2bb2"));
+}
+
+/**
+ * 3. Four gems in four corners, and three bands of shafts between them.
+ *
+ * The shape is the one the built-in level uses, and the reason is the guard
+ * rule. A patrol runs until it hits a wall, so a guard is only short-cycled
+ * inside a ONE-CELL shaft: three walled rows with a gap, open corridor above
+ * and below, gives a five-cell run and a period of exactly 8 -- the most L5
+ * allows. Guards in an open room pace the whole room and the check refuses it.
+ */
+function fourCorners(): string {
+  const room = new Room();
+  for (const y of [2, 3, 4]) room.wallRow(y, [3, 10, 20]);
+  for (const y of [6, 7, 8]) room.wallRow(y, [7, 15, 21]);
+  for (const y of [10, 11]) room.wallRow(y, [5, 11, 18]);
+  room.put(2, 1, "$").put(21, 1, "$").put(2, 9, "$").put(21, 9, "$");
+  room.put(3, 3, "G").put(15, 7, "G");
+  room.put(11, 12, "@").put(18, 12, ">");
+  return room.text(roam("3cc3"));
+}
+
+/** 4. The first side-on room: one ladder, and everything else is walking. */
+function upAndOver(): string {
+  const room = new Room();
+  // Two floors. The gap in the upper floor is where the ladder comes through.
+  room.wallRow(8, [4]);
+  room.line(4, 8, 4, 12, "H");
+  room.put(8, 7, "$").put(15, 7, "$");
+  room.put(2, 12, "@").put(20, 7, ">");
+  return room.text(dash("4dd4"));
+}
+
+/**
+ * 5. Three floors, two ladders, and a guard on the middle one.
+ *
+ * The ladders are on opposite sides on purpose: you cannot go straight up, so
+ * the room is a climb rather than a lift.
+ */
+function theTallRoom(): string {
+  const room = new Room();
+  room.wallRow(5, [18]);
+  room.wallRow(9, [4]);
+  room.line(18, 5, 18, 8, "H");
+  room.line(4, 9, 4, 12, "H");
+  room.put(3, 4, "$").put(20, 8, "$").put(9, 12, "$");
+  room.put(12, 8, "G");
+  room.put(2, 12, "@").put(20, 4, ">");
+  return room.text(dash("5ee5"));
+}
+
+/**
+ * 6. Tight doorways with something walking through them.
+ *
+ * The hard one, and the reason it is not harder: with three guards on the only
+ * route, two of the three ready-made creatures died every time the bot tried
+ * it, and the bot plays the way a child plays the first time -- straight at
+ * everything. Two guards, and a second way through every band.
+ */
+function theGauntlet(): string {
+  const room = new Room();
+  // The same three-band skeleton as room 3, because it is the only shape that
+  // keeps a guard's patrol inside the eight-turn limit -- but every gap is
+  // offset from the one above it, so there is no straight run anywhere.
+  for (const y of [2, 3, 4]) room.wallRow(y, [2, 12, 21]);
+  for (const y of [6, 7, 8]) room.wallRow(y, [6, 16]);
+  for (const y of [10, 11]) room.wallRow(y, [4, 14, 20]);
+  room.put(6, 1, "$").put(18, 1, "$").put(3, 5, "$").put(21, 9, "$");
+  room.put(12, 3, "G").put(16, 7, "G");
+  room.put(9, 12, "@").put(20, 12, ">");
+  return room.text(roam("6ff6"));
+}
+
+export const PACK: readonly PackLevel[] = [
+  {
+    file: "1-first-steps.lvl",
+    name: "first steps",
+    teaches: "pick the gems up, then the door opens",
+    text: firstSteps(),
+  },
+  {
+    file: "2-the-long-way.lvl",
+    name: "the long way",
+    teaches: "a room can double back \u2014 the gems are not all on your way",
+    text: theLongWay(),
+  },
+  {
+    file: "3-four-corners.lvl",
+    name: "four corners",
+    teaches: "plan a loop rather than chasing the nearest gem",
+    text: fourCorners(),
+  },
+  {
+    file: "4-up-and-over.lvl",
+    name: "up and over",
+    teaches: "from the side: ladders go up, and gravity does the rest",
+    text: upAndOver(),
+  },
+  {
+    file: "5-the-tall-room.lvl",
+    name: "the tall room",
+    teaches: "three floors, and the ladders are never above one another",
+    text: theTallRoom(),
+  },
+  {
+    file: "6-the-gauntlet.lvl",
+    name: "the gauntlet",
+    teaches: "pick the doorway that is not being walked through",
+    text: theGauntlet(),
+  },
+];
+
+/**
+ * The pack as the web build sees it: a name and a code, nothing else.
+ *
+ * Codes rather than level text, because the play page only ever needs to build
+ * a link out of one. Six levels as text would be two kilobytes in a bundle a
+ * child downloads on mobile data; as codes it is under six hundred bytes.
+ */
+function packModule(): string {
+  const lines = [
+    "// GENERATED by tools/pack.ts -- do not edit. Run `bun run tools/pack.ts`.",
+    "//",
+    "// The six rooms the game opens with. Every one is checked by",
+    "// test/pack.test.ts: L1-L5, and then beaten by the bot in tools/bot.ts with",
+    "// all three ready-made creatures, with the winning run replayed to prove it.",
+    "",
+    "export interface PackLevel {",
+    "  readonly slug: string;",
+    "  readonly name: string;",
+    "  /** What this room is for, in the words a child would use. */",
+    "  readonly teaches: string;",
+    "  readonly code: string;",
+    "}",
+    "",
+    "export const PACK: readonly PackLevel[] = [",
+  ];
+  for (const level of PACK) {
+    const code = encodeLevel(parseLevel(level.text));
+    lines.push("  {");
+    lines.push(`    slug: ${JSON.stringify(slugify(level.name))},`);
+    lines.push(`    name: ${JSON.stringify(level.name)},`);
+    lines.push(`    teaches: ${JSON.stringify(level.teaches)},`);
+    lines.push(`    code: ${JSON.stringify(code)},`);
+    lines.push("  },");
+  }
+  lines.push("];");
+  lines.push("");
+  return lines.join("\n");
+}
+
+if (import.meta.main) {
+  for (const level of PACK) {
+    await Bun.write(`levels/pack/${level.file}`, level.text);
+    console.log(`  levels/pack/${level.file}`);
+  }
+  await Bun.write("src/core/pack.ts", packModule());
+  console.log("  src/core/pack.ts");
+}
