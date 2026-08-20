@@ -78,6 +78,10 @@ const TILE_OF: Record<string, number> = {
 // --- the page -----------------------------------------------------------------
 
 const paper = document.getElementById("paper") as HTMLCanvasElement;
+const aim = document.getElementById("aim") as HTMLCanvasElement;
+const viewport = document.getElementById("viewport") as HTMLElement;
+const zoomButton = document.getElementById("zoom") as HTMLButtonElement;
+const pans = document.getElementById("pans") as HTMLElement;
 const toolsBox = document.getElementById("tools") as HTMLElement;
 const gamesBox = document.getElementById("games") as HTMLElement;
 const says = document.getElementById("says") as HTMLElement;
@@ -123,6 +127,27 @@ nameBox.value = start.name;
  * screen and sits beside it on a wide one, so what the canvas may take is
  * whatever the row has left over -- measured, never assumed.
  */
+/**
+ * Whether the level is drawn bigger than the screen and scrolled.
+ *
+ * On a phone the level is as wide as it can be at "whole level" -- 24 cells
+ * across about 370 points is roughly a 15 point cell, and a fingertip is nearer
+ * 40. You cannot have both the whole level and a comfortable target on a screen
+ * that size, so this is the choice: see everything, or see it properly.
+ */
+let big = false;
+
+/**
+ * The cell size "bigger" aims for, in points. Apple and Google both put the
+ * smallest safe touch target near 44; this is under that because you can slide
+ * to correct before letting go, and a 44 point cell would show six columns.
+ */
+const COMFORTABLE = 34;
+
+/** Where the viewport is looking, in cells, when the level is bigger than it. */
+let panX = 0;
+let panY = 0;
+
 function refit(): void {
   const board = document.getElementById("board") as HTMLElement;
   const side = document.getElementById("side") as HTMLElement;
@@ -136,10 +161,49 @@ function refit(): void {
   const availableWidth = Math.max(240, board.clientWidth - (wide ? sideBox.width + GAP : 0));
   const availableHeight = wide
     ? Math.max(200, window.innerHeight - 90)
-    : Math.max(150, window.innerHeight - sideBox.height - 80);
+    : Math.max(150, window.innerHeight - sideBox.height - 140);
 
+  // Fit first, then multiply: the zoom is "twice as big as it would otherwise
+  // be", not a fixed cell size, so it means the same thing on every screen.
   renderer.fit(availableWidth, availableHeight);
+  const fitted = renderer.tileSize();
+  // Twice as big, or comfortable, whichever is bigger. A fixed multiple would
+  // leave a small phone at 20 points a cell, which is no better than it was.
+  if (big) renderer.setTileSize(Math.max(fitted * 2, COMFORTABLE));
+
+  // The window through which the level is seen. At 1x it is the whole thing.
+  viewport.style.width = `${Math.min(availableWidth, renderer.tileSize() * GRID_W)}px`;
+  viewport.style.height = `${Math.min(availableHeight, renderer.tileSize() * GRID_H)}px`;
+
+  aim.width = paper.width;
+  aim.height = paper.height;
+  aim.style.width = paper.style.width;
+  aim.style.height = paper.style.height;
+
+  clampPan();
+  paintViewbar();
   repaint();
+}
+
+/** Keep the view inside the level, and centred when the level is smaller. */
+function clampPan(): void {
+  const tile = renderer.tileSize();
+  const acrossVisible = viewport.clientWidth / tile;
+  const downVisible = viewport.clientHeight / tile;
+  const maxX = Math.max(0, GRID_W - acrossVisible);
+  const maxY = Math.max(0, GRID_H - downVisible);
+  panX = Math.max(0, Math.min(maxX, panX));
+  panY = Math.max(0, Math.min(maxY, panY));
+  paper.style.transform = `translate(${-panX * tile}px, ${-panY * tile}px)`;
+  aim.style.transform = paper.style.transform;
+}
+
+function paintViewbar(): void {
+  const tile = renderer.tileSize();
+  const scrolls = renderer.tileSize() * GRID_W > viewport.clientWidth + 1
+    || tile * GRID_H > viewport.clientHeight + 1;
+  zoomButton.textContent = big ? "whole level" : "bigger";
+  pans.hidden = !scrolls;
 }
 
 function repaint(): void {
@@ -161,6 +225,37 @@ function cellAt(event: PointerEvent): { x: number; y: number } | null {
   const y = Math.floor(((event.clientY - box.top) / box.height) * GRID_H);
   if (x < 0 || y < 0 || x >= GRID_W || y >= GRID_H) return null;
   return { x, y };
+}
+
+/**
+ * The aiming layer: a ring on the cell you are about to change, and two lines
+ * running the full width and height of the level through it.
+ *
+ * The lines are the point. A fingertip covers about three cells, so the cell
+ * you are aiming at is the one you cannot see; the lines stick out either side
+ * of the finger, so you can read off exactly where you are without moving it.
+ */
+function paintAim(cell: { x: number; y: number } | null): void {
+  const ctx = aim.getContext("2d");
+  if (ctx === null) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const t = renderer.tileSize();
+  ctx.clearRect(0, 0, t * GRID_W, t * GRID_H);
+  if (cell === null) return;
+
+  ctx.fillStyle = "rgba(255,194,61,.30)";
+  ctx.fillRect(0, cell.y * t, t * GRID_W, t);
+  ctx.fillRect(cell.x * t, 0, t, t * GRID_H);
+
+  ctx.strokeStyle = "#ffc23d";
+  ctx.lineWidth = Math.max(2, Math.round(t / 7));
+  ctx.strokeRect(
+    cell.x * t + ctx.lineWidth / 2,
+    cell.y * t + ctx.lineWidth / 2,
+    t - ctx.lineWidth,
+    t - ctx.lineWidth,
+  );
 }
 
 /**
@@ -189,27 +284,73 @@ function put(x: number, y: number): void {
   }
 }
 
+/**
+ * Walls paint under the finger as it moves, because that is how you draw a
+ * room and a stroke is meant to be a stroke.
+ *
+ * Everything you place ONE of -- the start, the door, a gem, an enemy -- waits
+ * for you to lift your finger. You press, the ring and the crosshair show you
+ * where it would go, you slide until that is where you meant, and only then
+ * does it happen. Tapping a 15 point cell accurately is hard; correcting an
+ * aim you can see is easy.
+ */
 paper.addEventListener("pointerdown", (event) => {
   const cell = cellAt(event);
   if (cell === null) return;
   paper.setPointerCapture(event.pointerId);
   drawing = true;
   lastCell = cell.y * GRID_W + cell.x;
-  put(cell.x, cell.y);
+  paintAim(cell);
+  if (draggable(tool)) put(cell.x, cell.y);
 });
 
 paper.addEventListener("pointermove", (event) => {
-  if (!drawing || !draggable(tool)) return;
+  if (!drawing) return;
   const cell = cellAt(event);
   if (cell === null) return;
   const index = cell.y * GRID_W + cell.x;
   if (index === lastCell) return;
   lastCell = index;
-  put(cell.x, cell.y);
+  paintAim(cell);
+  if (draggable(tool)) put(cell.x, cell.y);
 });
 
-for (const name of ["pointerup", "pointercancel", "pointerleave"]) {
-  paper.addEventListener(name, () => { drawing = false; });
+paper.addEventListener("pointerup", (event) => {
+  if (!drawing) return;
+  drawing = false;
+  const cell = cellAt(event);
+  paintAim(null);
+  if (cell !== null && !draggable(tool)) put(cell.x, cell.y);
+});
+
+for (const name of ["pointercancel", "pointerleave"]) {
+  paper.addEventListener(name, () => {
+    drawing = false;
+    paintAim(null);
+  });
+}
+
+// --- looking around ---------------------------------------------------------------
+
+zoomButton.addEventListener("click", () => {
+  big = !big;
+  if (!big) { panX = 0; panY = 0; }
+  refit();
+});
+
+const PANS: ReadonlyArray<readonly [string, number, number]> = [
+  ["panleft", -4, 0],
+  ["panright", 4, 0],
+  ["panup", 0, -3],
+  ["pandown", 0, 3],
+];
+for (const [id, dx, dy] of PANS) {
+  const button = document.getElementById(id) as HTMLButtonElement;
+  button.addEventListener("click", () => {
+    panX += dx;
+    panY += dy;
+    clampPan();
+  });
 }
 
 // --- the tool and game strips --------------------------------------------------

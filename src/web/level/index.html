@@ -57,6 +57,16 @@
   */
   #board { display: flex; gap: 14px; align-items: flex-start; justify-content: center;
            flex-wrap: wrap; width: 100%; }
+  #stack { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  /* The level scrolls inside this once it is drawn bigger than the screen. */
+  #viewport { position: relative; overflow: hidden; max-width: 100%; line-height: 0; }
+  /* The aiming layer sits exactly on top of the level and never takes a tap. */
+  #aim { position: absolute; left: 0; top: 0; pointer-events: none; border: 0; background: none; }
+  #viewbar { display: flex; gap: 6px; align-items: center; justify-content: center; flex-wrap: wrap; }
+  #viewbar button { padding: 6px 12px; font-size: 12px; }
+  #pans { display: flex; gap: 4px; }
+  #pans[hidden] { display: none; }
+  #pans button { padding: 6px 10px; }
   #side { display: flex; flex-direction: column; gap: 10px; align-items: center;
           flex: 0 1 auto; min-width: min(280px, 100%); }
 
@@ -106,7 +116,24 @@
 <h1>hoppa &middot; <b>make a level</b></h1>
 
 <div id="board">
-  <canvas id="paper" aria-label="the level you are drawing"></canvas>
+  <div id="stack">
+    <div id="viewport">
+      <canvas id="paper" aria-label="the level you are drawing"></canvas>
+      <!-- Crosshair and target ring, drawn over the level while a finger is
+           down. A finger covers about three cells; lines that run to the edges
+           stay visible either side of it. -->
+      <canvas id="aim" aria-hidden="true"></canvas>
+    </div>
+    <div id="viewbar">
+      <button id="zoom">bigger</button>
+      <span id="pans" hidden>
+        <button id="panleft" aria-label="look left">&#9664;</button>
+        <button id="panup" aria-label="look up">&#9650;</button>
+        <button id="pandown" aria-label="look down">&#9660;</button>
+        <button id="panright" aria-label="look right">&#9654;</button>
+      </span>
+    </div>
+  </div>
 
   <div id="side">
     <div id="games" role="group" aria-label="which game this level is for"></div>
@@ -114,7 +141,10 @@
     <h2>what to draw with</h2>
     <div id="tools" role="group" aria-label="drawing tools"></div>
 
-    <div class="hint">drag to draw. tap a thing to put one down.</div>
+    <div class="hint">
+      drag to draw walls. for anything else &mdash; press, slide until the ring is
+      where you want it, then let go. <b>bigger</b> makes the squares easier to hit.
+    </div>
 
     <div class="row"><input id="name" maxlength="24" value="my level" aria-label="what your level is called"></div>
 

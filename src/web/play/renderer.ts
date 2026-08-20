@@ -126,10 +126,30 @@ export class GridRenderer {
     this.ctx = ctx;
   }
 
+  /** The cell size currently being drawn at, in CSS pixels. */
+  tileSize(): number {
+    return this.scale;
+  }
+
+  /**
+   * Draw at a chosen cell size rather than the one that fits.
+   *
+   * The level editor uses this to go bigger than the screen and scroll: on a
+   * phone, 24 cells across is a 15 point cell, and a fingertip is nearer 40.
+   */
+  setTileSize(tile: number): void {
+    this.resize(Math.max(6, Math.floor(tile)));
+  }
+
   /** Pick the largest whole-pixel tile size that fits the space we're given. */
   fit(availableWidth: number, availableHeight: number): void {
+    this.resize(
+      Math.max(6, Math.floor(Math.min(availableWidth / GRID_W, availableHeight / GRID_H))),
+    );
+  }
+
+  private resize(tile: number): void {
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    const tile = Math.max(6, Math.floor(Math.min(availableWidth / GRID_W, availableHeight / GRID_H)));
     this.scale = tile;
 
     const cssW = tile * GRID_W;

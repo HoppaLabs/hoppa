@@ -504,6 +504,14 @@ on a drawn level with nothing written for them. The reverse is the remix loop:
 on a level somebody sent you the editor link reads **change this level** and
 opens it for editing.
 
+Aiming is the hard part on a phone: 24 cells across ~370 points is a 15 point
+cell and a fingertip is nearer 40. Two things answer it. **Press and slide** —
+walls paint under a moving finger, but anything you place one of waits for you
+to lift, with a ring on the target cell and a crosshair running the full width
+and height of the level so you can see where you are *past* your own finger.
+And **bigger**, which redraws at a comfortable cell size (at least 34 points on
+any screen) and scrolls, with arrows to look around.
+
 The editor enforces only what keeps a draft drawable (one start, one door, the
 treasure and enemy caps). Everything else is advice in plain sentences.
 
