@@ -41,6 +41,57 @@ const COLOUR: Record<number, string> = {
   [TILE_FIRE]: "#ff9f3d",
 };
 
+/**
+ * Clouds, for the side-on sky.
+ *
+ * A flat field of one colour is the only part of either world with nothing in
+ * it, and it reads as unfinished rather than as open air.
+ *
+ * Drawn the way the era drew them, which matters more here than anywhere else
+ * on screen because a cloud is a big soft shape and every shortcut shows:
+ *
+ *   * whole pixels only, at an integer scale. A cloud at a fractional position
+ *     is an anti-aliased smear, and one smear undoes a screen of pixel art.
+ *   * three colours -- white, a shaded underside, and the sky showing through.
+ *     Two tones is what says "this is a lit thing" without shading it.
+ *   * a flat bottom and a lumpy top. That silhouette IS the cloud; without it
+ *     a white blob reads as a hole in the sky.
+ *
+ * Presentation only, and nothing here reaches an engine: hard rule 4. A run
+ * replays identically under a clear sky or a cloudy one.
+ */
+type Cloud = readonly string[];
+
+const CLOUD_WIDE: Cloud = [
+  ".....XXXXX......",
+  "...XXXXXXXXX....",
+  "..XXXXXXXXXXXX..",
+  ".XXXXXXXXXXXXXX.",
+  "XXXXXXXXXXXXXXXX",
+  ".ssssssssssssss.",
+];
+
+const CLOUD_SMALL: Cloud = [
+  "...XXX....",
+  ".XXXXXXX..",
+  "XXXXXXXXXX",
+  ".ssssssss.",
+];
+
+/**
+ * Where the clouds sit, in cells across and down.
+ *
+ * Fixed rather than random: the sky is not a thing to be surprised by, and a
+ * layout that changed per level would be one more thing moving on a page that
+ * already has enough.
+ */
+const CLOUDS: readonly { at: Cloud; x: number; y: number; drift: number }[] = [
+  { at: CLOUD_WIDE, x: 1, y: 1, drift: 260 },
+  { at: CLOUD_SMALL, x: 11, y: 0, drift: 170 },
+  { at: CLOUD_WIDE, x: 16, y: 3, drift: 330 },
+  { at: CLOUD_SMALL, x: 6, y: 4, drift: 210 },
+];
+
 /** The gem's shape: a diamond, so a spin is a change of width and nothing else. */
 function diamond(
   ctx: CanvasRenderingContext2D,
@@ -232,6 +283,41 @@ export class GridRenderer {
 
   /** One stamp per flame frame, in order. Empty until the stamps are built. */
   private flames: HTMLCanvasElement[] = [];
+
+  /**
+   * Put the clouds up, behind everything.
+   *
+   * Skipped below a two-pixel step: a thumbnail draws its whole world at four
+   * pixels a tile, and a cloud there is three grey pixels that read as dirt.
+   */
+  private paintClouds(ctx: CanvasRenderingContext2D, t: number): void {
+    if (!this.sideOn) return;
+    const step = Math.max(1, Math.round(t / 8));
+    if (step < 2) return;
+
+    const wide = t * GRID_W;
+    for (const cloud of CLOUDS) {
+      // Whole pixels, always. Frozen when nothing else is animating, so the
+      // level editor draws the same sky twice running.
+      const slide = this.spinning ? Math.floor(Date.now() / cloud.drift) : 0;
+      const rows = cloud.at;
+      const w = (rows[0] as string).length * step;
+      // Wrap around the room rather than sailing off it, so the sky is never
+      // empty on one side.
+      const left = (((cloud.x * t + slide) % (wide + w)) + wide + w) % (wide + w) - w;
+      const top = cloud.y * t;
+
+      for (let y = 0; y < rows.length; y++) {
+        const row = rows[y] as string;
+        for (let x = 0; x < row.length; x++) {
+          const ch = row[x] as string;
+          if (ch === ".") continue;
+          ctx.fillStyle = ch === "X" ? "#ffffff" : "#d7ecfa";
+          ctx.fillRect(left + x * step, top + y * step, step, step);
+        }
+      }
+    }
+  }
 
   /** Turn the spinning treasure off, for a view that is not redrawn each frame. */
   setSpinning(spinning: boolean): void {
@@ -624,6 +710,7 @@ export class GridRenderer {
     // whatever was on the canvas last frame.
     ctx.fillStyle = this.tiles().ground;
     ctx.fillRect(0, 0, t * GRID_W, t * GRID_H);
+    this.paintClouds(ctx, t);
 
     for (let y = 0; y < GRID_H; y++) {
       for (let x = 0; x < GRID_W; x++) {
