@@ -374,9 +374,19 @@ soundButton.addEventListener("click", () => {
   sounds.setOn(!sounds.isOn());
   setSoundOn(sounds.isOn());
   paintSoundButton();
-  // The tap that turns it on is also the gesture a browser wants before it will
-  // let a page make a noise, so this both confirms the setting and unlocks it.
-  if (sounds.isOn()) sounds.play("treasure");
+  if (sounds.isOn()) {
+    // The tap that turns it on is also the gesture a browser wants before it
+    // will let a page make a noise, so this both confirms the setting and
+    // unlocks it. The winning fanfare, because it is the longest and the
+    // easiest to be sure you heard.
+    sounds.play("won");
+    // ...and if you heard nothing, the most likely reason by far is not this
+    // code. An iPhone's side switch silences web audio, and there is no way for
+    // a page to ask whether it is on.
+    said.textContent = "sound on — hearing nothing? check the switch on the side of your phone";
+  } else {
+    said.textContent = "";
+  }
 });
 paintSoundButton();
 

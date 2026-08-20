@@ -57,31 +57,46 @@ interface Note {
   readonly at: number;
 }
 
-// Short, and quiet enough to sit under a room with other people in it. Squares
-// and triangles rather than sines, because a sine sounds like a test tone and a
-// square sounds like a game.
+/**
+ * Everything goes through one gain, so "louder" is one number and not five.
+ *
+ * It sits near the top because the notes below are already scaled against each
+ * other; turning this down is what a quieter game would do, not editing them.
+ */
+const MASTER = 0.85;
+
+// Squares and triangles rather than sines: a sine sounds like a hearing test,
+// and its energy is all in one place. A square is mostly harmonics, which is
+// what a phone actually reproduces.
+//
+// **Nothing below 260Hz.** A phone speaker is a centimetre across and rolls off
+// hard beneath roughly 500Hz -- the first version of this ended a hit on 90Hz
+// and a loss on 220Hz, and on a phone those are not quiet, they are missing.
+// The notes are the same shapes an octave up.
 const SCORE: Readonly<Record<Cue, readonly Note[]>> = {
   // Up: you gained something.
   treasure: [
-    { hz: 880, ms: 60, wave: "square", gain: 0.09, at: 0 },
-    { hz: 1320, ms: 90, wave: "square", gain: 0.09, at: 55 },
+    { hz: 880, ms: 70, wave: "square", gain: 0.34, at: 0 },
+    { hz: 1320, ms: 110, wave: "square", gain: 0.34, at: 60 },
   ],
-  // Down and rough: you lost something.
-  hurt: [
-    { hz: 300, to: 90, ms: 200, wave: "sawtooth", gain: 0.12, at: 0 },
-  ],
-  // Barely a noise: this one happens several times a second when a child is
-  // holding the button down, and anything louder becomes a drill.
-  swing: [{ hz: 620, to: 900, ms: 45, wave: "triangle", gain: 0.05, at: 0 }],
+  // Down and rough: you lost something. Was 300 -> 90, which a phone could not
+  // play; the fall is the same shape between frequencies it can.
+  hurt: [{ hz: 700, to: 260, ms: 220, wave: "sawtooth", gain: 0.42, at: 0 }],
+  // Quieter than the rest ON PURPOSE, and only this one: it fires several times
+  // a second while a child holds the button, and at the others' level it is a
+  // drill rather than a game.
+  swing: [{ hz: 620, to: 900, ms: 45, wave: "triangle", gain: 0.16, at: 0 }],
   won: [
-    { hz: 660, ms: 90, wave: "square", gain: 0.09, at: 0 },
-    { hz: 880, ms: 90, wave: "square", gain: 0.09, at: 85 },
-    { hz: 1320, ms: 220, wave: "square", gain: 0.09, at: 170 },
+    { hz: 660, ms: 100, wave: "square", gain: 0.34, at: 0 },
+    { hz: 880, ms: 100, wave: "square", gain: 0.34, at: 90 },
+    { hz: 1320, ms: 260, wave: "square", gain: 0.36, at: 180 },
   ],
+  // Was 440/330/220. The bottom note of that was inaudible on a phone, so the
+  // whole thing is up an octave and stays inside what a speaker can do.
   lost: [
-    { hz: 440, ms: 130, wave: "square", gain: 0.08, at: 0 },
-    { hz: 330, ms: 130, wave: "square", gain: 0.08, at: 120 },
-    { hz: 220, ms: 320, wave: "square", gain: 0.08, at: 240 },
+    { hz: 660, ms: 150, wave: "square", gain: 0.34, at: 0 },
+    { hz: 495, ms: 150, wave: "square", gain: 0.34, at: 140 },
+    { hz: 330, ms: 360, wave: "square", gain: 0.34, at: 280 },
   ],
 };
 
@@ -95,6 +110,7 @@ const SCORE: Readonly<Record<Cue, readonly Note[]>> = {
 export class Sounds {
   private on: boolean;
   private context: AudioContext | null = null;
+  private master: GainNode | null = null;
 
   constructor(on: boolean) {
     this.on = on;
@@ -135,7 +151,7 @@ export class Sounds {
       level.gain.exponentialRampToValueAtTime(0.0001, to);
 
       osc.connect(level);
-      level.connect(context.destination);
+      level.connect((this.master ?? context.destination) as AudioNode);
       osc.start(from);
       osc.stop(to + 0.02);
     }
@@ -151,6 +167,9 @@ export class Sounds {
       if (Ctor === undefined) return null;
       try {
         this.context = new Ctor();
+        this.master = this.context.createGain();
+        this.master.gain.value = MASTER;
+        this.master.connect(this.context.destination);
       } catch {
         return null;
       }
