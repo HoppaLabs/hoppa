@@ -77,8 +77,9 @@ Adding a rule means adding the next version, never editing the last one — see
 [`0006`](docs/adr/0006-share-links-and-the-wire-format.md),
 [`0007`](docs/adr/0007-drawing-your-own-creature.md),
 [`0008`](docs/adr/0008-mass-out-budget-in.md),
-[`0009`](docs/adr/0009-real-time.md) and
-[`0010`](docs/adr/0010-the-side-on-game.md).
+[`0009`](docs/adr/0009-real-time.md),
+[`0010`](docs/adr/0010-the-side-on-game.md) and
+[`0011`](docs/adr/0011-the-character-code.md).
 
 ## Real time, still deterministic
 
@@ -87,6 +88,21 @@ than by your thumb. Positions are fixed-point integers (256 subcells to a cell),
 never floats, and wall-clock time never reaches the engine. So a replay is still
 exact, and a share link still proves a win — see
 [`docs/adr/0009`](docs/adr/0009-real-time.md).
+
+## Your character is a code
+
+Browsers throw storage away — Safari after 7 days without a visit. So a
+character has a code that rebuilds it exactly, shown in the editor with a QR
+beside it:
+
+```
+HOPPA-BASH-38CCY-PJ9GM-W6A88-...-3
+```
+
+Crockford base32, because these get *typed*: no `I`, `L`, `O` or `U`, case
+insensitive, chunked in fives, with a check symbol that catches every single
+mistyped character and every adjacent swap. See
+[`docs/adr/0011`](docs/adr/0011-the-character-code.md).
 
 ## Looks and capabilities are separate
 

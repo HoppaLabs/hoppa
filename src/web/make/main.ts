@@ -23,6 +23,8 @@ import {
   type Build,
 } from "../../core/creature.ts";
 import { loadCharacter, saveCharacter, startingCharacter } from "../stash.ts";
+import { ChrError, decodeCharacter, encodeCharacter } from "../../core/chr.ts";
+import { encodeQr, QrError } from "../../core/qr.ts";
 
 const paper = document.getElementById("paper") as HTMLCanvasElement;
 const context = paper.getContext("2d") as CanvasRenderingContext2D;
@@ -33,6 +35,10 @@ const note = document.getElementById("note") as HTMLElement;
 const stats = document.getElementById("stats") as HTMLElement;
 const pointsLeft = document.getElementById("left") as HTMLElement;
 const points = document.getElementById("points") as HTMLElement;
+const codeBox = document.getElementById("code") as HTMLElement;
+const codeQr = document.getElementById("codeqr") as HTMLCanvasElement;
+const pasteBox = document.getElementById("paste") as HTMLInputElement;
+const loaded = document.getElementById("loaded") as HTMLElement;
 
 const saved = loadCharacter() ?? startingCharacter();
 let sprite: Sprite = saved.creature.sprite;
@@ -93,6 +99,7 @@ function apply(event: PointerEvent): void {
   if (before === undefined || before === ink) return;
   sprite = withPixel(sprite, x, y, ink);
   paint();
+  paintCode();
 }
 
 paper.addEventListener("pointerdown", (event) => {
@@ -143,6 +150,7 @@ function paintSwatches(): void {
       sprite = { pixels: sprite.pixels, sub: normaliseSubPalette(sub) };
       paintSwatches();
       paintInks();
+      paintCode();
       paint();
     });
     swatches.appendChild(button);
@@ -197,6 +205,7 @@ function paintStats(): void {
     less.addEventListener("click", () => {
       build[spend.key] = Math.max(0, value - 1);
       paintStats();
+      paintCode();
     });
 
     const more = document.createElement("button");
@@ -207,6 +216,7 @@ function paintStats(): void {
       if (remaining() <= 0) return;
       build[spend.key] = Math.min(PIP_MAX, value + 1);
       paintStats();
+      paintCode();
     });
 
     row.append(name, dots, less, more);
@@ -217,6 +227,7 @@ function paintStats(): void {
 (document.getElementById("clear") as HTMLButtonElement).addEventListener("click", () => {
   sprite = { pixels: emptySprite(sprite.sub).pixels, sub: sprite.sub };
   paint();
+  paintCode();
 });
 
 (document.getElementById("go") as HTMLButtonElement).addEventListener("click", () => {
@@ -227,7 +238,87 @@ function paintStats(): void {
   window.location.href = "../";
 });
 
+// --- the code that IS the character -------------------------------------------
+
+function currentCode(): string {
+  const name = nameField.value.trim().slice(0, 12) || "Mine";
+  return encodeCharacter(name, build as Build, sprite);
+}
+
+function paintCode(): void {
+  const code = currentCode();
+  codeBox.textContent = code;
+
+  try {
+    const qr = encodeQr(code);
+    const quiet = 4;
+    const modules = qr.size + quiet * 2;
+    const scale = Math.max(2, Math.floor(Math.min(180, window.innerWidth - 90) / modules));
+    const side = modules * scale;
+    codeQr.width = side;
+    codeQr.height = side;
+    codeQr.style.width = `${side}px`;
+    codeQr.style.height = `${side}px`;
+    const ctx = codeQr.getContext("2d");
+    if (ctx !== null) {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, side, side);
+      ctx.fillStyle = "#000000";
+      for (let y = 0; y < qr.size; y++) {
+        for (let x = 0; x < qr.size; x++) {
+          if (qr.modules[y * qr.size + x] === 1) {
+            ctx.fillRect((x + quiet) * scale, (y + quiet) * scale, scale, scale);
+          }
+        }
+      }
+      codeQr.hidden = false;
+    }
+  } catch (err) {
+    // A character too big for a QR still has a code to type.
+    if (!(err instanceof QrError)) throw err;
+    codeQr.hidden = true;
+  }
+}
+
+(document.getElementById("copy") as HTMLButtonElement).addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(currentCode());
+    loaded.textContent = "copied — send it to yourself";
+  } catch {
+    loaded.textContent = "select the code above and copy it";
+  }
+});
+
+(document.getElementById("load") as HTMLButtonElement).addEventListener("click", () => {
+  const typed = pasteBox.value;
+  if (typed.trim().length === 0) {
+    loaded.textContent = "paste a code into the box first";
+    return;
+  }
+  try {
+    const back = decodeCharacter(typed);
+    sprite = back.creature.sprite;
+    for (const spend of SPENDABLE) build[spend.key] = back.build[spend.key];
+    nameField.value = back.name;
+    loaded.textContent = `${back.name} is back`;
+    pasteBox.value = "";
+    paintInks();
+    paintSwatches();
+    paintStats();
+    // Without this the box still shows the code for whatever was here BEFORE
+    // the paste. On a page whose whole promise is "this code is your save
+    // file", showing a stale one would hand a kid the wrong character.
+    paintCode();
+    paint();
+  } catch (err) {
+    loaded.textContent = err instanceof ChrError ? err.message : "that code did not work";
+  }
+});
+
+nameField.addEventListener("input", paintCode);
+
 paintInks();
 paintSwatches();
 paintStats();
+paintCode();
 paint();
