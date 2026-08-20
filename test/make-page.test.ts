@@ -90,5 +90,9 @@ test("a section whose own words say what it is does not also need a heading", ()
   // already says what the section is, and says it in words a child can act on.
   expect(headings).not.toContain("what it is good at");
   expect(html.includes('you have <b id="left">6</b> points to spend')).toBe(true);
-  expect(headings.length).toBeLessThanOrEqual(4);
+  // Five: the gallery earned one. The cap is here to stop headings ACCUMULATING,
+  // not to forbid a new section -- so it moves when a section is added on
+  // purpose, and fails when one drifts in.
+  expect(headings.length).toBeLessThanOrEqual(5);
+  expect(headings).toContain("or start from one of these");
 });

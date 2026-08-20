@@ -92,6 +92,18 @@
      stays PUT rather than disappearing: a page that changes height under a
      thumb is a page that gets mis-tapped. */
   #swatches.idle { opacity: .3; pointer-events: none; }
+  /* Sixteen, and sixteen fills a grid of two, four or eight -- fourteen left a
+     hole in the last row that reads as a character that failed to load. */
+  #gallery { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: min(320px, 100%); }
+  #gallery button {
+    padding: 4px; aspect-ratio: 1; display: grid; place-items: center;
+    background: var(--key); border-radius: 8px;
+  }
+  #gallery canvas { width: 100%; height: auto; border: 0; border-radius: 4px; }
+  #gallery button:active { border-color: var(--gold); }
+  #took { min-height: 1.3em; font-size: 11px; color: var(--ink); text-align: center; max-width: 34ch; }
+  #took button { padding: 4px 10px; font-size: 12px; margin: 0 3px; }
+  #took .yes { border-color: var(--gold); color: var(--gold); }
   #go { background: var(--open); color: var(--bg); font-weight: 600; border: 0; }
   #note { min-height: 1.3em; text-align: center; max-width: 36ch; }
   a { color: var(--ink); }
@@ -163,6 +175,11 @@
      is picked above -- see paintSwatches(). -->
 <div class="hint" id="inkhint">pick a colour, then draw</div>
 <div id="swatches"></div>
+
+<h2>or start from one of these</h2>
+<div class="hint">tap one, then change it — they are drawings, not choices</div>
+<div id="gallery"></div>
+<div id="took"></div>
 
 <h2>what it swings</h2>
 <div id="weapons" role="group" aria-label="what your character swings"></div>

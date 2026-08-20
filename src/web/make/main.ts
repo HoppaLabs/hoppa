@@ -9,6 +9,7 @@ import {
   SPRITE_H,
   SPRITE_W,
   emptySprite,
+  inkedCount,
   spriteIndex,
   starterSprite,
   withPixel,
@@ -28,6 +29,7 @@ import { forgetCharacter, loadCharacter, saveCharacter, startingCharacter } from
 import { ChrError, decodeCharacter, encodeCharacter } from "../../core/chr.ts";
 import { encodeQr, QrError } from "../../core/qr.ts";
 import { goOffline } from "../offline.ts";
+import { GALLERY } from "../../core/gallery.ts";
 
 const paper = document.getElementById("paper") as HTMLCanvasElement;
 const context = paper.getContext("2d") as CanvasRenderingContext2D;
@@ -45,6 +47,8 @@ const pasteBox = document.getElementById("paste") as HTMLInputElement;
 const loaded = document.getElementById("loaded") as HTMLElement;
 const qrWhat = document.getElementById("qrwhat") as HTMLElement;
 const weaponsBox = document.getElementById("weapons") as HTMLElement;
+const galleryBox = document.getElementById("gallery") as HTMLElement;
+const took = document.getElementById("took") as HTMLElement;
 
 const saved = loadCharacter() ?? startingCharacter();
 let sprite: Sprite = saved.creature.sprite;
@@ -212,6 +216,80 @@ function paintSwatches(): void {
     });
     swatches.appendChild(button);
   }
+}
+
+// --- somewhere to start from -------------------------------------------------
+
+/**
+ * Sixteen characters to begin with, because a blank grid is where most children
+ * stop.
+ *
+ * They are STARTING POINTS, not choices: tapping one loads it into the editor
+ * and everything about it can then be changed, which is the same call the six
+ * levels made. Nothing here can reach stateHash() -- hard rule 4 -- so a
+ * character begun from one of these plays exactly as one begun from nothing.
+ */
+function paintGallery(): void {
+  galleryBox.innerHTML = "";
+  for (const example of GALLERY) {
+    const button = document.createElement("button");
+    button.setAttribute("aria-label", `start from the ${example.name}`);
+    const thumb = document.createElement("canvas");
+    thumb.width = SPRITE_W;
+    thumb.height = SPRITE_H;
+    const pen = thumb.getContext("2d") as CanvasRenderingContext2D;
+    for (let y = 0; y < SPRITE_H; y++) {
+      for (let x = 0; x < SPRITE_W; x++) {
+        const value = example.sprite.pixels[spriteIndex(x, y)] as number;
+        const colour = colourFor(example.sprite.sub, value);
+        if (colour === null) continue;
+        pen.fillStyle = colour;
+        pen.fillRect(x, y, 1, 1);
+      }
+    }
+    button.appendChild(thumb);
+    button.addEventListener("click", () => offer(example.name, example.sprite));
+    galleryBox.appendChild(button);
+  }
+}
+
+/**
+ * Take one, or ask first.
+ *
+ * There is no undo on this page -- it says so, twice -- so replacing ten
+ * minutes of drawing on one mis-tap is not a thing to do quietly. But asking
+ * every time is a toll on the child this feature exists for, who has drawn
+ * nothing yet. So it asks only when there is something to lose.
+ */
+function offer(name: string, chosen: Sprite): void {
+  took.innerHTML = "";
+  if (inkedCount(sprite) === 0) {
+    take(name, chosen);
+    return;
+  }
+  const asks = document.createElement("span");
+  asks.textContent = `replace what you have drawn with the ${name}? `;
+  const yes = document.createElement("button");
+  yes.className = "yes";
+  yes.textContent = "yes";
+  yes.addEventListener("click", () => take(name, chosen));
+  const no = document.createElement("button");
+  no.textContent = "keep mine";
+  no.addEventListener("click", () => {
+    took.innerHTML = "";
+  });
+  took.append(asks, yes, no);
+}
+
+function take(name: string, chosen: Sprite): void {
+  sprite = { pixels: chosen.pixels.slice(), sub: [...chosen.sub] };
+  // The pens are the taken character's colours now, so the palette has to move
+  // with them or it would be pointing at a colour that is no longer there.
+  paintInks();
+  paintSwatches();
+  paintCode();
+  paint();
+  took.textContent = `${name} — now change it`;
 }
 
 // --- the rest ---------------------------------------------------------------
@@ -441,6 +519,7 @@ nameField.addEventListener("input", paintCode);
 
 paintInks();
 paintSwatches();
+paintGallery();
 paintStats();
 paintWeapons();
 paintCode();
