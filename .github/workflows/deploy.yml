@@ -90,4 +90,10 @@ jobs:
             exit 1
           fi
 
-          echo "ok: index.html loads ./app.js and app.js is 200"
+          worker=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "${url}sw.js")
+          if [ "$worker" != "200" ]; then
+            echo "::error::${url}sw.js returned $worker -- the game will not work offline."
+            exit 1
+          fi
+
+          echo "ok: index.html loads ./app.js, and app.js and sw.js are 200"
