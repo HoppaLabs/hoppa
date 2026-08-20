@@ -19,7 +19,7 @@ import { encodeQr, QrError } from "../../core/qr.ts";
 import { loadCharacter } from "../stash.ts";
 import { parseLevel } from "../../core/level.ts";
 import { hashHex } from "../../core/hash.ts";
-import { engineFor } from "../../engines/registry.ts";
+import { engineFor, UnknownBehaviourError } from "../../engines/registry.ts";
 import { Readout } from "./readout.ts";
 import { Recorder, beats, proofKey, type Replayable } from "../../core/proof.ts";
 import { Buttons, KEY_BITS, Loop, type Moving } from "./realtime.ts";
@@ -153,8 +153,32 @@ try {
   loadError = err instanceof CodecError ? err.message : String(err);
 }
 
-const level = shared === null ? parseLevel(ROAM3_LEVEL_TEXT) : shared.level;
-const levelName = shared === null ? BUILT_IN_NAME : shared.slug.replace(/-/g, " ");
+let level = shared === null ? parseLevel(ROAM3_LEVEL_TEXT) : shared.level;
+let levelName = shared === null ? BUILT_IN_NAME : shared.slug.replace(/-/g, " ");
+
+/**
+ * A link can decode perfectly and still be one no engine will run.
+ *
+ * The wire format holds 31 entities; an engine holds eight treasures. So a
+ * hand-made level, or a link somebody edited, can survive the codec and then
+ * be refused by the engine -- and that refusal used to happen while the page
+ * was still starting up, which left a WHITE SCREEN and no explanation. Found
+ * by the red team, with a link carrying nine gems.
+ *
+ * Anything at all thrown here is caught on purpose. This is the boundary
+ * between a stranger's URL and the page: whatever is wrong with it, the
+ * player gets a level to play and a sentence telling them why it is not the
+ * one they tapped.
+ */
+function refuses(candidate: typeof level, creature: Creature): string | null {
+  try {
+    engineFor(candidate, creature);
+    return null;
+  } catch (err) {
+    if (err instanceof UnknownBehaviourError) return err.message;
+    return `that level will not run here: ${(err as Error).message}`;
+  }
+}
 
 // The remix loop. On a level somebody sent you, the editor link opens THAT
 // level to change rather than an empty room -- your friend's rooms, your walls.
@@ -172,6 +196,16 @@ const roster: readonly Creature[] = saved === null ? PRESETS : [saved.creature, 
 // selected" has to be a slot in the roster. Comparing ids lights up two.
 let chosenAt = 0;
 let chosen: Creature = roster[0] as Creature;
+
+// ...and if it will not run, fall back to the built-in level rather than
+// failing to start. Checked before anything is built from it.
+const refusal = refuses(level, chosen);
+if (refusal !== null) {
+  loadError = refusal;
+  shared = null;
+  level = parseLevel(ROAM3_LEVEL_TEXT);
+  levelName = BUILT_IN_NAME;
+}
 // engineFor returns the Engine contract; the play page also wants the delve
 // read-outs (turns, treasure), which is what this cast is for.
 const build = () => engineFor(level, chosen);
