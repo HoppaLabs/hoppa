@@ -205,6 +205,11 @@ biggest threat to the premise and it needs three mitigations, not one:
 2. **Prompt "add to home screen."** Home screen web apps are exempt from the
    7-day counter and keep their own use timer. Prompt once, after a creature is
    made, when the value is obvious.
+
+   *Implemented — see `docs/adr/0024`.* Asked on the play page, over the top of
+   the level so it costs no space, with the clock held while it is read. Once
+   ever, never when already installed. Chrome gets a button that does it;
+   Safari, which has no install prompt, is told where its own button is.
 3. **QR on screen.** Two kids in the same room photograph each other's screens.
    It's the most natural transfer mechanism at that age and it costs nothing.
 

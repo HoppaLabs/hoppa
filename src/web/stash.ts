@@ -33,6 +33,7 @@ const LEGAL_GLYPHS: readonly string[] = [
 import { normaliseSubPalette } from "../core/palette.ts";
 
 const KEY = "hoppa.character.v2";
+const JUST_MADE = "hoppa.character.justmade";
 const DRAFT_KEY = "hoppa.level.v1";
 
 interface Stored {
@@ -197,5 +198,30 @@ export function loadDraft(): { draft: Draft; name: string } | null {
     return { draft, name: typeof record.name === "string" ? record.name : "my level" };
   } catch {
     return null;
+  }
+}
+
+// --- "I have just drawn something" ------------------------------------------
+//
+// The make page saves a character and sends you straight off to play it, so the
+// moment worth saying "keep this safe" is one page later. sessionStorage,
+// because it is a note between two pages of one visit and nothing more.
+
+export function rememberJustMade(): void {
+  try {
+    window.sessionStorage.setItem(JUST_MADE, "1");
+  } catch {
+    // Then the offer does not appear. Nobody loses a character over it.
+  }
+}
+
+/** True once, for the page that follows making a character. */
+export function takeJustMade(): boolean {
+  try {
+    const found = window.sessionStorage.getItem(JUST_MADE) !== null;
+    window.sessionStorage.removeItem(JUST_MADE);
+    return found;
+  } catch {
+    return false;
   }
 }

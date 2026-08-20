@@ -102,6 +102,15 @@ stale cache. If a new build lands while you are looking at the page and have not
 touched it, the page quietly reloads into it; the moment you start playing, it
 does not. See [`docs/adr/0023`](docs/adr/0023-offline.md).
 
+## ...and it asks for a place on the home screen
+
+Once, right after a character is made. Safari deletes localStorage — and the
+offline cache with it — after 7 days without a visit, and a web app on the home
+screen is exempt. The icon is the creature itself, drawn at build time from the
+real sprite through a PNG encoder written for the purpose
+([`tools/png.ts`](tools/png.ts), no dependencies, indexed 2bpp so a 512px icon
+costs 66 KB rather than 786). See [`docs/adr/0024`](docs/adr/0024-the-home-screen.md).
+
 ## Your character is a code
 
 Browsers throw storage away — Safari after 7 days without a visit. So a

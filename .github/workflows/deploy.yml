@@ -96,4 +96,12 @@ jobs:
             exit 1
           fi
 
-          echo "ok: index.html loads ./app.js, and app.js and sw.js are 200"
+          for name in manifest.webmanifest icon-180.png; do
+            got=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "${url}${name}")
+            if [ "$got" != "200" ]; then
+              echo "::error::${url}${name} returned $got -- the game cannot be kept on a home screen."
+              exit 1
+            fi
+          done
+
+          echo "ok: index.html loads ./app.js; app.js, sw.js, the manifest and the icon are 200"

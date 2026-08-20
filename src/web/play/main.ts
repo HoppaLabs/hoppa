@@ -16,7 +16,8 @@ import { PRESETS, SPENDABLE, capsToBuild, spent, type Creature } from "../../cor
 import { CodecError, encodeLevel } from "../../core/codec.ts";
 import { levelFromHash, linkFor, resultFromHash, resultLinkFor } from "./link.ts";
 import { encodeQr, QrError } from "../../core/qr.ts";
-import { loadCharacter, loadDraft } from "../stash.ts";
+import { loadCharacter, loadDraft, takeJustMade } from "../stash.ts";
+import { noteOffered, offerFor, shouldOffer } from "../install.ts";
 import { draftToText } from "../../core/draft.ts";
 import { parseLevel } from "../../core/level.ts";
 import { hashHex } from "../../core/hash.ts";
@@ -935,9 +936,64 @@ resize();
 // A real-time level starts running the moment the page is up: the world does
 // not wait for a first press. This is the whole difference from the turn-based
 // builds, so it must not be left to reset() to switch on.
+// A real-time level starts the moment the page does, so an offer a child is
+// reading is an offer they read while a guard walks over to them. Hold the
+// clock until they have answered it.
+const holdingForTheOffer = offerTheHomeScreen();
+
 if (moving !== null) {
   loop = new Loop(moving, buttons, paint, finished, (held) => recorder.push(held));
-  loop.start();
+  if (!holdingForTheOffer) loop.start();
+}
+
+/**
+ * "Keep your character": the home screen offer, asked once.
+ *
+ * Spec §5b mitigation 2, and the reason it exists is worth restating: Safari
+ * throws away localStorage -- and the offline cache with it -- after 7 days
+ * without a visit. A character a kid drew is the one object this whole game
+ * says is permanent, and a fortnight's holiday deletes it. On a home screen it
+ * is exempt.
+ *
+ * Asked here rather than on the drawing page because "keep this safe" only
+ * means something once you can see the thing you made running about.
+ */
+function offerTheHomeScreen(): boolean {
+  if (!shouldOffer(takeJustMade())) return false;
+
+  const keep = document.getElementById("keep") as HTMLElement;
+  const why = document.getElementById("keepwhy") as HTMLElement;
+  const how = document.getElementById("keephow") as HTMLElement;
+  const doIt = document.getElementById("keepdo") as HTMLButtonElement;
+  const notNow = document.getElementById("keepno") as HTMLButtonElement;
+
+  const offer = offerFor();
+  why.textContent = `keep ${chosen.name} safe`;
+  // Said in terms of what a kid loses, not in terms of storage policy -- and
+  // said in two lines, because a third one squashes the level to make room.
+  how.textContent =
+    offer.install === null
+      ? `phones forget after a week. ${offer.how}.`
+      : "phones forget after a week. Add hoppa to your home screen and it stays.";
+
+  const done = (): void => {
+    noteOffered();
+    keep.hidden = true;
+    // The world was held while this was on screen. Let it go.
+    if (loop !== null) loop.start();
+  };
+
+  if (offer.install !== null) {
+    doIt.hidden = false;
+    doIt.addEventListener("click", () => {
+      void (offer.install as () => Promise<void>)().finally(done);
+    });
+  }
+  notNow.textContent = offer.install === null ? "got it" : "no thanks";
+  notNow.addEventListener("click", done);
+
+  keep.hidden = false;
+  return true;
 }
 
 // Everything above works with no network. This is what makes that true after

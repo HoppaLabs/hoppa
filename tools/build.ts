@@ -3,6 +3,7 @@
 
 import { rm, mkdir } from "node:fs/promises";
 import { hashBytes, hashHex, hashInit } from "../src/core/hash.ts";
+import { iconPng } from "./icon.ts";
 
 const OUT = "dist";
 
@@ -15,7 +16,32 @@ const SHELL = [
   "make/make.js",
   "level/index.html",
   "level/level.js",
+  "manifest.webmanifest",
+  "icon-180.png",
+  "icon-192.png",
+  "icon-512.png",
 ];
+
+// What a phone needs to keep the game on a home screen, which is the one place
+// it is safe from the 7-day eviction. See docs/adr/0024.
+//
+// 180 is what iOS asks for by name; 192 and 512 are what a manifest is expected
+// to offer. No "maskable" entry: the creature fills three quarters of the
+// square, and Android's maskable safe zone would crop its legs off.
+const MANIFEST = {
+  name: "hoppa",
+  short_name: "hoppa",
+  description: "Draw a creature, paint a level, send it to a friend.",
+  start_url: "./",
+  scope: "./",
+  display: "standalone",
+  background_color: "#0d1014",
+  theme_color: "#0d1014",
+  icons: [
+    { src: "icon-192.png", sizes: "192x192", type: "image/png" },
+    { src: "icon-512.png", sizes: "512x512", type: "image/png" },
+  ],
+};
 
 // Three pages, three bundles. /make and /level are real directories rather than
 // routes, so they work on static hosting with no rewrites -- the same reason the
@@ -52,6 +78,13 @@ export async function build(): Promise<string[]> {
     await Bun.write(`${OUT}/${page.dir}index.html`, await Bun.file(page.html).text());
     written.push(...result.outputs.map((o) => o.path));
   }
+
+  // Drawn from the real sprite and the real palette, so the icon on a home
+  // screen cannot drift away from what the game looks like.
+  for (const side of [180, 192, 512]) {
+    await Bun.write(`${OUT}/icon-${side}.png`, iconPng(side));
+  }
+  await Bun.write(`${OUT}/manifest.webmanifest`, `${JSON.stringify(MANIFEST, null, 2)}\n`);
 
   // The worker is built last, because its version is a hash OF everything
   // above. Same inputs, same worker, byte for byte -- which is what lets the
