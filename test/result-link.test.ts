@@ -122,3 +122,24 @@ test("sending a level tries the phone's own share sheet before the clipboard", a
   // copying something you decided not to send.
   expect(main.includes('err.name === "AbortError"')).toBe(true);
 });
+
+test("editing your character does not lose the level you were on", async () => {
+  const play = await Bun.file("src/web/play/main.ts").text();
+  const make = await Bun.file("src/web/make/main.ts").text();
+
+  // Reported: play a level, tap "edit character", tap "play as this", and you
+  // land on the built-in level. The drawing page went to `../`, and the
+  // fragment IS the level.
+  expect(play.includes("`./make/#back/${slugify(levelName)}/${encodeLevel(level)}`")).toBe(true);
+  expect(make.includes('hash.startsWith("#back/")')).toBe(true);
+  expect(make.includes("window.location.href = playAgainAt;")).toBe(true);
+
+  // Always as a LEVEL link, even when you arrived on a score link: you have
+  // read the boast, and what you want on the way back is the level to try your
+  // new creature on.
+  expect(play.includes("#back/${slugify")).toBe(true);
+  expect(make.includes("`../#p/${rest}`")).toBe(true);
+
+  // A mangled link is not a crash: the built-in level is a fine place to land.
+  expect(make.includes('if (rest.split("/").length < 2) return "../";')).toBe(true);
+});

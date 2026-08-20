@@ -198,7 +198,24 @@ function refuses(candidate: typeof level, creature: Creature): string | null {
 // The remix loop. On a level somebody sent you, the editor link opens THAT
 // level to change rather than an empty room -- your friend's rooms, your walls.
 // It is the reason the level travels in the link instead of living on a server.
+/**
+ * "Edit character" has to remember which level you were on.
+ *
+ * The drawing page sends you back to `../` when you tap "play as this", which
+ * drops the fragment -- and the fragment IS the level. So you went off to give
+ * your creature another point, came back, and were playing the built-in level
+ * instead of the one you were in the middle of.
+ *
+ * The level travels with the link. Always as `p/<slug>/<code>`, even when you
+ * arrived on a score link: you have read the boast, and what you want on the
+ * way back is the level to try your new creature on.
+ */
+const drawLink = document.getElementById("draw") as HTMLAnchorElement | null;
+
 const buildLink = document.getElementById("build") as HTMLAnchorElement | null;
+if (drawLink !== null && shared !== null) {
+  drawLink.href = `./make/#back/${slugify(levelName)}/${encodeLevel(level)}`;
+}
 if (buildLink !== null && shared !== null) {
   buildLink.href = `./level/#from/${encodeLevel(level)}`;
   buildLink.textContent = "edit level";

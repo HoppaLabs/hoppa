@@ -236,12 +236,34 @@ function paintStats(): void {
   paintCode();
 });
 
+/**
+ * Where "play as this" goes.
+ *
+ * Normally back to the play page, which loads the built-in level. But if you
+ * came here from a level -- the play page hands the level over in the link --
+ * that is where you were and that is where you want to be, with the creature
+ * you just changed. Coming back to a different level is how you lose your place
+ * in a game you were halfway through.
+ *
+ * `#back/<slug>/<code>`, which is `#p/<slug>/<code>` with a different first
+ * word, so the play page reads it with the code it already has.
+ */
+const playAgainAt = ((): string => {
+  const hash = window.location.hash;
+  if (!hash.startsWith("#back/")) return "../";
+  const rest = hash.slice("#back/".length);
+  // A name and a level, at least. Anything else is somebody's mangled link and
+  // the built-in level is a fine place to end up.
+  if (rest.split("/").length < 2) return "../";
+  return `../#p/${rest}`;
+})();
+
 (document.getElementById("go") as HTMLButtonElement).addEventListener("click", () => {
   const name = nameField.value.trim().slice(0, 12) || "Me";
   const made = creatureFromBuild("yours", name, "@", build as Build, sprite, weapon);
   saveCharacter(name, build as Build, made);
   note.textContent = "saved";
-  window.location.href = "../";
+  window.location.href = playAgainAt;
 });
 
 // --- sword or wand --------------------------------------------------------------
