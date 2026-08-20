@@ -19,6 +19,8 @@ import { encodeQr, QrError } from "../../core/qr.ts";
 import { loadCharacter, loadDraft, playedBefore, rememberPlayed } from "../stash.ts";
 import { draftToText } from "../../core/draft.ts";
 import { parseLevel } from "../../core/level.ts";
+import { colourFor } from "../../core/palette.ts";
+import { SPRITE_H, SPRITE_W, spriteIndex } from "../../core/sprite.ts";
 import { hashHex } from "../../core/hash.ts";
 import { engineFor, UnknownBehaviourError } from "../../engines/registry.ts";
 import { Readout } from "./readout.ts";
@@ -660,6 +662,35 @@ function bestAt(creature: Creature): string {
   return tied ? "A bit of both" : best.compare;
 }
 
+/**
+ * A creature's own face, for its button.
+ *
+ * Three words of description tell you what a creature DOES; only the drawing
+ * tells you which one is yours. That matters most for the character a kid drew
+ * themselves, which otherwise sits in the row looking exactly like the presets.
+ *
+ * Painted at its true 16x16 and blown up by CSS with `image-rendering:
+ * pixelated`, so it stays the drawing rather than becoming a smudge.
+ */
+function faceOf(creature: Creature): HTMLCanvasElement {
+  const face = document.createElement("canvas");
+  face.width = SPRITE_W;
+  face.height = SPRITE_H;
+  face.className = "face";
+  const ctx = face.getContext("2d");
+  if (ctx === null) return face;
+  for (let y = 0; y < SPRITE_H; y++) {
+    for (let x = 0; x < SPRITE_W; x++) {
+      const colour = colourFor(creature.sprite.sub, creature.sprite.pixels[spriteIndex(x, y)] as number);
+      // 0 is see-through, and the button's own background shows through it.
+      if (colour === null) continue;
+      ctx.fillStyle = colour;
+      ctx.fillRect(x, y, 1, 1);
+    }
+  }
+  return face;
+}
+
 function paintStable(): void {
   stable.innerHTML = "";
   stable.classList.toggle("tight", roster.length > 3);
@@ -672,7 +703,14 @@ function paintStable(): void {
     // level on Nim, the row has two Nims and "theirs" means nothing. Say which.
     const under = at === guestAt ? "beat your level" : bestAt(creature);
     if (at === guestAt) button.classList.add("guest");
-    button.innerHTML = `<b>${creature.name}</b>${under}`;
+    const words = document.createElement("span");
+    words.className = "words";
+    const named = document.createElement("b");
+    named.textContent = creature.name;
+    words.appendChild(named);
+    words.appendChild(document.createTextNode(under));
+    button.appendChild(faceOf(creature));
+    button.appendChild(words);
     button.setAttribute("aria-pressed", String(selected));
     button.addEventListener("click", () => {
       if (at === chosenAt) return;
