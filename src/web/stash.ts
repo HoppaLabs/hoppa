@@ -247,7 +247,11 @@ export function playedBefore(): readonly Played[] {
       if (typeof record.code !== "string" || record.code === "") continue;
       if (typeof record.name !== "string") continue;
       if (out.some((was) => was.code === record.code)) continue;
-      out.push({ code: record.code, name: record.name.slice(0, 24) });
+      // 40 is what slugify allows, so a real name arrives whole and the row
+      // does the shortening with an ellipsis you can see. Cutting at 24 here
+      // chopped "a really very long level name" to "a really very long level"
+      // and made it look like the level's actual name.
+      out.push({ code: record.code, name: record.name.slice(0, 40) });
       if (out.length === KEEP_PLAYED) break;
     }
     return out;

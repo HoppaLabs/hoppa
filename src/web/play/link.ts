@@ -25,12 +25,22 @@ export interface SharedLevel {
 }
 
 /** Turn a title into something that survives a URL and a group chat. */
+/**
+ * What a level is called when its link does not say.
+ *
+ * slugify() never produces an empty slug, but a hash is typed, forwarded and
+ * mangled by things that are not this code -- `#p//CODE` is a link somebody can
+ * arrive with, and it used to leave the title bar blank and put an empty box in
+ * the "played before" row. A level always has a name, even if it is this one.
+ */
+export const UNNAMED = "a-level";
+
 export function slugify(title: string): string {
   const cleaned = title
     .replace(/[^A-Za-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 40);
-  return cleaned.length > 0 ? cleaned : "a-level";
+  return cleaned.length > 0 ? cleaned : UNNAMED;
 }
 
 export function linkFor(level: Level, title: string, base: string): string {
@@ -120,7 +130,7 @@ export function resultFromHash(hash: string): SharedResult | null {
 
   return {
     level,
-    slug,
+    slug: slug === "" ? UNNAMED : slug,
     creature,
     who,
     score: Number.isFinite(score) && score >= 0 ? score : 0,
@@ -143,5 +153,5 @@ export function levelFromHash(hash: string): SharedLevel | null {
   const code = parts.slice(2).join("/");
   if (code.length === 0) throw new CodecError("that link has a name but no level in it");
 
-  return { level: decodeLevel(code), slug };
+  return { level: decodeLevel(code), slug: slug === "" ? UNNAMED : slug };
 }

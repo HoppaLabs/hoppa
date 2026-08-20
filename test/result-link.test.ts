@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { parseLevel } from "../src/core/level.ts";
 import { CodecError } from "../src/core/codec.ts";
 import { ROAM3_LEVEL_TEXT } from "../src/core/fixtures.ts";
-import { linkFor, levelFromHash, resultFromHash, resultLinkFor, slugify } from "../src/web/play/link.ts";
+import { UNNAMED, linkFor, levelFromHash, resultFromHash, resultLinkFor, slugify } from "../src/web/play/link.ts";
 import { capsToBuild, creatureFromBuild, type Build } from "../src/core/creature.ts";
 import { starterSprite } from "../src/core/sprite.ts";
 import { sameLevel } from "../src/core/codec.ts";
@@ -93,4 +93,10 @@ test("every creature survives the round trip, sword and wand alike", () => {
       expect(back!.score).toBe(7);
     }
   }
+});
+
+test("a result link with no name still names the level", () => {
+  const good = new URL(link()).hash;
+  const nameless = good.replace("#r/the-big-one/", "#r//");
+  expect(resultFromHash(nameless)?.slug).toBe(UNNAMED);
 });

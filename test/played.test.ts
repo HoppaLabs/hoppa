@@ -111,7 +111,7 @@ test("a planted list longer than the cap is still cut to the cap", () => {
 
 test("a silly long name is cut, so one entry cannot take the whole row", () => {
   rememberPlayed("A", "x".repeat(500));
-  expect((playedBefore()[0] as { name: string }).name.length).toBe(24);
+  expect((playedBefore()[0] as { name: string }).name.length).toBe(40);
 });
 
 test("storage refusing to answer is an empty list, never an exception", () => {
@@ -122,4 +122,18 @@ test("storage refusing to answer is an empty list, never an exception", () => {
   // ...and refusing to write is not an exception either.
   expect(() => rememberPlayed("B", "nope")).not.toThrow();
   expect(() => forgetPlayed()).not.toThrow();
+});
+
+test("a level whose link carried no name still gets one on the chip", async () => {
+  // `#p//CODE` is a link somebody can arrive with -- typed, forwarded, mangled
+  // -- and it used to leave a blank 20px box in the row.
+  const { levelFromHash, UNNAMED } = await import("../src/web/play/link.ts");
+  const { parseLevel } = await import("../src/core/level.ts");
+  const { encodeLevel } = await import("../src/core/codec.ts");
+  const { ROAM4_LEVEL_TEXT } = await import("../src/core/fixtures.ts");
+
+  const code = encodeLevel(parseLevel(ROAM4_LEVEL_TEXT));
+  expect(levelFromHash(`#p//${code}`)?.slug).toBe(UNNAMED);
+  // A link that does name the level is untouched.
+  expect(levelFromHash(`#p/pit-of-doom/${code}`)?.slug).toBe("pit-of-doom");
 });
