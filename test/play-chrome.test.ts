@@ -29,7 +29,7 @@ test("there is a way to reach the other rooms from the game", () => {
   // left the play page opening on room one with no way to reach room two. A
   // player who never opened the editor saw one room and reported not being
   // able to find the fire.
-  expect(html.includes('<button id="another">play another level</button>')).toBe(true);
+  expect(html.includes('<button id="another">play another</button>')).toBe(true);
   // An ordinary #p/ link, so tapping it is the same act as tapping one in a
   // message -- nothing new is reachable this way.
   expect(main.includes("return `#p/${pick.slug}/${pick.code}`;")).toBe(true);
@@ -100,12 +100,18 @@ test("start again mirrors sound: an icon at the other end of the same row", () =
   expect(footer.includes('id="hud"')).toBe(true);
 });
 
-test("the weapon sits to the right of up, in both games", () => {
-  // Seen from above there is one non-directional button and it was top LEFT;
-  // from the side that slot is the jump and the weapon is on the right. A
-  // thumb should find the weapon in the same place either way.
-  expect(html).toContain('grid-template-areas: "wait up swing" "left down right"');
-  expect(html.includes("#pad.one #wait { grid-area: swing; }")).toBe(true);
+test("the action button is under the resting thumb, in every game", () => {
+  // The rule this has always been about: a thumb should find the button it
+  // presses most in the SAME PLACE whichever game it is. The old grid put it
+  // top-left from above and top-right from the side; the handset puts it in
+  // the lower-left circle always, which is where a thumb sits.
+  expect(html).toContain("#wait { left: 4px; bottom: 18px; }");
+  expect(html).toContain("#swing, #water { right: 4px; top: 18px; }");
+  // ...and with only one button there is no diagonal to sit on, so it takes
+  // the middle of the cluster, level with the pad.
+  expect(html).toContain("#pad.one #wait { left: 50%; top: 50%;");
+  // ...and with only one, the second circle is not drawn at all.
+  expect(html).toContain("#pad.one #swing, #pad.one #water { display: none; }");
   expect(main.includes('pad.classList.toggle("one", !separate);')).toBe(true);
 });
 

@@ -90,38 +90,114 @@
     display: block; image-rendering: pixelated;
     border: 1px solid var(--edge); border-radius: 3px;
   }
+  /* --- the handset -------------------------------------------------------
+     A cross on the left, round buttons on the right: the shape of every
+     8-bit handheld, and a shape a child's thumbs already know. Generic on
+     purpose -- a grey cross and two coloured circles is the FORM those
+     machines share, and none of anybody's trade dress is borrowed.
+
+     One control, not four. See src/web/play/dpad.ts for why that is the
+     whole point. */
   #pad {
-    display: grid; gap: 8px;
-    grid-template-columns: repeat(3, 72px);
-    grid-template-rows: repeat(2, 62px);
-    grid-template-areas: "wait up swing" "left down right";
+    display: flex; align-items: center; justify-content: center;
+    gap: clamp(28px, 12vw, 76px);
+    width: 100%;
+    touch-action: none;
   }
-  #pad button {
-    font: inherit; font-size: 20px; color: var(--ink-bright);
-    background: var(--key); border: 1px solid var(--edge); border-radius: 10px;
-    touch-action: manipulation; cursor: pointer;
+  #dpad {
+    position: relative;
+    width: 156px; height: 156px;
+    flex: none;
+    touch-action: none;
+    /* The cross itself: two bars crossed, with the corners cut away. */
+    background:
+      linear-gradient(var(--key), var(--key)) 50% 0 / 33.4% 100% no-repeat,
+      linear-gradient(var(--key), var(--key)) 0 50% / 100% 33.4% no-repeat;
+    filter: drop-shadow(0 2px 0 #000a);
   }
-  #pad button:active, #pad button.lit { background: var(--key-lit); }
-  #swing { grid-area: swing; display: grid; place-items: center; padding: 0; }
-  #swing[hidden] { display: none; }
-  #swing svg { display: block; }
-  /* The bucket, in the jump slot. See the note by the button. */
-  #water { grid-area: wait; display: grid; place-items: center; padding: 0; }
-  #water[hidden] { display: none; }
-  #water svg { display: block; }
+  /* The arms, drawn as one piece so the cross has a single outline. */
+  #dpad::before {
+    content: ""; position: absolute; inset: 0;
+    background:
+      linear-gradient(transparent 0, transparent 33.3%, #0000 0) no-repeat;
+    clip-path: polygon(
+      33.3% 0, 66.7% 0, 66.7% 33.3%, 100% 33.3%, 100% 66.7%, 66.7% 66.7%,
+      66.7% 100%, 33.3% 100%, 33.3% 66.7%, 0 66.7%, 0 33.3%, 33.3% 33.3%);
+    border: 1px solid var(--edge);
+    box-sizing: border-box;
+    pointer-events: none;
+  }
+  /* The four arrows, and the lit state when a direction is held. */
+  #dpad i {
+    position: absolute; display: grid; place-items: center;
+    width: 33.3%; height: 33.3%;
+    color: var(--ink); font-style: normal; font-size: 17px; line-height: 1;
+    pointer-events: none;
+    transition: color 60ms linear;
+  }
+  #dpad i.on { color: var(--gold); }
+  #dpad .u { left: 33.35%; top: 0; }
+  #dpad .d { left: 33.35%; bottom: 0; }
+  #dpad .l { left: 0; top: 33.35%; }
+  #dpad .r { right: 0; top: 33.35%; }
+  /* The dish in the middle, so the cross reads as one moulded piece rather
+     than as four keys that happen to touch. */
+  #dpad .hub {
+    position: absolute; left: 33.35%; top: 33.35%; width: 33.3%; height: 33.3%;
+    background: radial-gradient(circle at 50% 40%, #0004, #0000 70%);
+    pointer-events: none;
+  }
+
+  /* Two round buttons, set on the diagonal the way a handheld sets them: the
+     lower-left one falls under a thumb at rest, so it is the one you press
+     most -- jump from the side, the weapon from above. */
+  /* The same box as the pad, so the two clusters sit on one centre line. */
+  #keys {
+    position: relative; width: 156px; height: 156px; flex: none;
+  }
+  #pad #keys button {
+    position: absolute; width: 68px; height: 68px; border-radius: 50%;
+    display: grid; place-items: center; padding: 0;
+    font: inherit; font-size: 19px; color: var(--ink-bright);
+    background: var(--key); border: 1px solid var(--edge);
+    box-shadow: 0 2px 0 #000a;
+    touch-action: none; cursor: pointer;
+  }
+  #pad #keys button:active, #pad #keys button.lit {
+    background: var(--key-lit); transform: translateY(2px); box-shadow: none;
+  }
+  /* On the diagonal, the way a handheld sets them: the lower-left circle is
+     the one under a thumb at rest, so it is the one you press most -- jump
+     from the side, the weapon from above. */
+  #wait { left: 4px; bottom: 18px; }
+  #swing, #water { right: 4px; top: 18px; }
+  /* AT LEAST as specific as the button rule above, or it does not hide.
+     `#pad #keys button` is two ids and a type; `#water[hidden]` is one id and
+     an attribute, and loses -- so `hidden` stopped hiding, the bucket sat on
+     top of the sword in every side-on level, and the garden showed an empty
+     action button it is supposed to have none of. */
+  #pad #keys button[hidden] { display: none; }
+  #pad #keys button svg { display: block; }
   /* Pouring takes a moment and the button says so, or a child taps it again
      thinking it did not work. */
   #water.pouring { background: var(--key-lit); }
-  #up { grid-area: up; } #left { grid-area: left; }
-  #down { grid-area: down; } #right { grid-area: right; }
   /* Waiting is a move. Guards patrol on a fixed cycle, so standing still to let
      one walk past is the whole skill of day 3 -- without this button the level
      is not beatable on a phone. */
-  #wait { grid-area: wait; font-size: 11px; letter-spacing: .1em; color: var(--ink); }
-  /* One non-directional button, so it takes the right-hand slot: seen from
-     above the weapon IS the action key, and it belongs where the weapon is
-     from the side. See paintActionButton(). */
-  #pad.one #wait { grid-area: swing; }
+  #wait.word { font-size: 11px; letter-spacing: .1em; color: var(--ink); }
+  /* With only one action button there is no diagonal to sit on, so it takes
+     the middle of the cluster: level with the pad, still under the thumb. */
+  #pad.one #swing, #pad.one #water { display: none; }
+  #pad.one #wait { left: 50%; top: 50%; bottom: auto; transform: translate(-50%, -50%); }
+  #pad.one #wait:active, #pad.one #wait.lit {
+    transform: translate(-50%, -50%) translateY(2px);
+  }
+  @media (max-width: 380px) {
+    #dpad { width: 132px; height: 132px; }
+    #keys { width: 132px; height: 132px; }
+    #pad #keys button { width: 62px; height: 62px; }
+    #wait { bottom: 10px; } #swing, #water { top: 10px; }
+  }
   footer { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center; }
   #hud { color: var(--ink); display: flex; gap: 12px; }
   #hud b { color: var(--ink-bright); font-weight: 600; }
@@ -384,19 +460,23 @@
     </div>
   </div>
   <nav id="pad">
-    <button id="wait" aria-label="action"></button>
-    <button id="up"    aria-label="up">&#9650;</button>
-    <!-- Only the side-on game needs this: from above the action button IS the
-         weapon, and a second one would be the same button twice. -->
-    <button id="swing" aria-label="swing" hidden></button>
-    <!-- Seen from above, the pad's left-hand action slot is empty: that is
-         where JUMP lives in the side-on game, and nothing from above jumps.
-         The bucket goes there. Only shown on a level that has a fire in it --
-         a button that can never do anything is worse than no button. -->
-    <button id="water" aria-label="pour water" hidden></button>
-    <button id="left"  aria-label="left">&#9664;</button>
-    <button id="down"  aria-label="down">&#9660;</button>
-    <button id="right" aria-label="right">&#9654;</button>
+    <!-- ONE control, not four. It captures the pointer once and reads the
+         thumb's position on every move, so you can roll from one direction to
+         the next and hold two at once. See src/web/play/dpad.ts. -->
+    <div id="dpad" role="group" aria-label="move">
+      <i class="u">&#9650;</i><i class="r">&#9654;</i>
+      <i class="d">&#9660;</i><i class="l">&#9664;</i>
+      <span class="hub"></span>
+    </div>
+    <div id="keys">
+      <button id="wait" aria-label="action"></button>
+      <!-- Only the side-on game needs this: from above the action button IS the
+           weapon, and a second one would be the same button twice. -->
+      <button id="swing" aria-label="swing" hidden></button>
+      <!-- The bucket, on a level that has a fire in it. A button that can never
+           do anything is worse than no button. -->
+      <button id="water" aria-label="pour water" hidden></button>
+    </div>
   </nav>
   <footer>
     <span id="hud"></span>
@@ -404,7 +484,7 @@
   <!-- The two things you can make, side by side and equal. Neither is the one
        to press: see the note on #draw, #build. -->
   <nav id="edits" aria-label="things you can make">
-    <button id="another">play another level</button>
+    <button id="another">play another</button>
     <a id="draw" href="./make/">edit character</a>
     <a id="build" href="./level/">make a level</a>
   </nav>

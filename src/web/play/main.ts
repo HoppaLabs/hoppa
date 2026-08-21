@@ -12,7 +12,7 @@
 // That is what lets a link from day 5 onwards pin the rules it was beaten under.
 
 import { PACK } from "../../core/pack.ts";
-import { PIP_MAX, PRESETS, capsToBuild, type Creature } from "../../core/creature.ts";
+import { PIP_MAX, PRESETS, capsToBuild, sameCreature, type Creature } from "../../core/creature.ts";
 import { CodecError, decodeLevel, encodeLevel } from "../../core/codec.ts";
 import {
   challengeFromHash, challengeLinkFor, levelFromHash, linkFor, resultFromHash, resultLinkFor,
@@ -30,7 +30,7 @@ import { engineFor, UnknownBehaviourError } from "../../engines/registry.ts";
 import { Readout } from "./readout.ts";
 import { Recorder, beats, proofKey, replay, type Replayable } from "../../core/proof.ts";
 import { Buttons, KEY_BITS, Loop, type Moving } from "./realtime.ts";
-import { HELD_ACT, HELD_DOWN, HELD_LEFT, HELD_RIGHT, HELD_SWING, HELD_UP } from "../../engines/types.ts";
+import { HELD_ACT, HELD_DOWN, HELD_LEFT, HELD_NONE, HELD_RIGHT, HELD_SWING, HELD_UP } from "../../engines/types.ts";
 import { reachFor } from "../../engines/roam/v5.ts";
 import {
   INPUT_DOWN,
@@ -47,6 +47,7 @@ import { holdStill } from "../nozoom.ts";
 import { paintLogo } from "../logo.ts";
 import { AIR_QUIET, breathPips, breathWarning, type Breath } from "./breath.ts";
 import { keepsFresh, scoreFromTicks } from "./best.ts";
+import { PAD_MASK, heldFor } from "./dpad.ts";
 
 
 /**
@@ -322,16 +323,25 @@ if (another !== null) {
 }
 
 const saved = loadCharacter();
+/** The row without the visitor: yours, if you have drawn one, then the presets. */
+const homeRoster: readonly Creature[] = [...(saved === null ? [] : [saved.creature]), ...PRESETS];
 // Whoever beat your level comes with the reply, so you can try their creature
 // against your own level. That is the point of sending one back.
-const guest: readonly Creature[] = reply?.creature == null ? [] : [reply.creature];
-const roster: readonly Creature[] = [
-  ...(saved === null ? [] : [saved.creature]),
-  ...guest,
-  ...PRESETS,
-];
+const visitor: Creature | null = reply?.creature ?? null;
+/**
+ * ...unless they used one of the ready-made ones, which is the common case.
+ *
+ * Then their creature IS that preset -- same drawing, same build, same name --
+ * and adding it would show the row "Bash, Bash". Reported with a screenshot of
+ * exactly that. The label moves onto the preset instead of a copy of it.
+ */
+const twin = visitor === null ? -1 : homeRoster.findIndex((one) => sameCreature(one, visitor));
+const roster: readonly Creature[] =
+  visitor === null || twin >= 0
+    ? homeRoster
+    : [...(saved === null ? [] : [saved.creature]), visitor, ...PRESETS];
 /** Where the friend's creature sits in the row, or -1 when there is no reply. */
-const guestAt = guest.length === 0 ? -1 : (saved === null ? 0 : 1);
+const guestAt = visitor === null ? -1 : twin >= 0 ? twin : (saved === null ? 0 : 1);
 // A creature you drew borrows a preset's caps AND its id, so "which one is
 // selected" has to be a slot in the roster. Comparing ids lights up two.
 let chosenAt = 0;
@@ -1163,37 +1173,21 @@ window.addEventListener("orientationchange", () => setTimeout(resize, 100));
  * action button and this one is hidden; INPUT_WAIT is that button, so a tap
  * that somehow arrived there would do the right thing rather than nothing.
  */
-const BUTTONS: ReadonlyArray<readonly [string, Input]> = [
-  ["up", INPUT_UP],
-  ["right", INPUT_RIGHT],
-  ["down", INPUT_DOWN],
-  ["left", INPUT_LEFT],
-  ["wait", INPUT_WAIT],
-  ["swing", INPUT_WAIT],
-  // From above only, and real time only, so the turn-based value is never
-  // actually read -- but a button in this list with no entry is a button with
-  // no listener, which is exactly how the sword came to do nothing on day 16.
-  ["water", INPUT_WAIT],
+/**
+ * The round buttons. Directions come from the pad -- see below.
+ *
+ * "swing" and "water" both carry HELD_SWING: types.ts has said the bit is free
+ * from above since it was added, and seen from above HELD_ACT is already the
+ * weapon, so nothing else wanted it.
+ */
+const ACTION_KEYS: ReadonlyArray<readonly [string, number, Input]> = [
+  ["wait", HELD_ACT, INPUT_WAIT],
+  ["swing", HELD_SWING, INPUT_WAIT],
+  ["water", HELD_SWING, INPUT_WAIT],
 ];
 
-/** Which held-button bit each pad key maps to in a real-time game. */
-const PAD_BITS: ReadonlyArray<readonly [string, number]> = [
-  ["up", HELD_UP],
-  ["right", HELD_RIGHT],
-  ["down", HELD_DOWN],
-  ["left", HELD_LEFT],
-  ["wait", HELD_ACT],
-  ["swing", HELD_SWING],
-  // HELD_SWING is free from above: types.ts has said so since the bit was
-  // added. Seen from above HELD_ACT is already the weapon, so nothing else
-  // wanted it.
-  ["water", HELD_SWING],
-];
-
-for (const [id, input] of BUTTONS) {
+for (const [id, bit, input] of ACTION_KEYS) {
   const el = document.getElementById(id) as HTMLButtonElement;
-  const bit = PAD_BITS.find(([name]) => name === id)?.[1] ?? 0;
-
   el.addEventListener("pointerdown", (ev) => {
     ev.preventDefault();
     // The weapon is the one noise the engine cannot be asked about: whether a
@@ -1201,18 +1195,92 @@ for (const [id, input] of BUTTONS) {
     if (id === "wait" || id === "swing") sounds.play("swing");
     if (id === "water") sounds.play("douse");
     if (moving !== null) {
-      // Held, not tapped: you keep walking while your thumb is down.
       buttons.set(bit, true);
       el.setPointerCapture(ev.pointerId);
       return;
     }
     move(input);
   });
-  for (const name of ["pointerup", "pointercancel", "pointerleave"]) {
+  for (const name of ["pointerup", "pointercancel"]) {
     el.addEventListener(name, () => {
       if (moving !== null) buttons.set(bit, false);
     });
   }
+}
+
+// --- the pad ----------------------------------------------------------------
+//
+// ONE control. It takes the pointer on the way down and keeps it until the
+// thumb lifts, reading the position on every move -- so you can roll from
+// right to down without letting go, and hold a diagonal with one thumb.
+//
+// Six separate buttons could do neither, which is what "the controls are quite
+// poor" was about. Each captured the pointer for itself, so a slide went
+// nowhere; each dropped its input on pointerleave, so a few pixels of drift
+// stopped you mid-jump; and a diagonal wanted two fingers.
+
+const dpad = document.getElementById("dpad") as HTMLElement;
+const ARROWS: ReadonlyArray<readonly [string, number]> = [
+  ["u", HELD_UP], ["r", HELD_RIGHT], ["d", HELD_DOWN], ["l", HELD_LEFT],
+];
+
+/** Light the arrows that are held, so the pad says what it thinks you meant. */
+function paintPad(held: number): void {
+  for (const [cls, bit] of ARROWS) {
+    dpad.querySelector(`.${cls}`)?.classList.toggle("on", (held & bit) !== 0);
+  }
+}
+
+/** Which directions a pointer at this page position is asking for. */
+function padHeld(clientX: number, clientY: number): number {
+  const box = dpad.getBoundingClientRect();
+  const radius = Math.min(box.width, box.height) / 2;
+  return heldFor(clientX - (box.left + box.width / 2), clientY - (box.top + box.height / 2), radius);
+}
+
+/** The single discrete move a turn-based engine wants from one press. */
+function stepFor(held: number): Input | null {
+  if ((held & HELD_UP) !== 0) return INPUT_UP;
+  if ((held & HELD_DOWN) !== 0) return INPUT_DOWN;
+  if ((held & HELD_LEFT) !== 0) return INPUT_LEFT;
+  if ((held & HELD_RIGHT) !== 0) return INPUT_RIGHT;
+  return null;
+}
+
+let padPointer = -1;
+
+dpad.addEventListener("pointerdown", (ev) => {
+  ev.preventDefault();
+  const held = padHeld(ev.clientX, ev.clientY);
+  if (moving === null) {
+    // Turn-based: one press is one move, and a diagonal is not a move it has.
+    const step = stepFor(held);
+    if (step !== null) move(step);
+    return;
+  }
+  padPointer = ev.pointerId;
+  dpad.setPointerCapture(ev.pointerId);
+  buttons.set(PAD_MASK, false);
+  applyPad(held);
+});
+
+dpad.addEventListener("pointermove", (ev) => {
+  if (padPointer !== ev.pointerId || moving === null) return;
+  applyPad(padHeld(ev.clientX, ev.clientY));
+});
+
+for (const name of ["pointerup", "pointercancel"]) {
+  dpad.addEventListener(name, (ev) => {
+    if (padPointer !== (ev as PointerEvent).pointerId) return;
+    padPointer = -1;
+    applyPad(HELD_NONE);
+  });
+}
+
+/** Hold exactly these directions and no others, and show it. */
+function applyPad(held: number): void {
+  for (const [, bit] of ARROWS) buttons.set(bit, (held & bit) !== 0);
+  paintPad(held);
 }
 
 shut.addEventListener("click", (ev) => {
@@ -1256,6 +1324,11 @@ stage.addEventListener("pointerup", (ev) => {
 stage.addEventListener("pointercancel", () => {
   touching = false;
 });
+
+/** Which arm of the pad a discrete move lights up. */
+const KEY_ARROWS: Readonly<Record<number, string>> = {
+  [INPUT_UP]: "u", [INPUT_RIGHT]: "r", [INPUT_DOWN]: "d", [INPUT_LEFT]: "l",
+};
 
 // --- keys -------------------------------------------------------------------
 
@@ -1301,11 +1374,13 @@ window.addEventListener("keydown", (ev) => {
   if (input === undefined) return;
   ev.preventDefault();
   move(input);
-  const dir = BUTTONS.find(([, i]) => i === input)?.[0];
-  if (dir !== undefined) {
-    const el = document.getElementById(dir) as HTMLButtonElement;
-    el.classList.add("lit");
-    setTimeout(() => el.classList.remove("lit"), 90);
+  // Light the arrow the key means, so the pad answers a keyboard the way it
+  // answers a thumb. Directions live on the pad now, not on four buttons.
+  const arrow = KEY_ARROWS[input];
+  if (arrow !== undefined) {
+    const el = dpad.querySelector(`.${arrow}`);
+    el?.classList.add("on");
+    setTimeout(() => el?.classList.remove("on"), 90);
   }
 });
 

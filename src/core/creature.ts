@@ -194,6 +194,32 @@ export function creatureFromBuild(
   return { schema: 1, id, name, glyph, caps: buildToCaps(build), sprite, weapon };
 }
 
+/**
+ * Are these the same creature to look at and to play?
+ *
+ * Id alone is not enough: a creature you DREW borrows a preset's id along with
+ * its capabilities, so two things with one id can be a cyan cat and a purple
+ * one. Everything a child could tell apart has to match -- the drawing, the
+ * build, the weapon and the name.
+ *
+ * Used to keep a friend's creature out of the roster twice. If they beat your
+ * level on Bash, the reply carries Bash, and the row showed Bash, then Bash.
+ */
+export function sameCreature(a: Creature, b: Creature): boolean {
+  if (a.id !== b.id || a.name !== b.name || a.weapon !== b.weapon) return false;
+  for (const key of SPENDABLE) {
+    if (a.caps[key.key] !== b.caps[key.key]) return false;
+  }
+  if (a.sprite.pixels.length !== b.sprite.pixels.length) return false;
+  for (let at = 0; at < a.sprite.pixels.length; at = (at + 1) | 0) {
+    if (a.sprite.pixels[at] !== b.sprite.pixels[at]) return false;
+  }
+  for (let at = 0; at < a.sprite.sub.length; at = (at + 1) | 0) {
+    if (a.sprite.sub[at] !== b.sprite.sub[at]) return false;
+  }
+  return true;
+}
+
 /** Replace a creature's looks and nothing else. */
 export function reskin(
   base: Creature,
