@@ -247,7 +247,14 @@ export function encodeLevel(level: Level): string {
   }
 
   if (carriesCurrents(level.engine)) {
-    const many = Math.min(level.currentCells.length, MAX_CURRENTS);
+    const many = level.currentCells.length;
+    // Loudly, not quietly. Writing the first 24 and dropping the rest would
+    // hand somebody a link that plays differently from the level they drew,
+    // with nothing anywhere saying so -- and a current that vanished is a
+    // route that vanished.
+    if (many > MAX_CURRENTS) {
+      throw new CodecError(`level has ${many} cells of current; a link holds ${MAX_CURRENTS}`);
+    }
     bits.write(many, 5);
     for (let i = 0; i < many; i = (i + 1) | 0) {
       bits.write(level.currentCells[i] as number, 9);

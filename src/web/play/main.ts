@@ -435,6 +435,15 @@ function guardArtMap(from: typeof level): Map<number, number> {
   return art;
 }
 
+/** Which way the current in each cell flows. Same arrangement as the enemies. */
+function flowArtMap(from: typeof level): Map<number, number> {
+  const art = new Map<number, number>();
+  for (let i = 0; i < from.currentCells.length; i = (i + 1) | 0) {
+    art.set(from.currentCells[i] as number, from.currentDirs[i] ?? 1);
+  }
+  return art;
+}
+
 
 let blockedUntil = 0;
 
@@ -774,6 +783,7 @@ function reset(): void {
   renderer.setWeapon(chosen.weapon);
   renderer.setSideOn(level.engine === "dash", level.engine);
   renderer.setGuardArt(guardArtMap(level));
+renderer.setFlowArt(flowArtMap(level));
   // Only the real-time engines redraw every frame. A turn-based level redraws
   // when you press something, so a spinning gem would freeze between moves.
   renderer.setSpinning(moving !== null);
@@ -1388,6 +1398,7 @@ renderer.setSprite(chosen.sprite);
 renderer.setWeapon(chosen.weapon);
 renderer.setSideOn(level.engine === "dash", level.engine);
 renderer.setGuardArt(guardArtMap(level));
+renderer.setFlowArt(flowArtMap(level));
 // Only the real-time engines redraw every frame. A turn-based level redraws
 // when you press something, so a spinning gem would freeze between moves.
 renderer.setSpinning(moving !== null);

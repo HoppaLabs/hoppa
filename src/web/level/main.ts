@@ -14,12 +14,16 @@ import { GRID_H, GRID_W } from "../../core/grid.ts";
 import {
   ENEMY_GLYPHS,
   GLYPH_BAT, GLYPH_DRAGON,
-  GLYPH_EXIT, GLYPH_FIRE, GLYPH_FLOOR, GLYPH_GUARD, GLYPH_LADDER,
+  FLOW_GLYPHS,
+  GLYPH_EXIT, GLYPH_FIRE, GLYPH_FLOOR,
+  GLYPH_FLOW_DOWN, GLYPH_FLOW_LEFT, GLYPH_FLOW_RIGHT, GLYPH_FLOW_UP,
+  GLYPH_GUARD, GLYPH_LADDER,
   GLYPH_START, GLYPH_TREASURE, GLYPH_WALL,
 } from "../../core/level.ts";
 import { parseLevel } from "../../core/level.ts";
 
 import {
+  FLOW_SET, MAX_FLOW,
   blankDraft, draftFromLevel, draftToText, paint, retarget, tally,
   type Draft, type Glyph,
 } from "../../core/draft.ts";
@@ -35,7 +39,7 @@ import type { Sprite } from "../../core/sprite.ts";
 import { ask } from "../ask.ts";
 import { PACK } from "../../core/pack.ts";
 import {
-  TILE_FIRE,
+  TILE_FIRE, TILE_FLOW,
   TILE_ACTOR, TILE_EXIT_LOCKED, TILE_FLOOR, TILE_GUARD,
   TILE_LADDER, TILE_TREASURE, TILE_WALL,
 } from "../../core/tiles.ts";
@@ -107,6 +111,8 @@ const TOOLS: readonly Tool[] = [
   { glyph: GLYPH_BAT, label: "bat", limit: 10 },
   { glyph: GLYPH_DRAGON, label: "lizard", limit: 10 },
   { glyph: GLYPH_LADDER, label: "ladder", engines: ["dash"] },
+  // One tool, four directions. Drag it and the water goes the way you dragged.
+  { glyph: GLYPH_FLOW_RIGHT, label: "current", engines: ["swim"], limit: MAX_FLOW },
   // One tool, two names. It is the same entity either way -- what changes is
   // what the world draws, because a flame standing on grass looks like a
   // mistake and spikes in a cave look like a floor. See src/core/tileset.ts.
@@ -148,6 +154,12 @@ const TILE_OF: Record<string, number> = {
   [GLYPH_DRAGON]: TILE_GUARD,
   [GLYPH_LADDER]: TILE_LADDER,
   [GLYPH_FIRE]: TILE_FIRE,
+  // All four currents are one tile index; which way each points travels
+  // alongside, the way an enemy's kind does. See src/core/tiles.ts.
+  [GLYPH_FLOW_LEFT]: TILE_FLOW,
+  [GLYPH_FLOW_RIGHT]: TILE_FLOW,
+  [GLYPH_FLOW_UP]: TILE_FLOW,
+  [GLYPH_FLOW_DOWN]: TILE_FLOW,
 };
 
 // --- the page -----------------------------------------------------------------
@@ -316,13 +328,19 @@ function repaint(): void {
   // engine may be told them apart. Without this the level you are drawing
   // showed a red square where the button you tapped showed a goblin.
   const art = new Map<number, number>();
+  const flows = new Map<number, number>();
   for (let i = 0; i < tiles.length; i = (i + 1) | 0) {
     const glyph = draft.cells[i] as string;
     tiles[i] = TILE_OF[glyph] ?? TILE_FLOOR;
     const kind = ENEMY_GLYPHS.indexOf(glyph);
     if (kind >= 0) art.set(i, kind);
+    const way = FLOW_GLYPHS.indexOf(glyph);
+    if (way >= 0) flows.set(i, way);
   }
   renderer.setGuardArt(art);
+  // The editor draws the room through the same renderer the game does, so the
+  // currents reach it the same way the enemies do.
+  renderer.setFlowArt(flows);
   // Sky for the side-on game, so tapping "from the side" visibly changes the
   // world rather than only changing which tools are on offer.
   renderer.setSideOn(draft.engine === "dash", draft.engine);
@@ -471,14 +489,50 @@ function paintAim(cell: { x: number; y: number } | null): void {
  * under your finger, so those are placed one tap at a time.
  */
 function draggable(glyph: Glyph): boolean {
-  return glyph === GLYPH_WALL || glyph === GLYPH_FLOOR || glyph === GLYPH_LADDER;
+  return glyph === GLYPH_WALL || glyph === GLYPH_FLOOR || glyph === GLYPH_LADDER
+    // A current is drawn as a stroke on purpose: see flowGlyphFor().
+    || FLOW_SET.includes(glyph);
 }
 
 let drawing = false;
 let lastCell = -1;
+/** The first cell of the current stroke, so a current can be re-pointed. */
+let strokeFrom = -1;
 
-function put(x: number, y: number): void {
-  const result = paint(draft, x, y, tool);
+/**
+ * Which way a current points: the way your finger went.
+ *
+ * This is the whole interaction, and it is why there is one current tool
+ * rather than four. Four buttons would be four more things in a palette that
+ * already holds eleven, and a child would have to decide which arrow they
+ * wanted BEFORE drawing anything. Dragging says it while you draw: you pull a
+ * line across the room and the water goes that way.
+ *
+ * A single tap has no direction to read, so it flows right -- the way reading
+ * goes, and the way the drawing points before it is turned.
+ */
+function flowGlyphFor(fromCell: number, toCell: number): Glyph {
+  if (fromCell < 0 || fromCell === toCell) return GLYPH_FLOW_RIGHT;
+  const dx = ((toCell % GRID_W) - (fromCell % GRID_W)) | 0;
+  const dy = (Math.floor(toCell / GRID_W) - Math.floor(fromCell / GRID_W)) | 0;
+  // Whichever axis the finger travelled furthest along. A tie goes sideways,
+  // because a level is wider than it is tall and so are most strokes.
+  if (Math.abs(dx) >= Math.abs(dy)) return dx < 0 ? GLYPH_FLOW_LEFT : GLYPH_FLOW_RIGHT;
+  return dy < 0 ? GLYPH_FLOW_UP : GLYPH_FLOW_DOWN;
+}
+
+function put(x: number, y: number, from = -1): void {
+  const here = (y * GRID_W + x) | 0;
+  const glyph: Glyph = FLOW_SET.includes(tool) ? flowGlyphFor(from, here) : tool;
+  // The first cell of a stroke was painted before there was a direction to
+  // read, so it points right whichever way the stroke then went. As soon as
+  // there IS a direction, put it right -- otherwise every leftward current
+  // starts with one chevron facing the wrong way.
+  if (glyph !== tool && strokeFrom >= 0 && strokeFrom !== here && from === strokeFrom) {
+    const fixed = paint(draft, strokeFrom % GRID_W, Math.floor(strokeFrom / GRID_W), glyph);
+    if (fixed.changed) draft = fixed.draft;
+  }
+  const result = paint(draft, x, y, glyph);
   if (result.changed) {
     draft = result.draft;
     saying = "";
@@ -512,6 +566,7 @@ paper.addEventListener("pointerdown", (event) => {
   if (cell === null) return;
   drawing = true;
   lastCell = cell.y * GRID_W + cell.x;
+  strokeFrom = lastCell;
   // Capture keeps the events coming if the finger slides off the level while
   // aiming. It is a convenience, not a requirement, and it can refuse -- so it
   // happens AFTER the state is set. Doing it first meant one refusal threw the
@@ -539,9 +594,10 @@ paper.addEventListener("pointermove", (event) => {
   if (cell === null) return;
   const index = cell.y * GRID_W + cell.x;
   if (index === lastCell) return;
+  const cameFrom = lastCell;
   lastCell = index;
   paintAim(cell);
-  if (draggable(tool)) put(cell.x, cell.y);
+  if (draggable(tool)) put(cell.x, cell.y, cameFrom);
 });
 
 paper.addEventListener("pointerup", (event) => {

@@ -247,6 +247,13 @@ export interface Tileset {
    * the wrong one for a flame.
    */
   readonly fireFrames?: readonly Pattern[];
+  /**
+   * Water that flows, if this world has any. Drawn pointing RIGHT; the renderer
+   * turns it for the other three. Absent in a world with no currents in it.
+   */
+  readonly flow?: Pattern;
+  /** A ramp for the current alone: it is light on water, not stone. */
+  readonly flowSub?: Ramp;
   /** Painted behind everything, for the parts a pattern leaves transparent. */
   readonly ground: string;
 }
@@ -355,6 +362,59 @@ const FLAME_FRAMES: readonly Pattern[] = [
  * fourteen rows, which is a real point rather than an approximation of one.
  * The pale flank down the left is what lights it.
  */
+/**
+ * Water that is going somewhere: a double chevron, pointing RIGHT.
+ *
+ * Drawn once and turned, rather than drawn four times. Two chevrons rather than
+ * one arrow, because an arrow reads as a sign somebody put there and a repeated
+ * chevron reads as movement -- which is what it is.
+ *
+ * Brightest at the tips and fading back along each arm, so the eye is pulled
+ * the way the water goes even at the size a phone draws a cell.
+ */
+const FLOW: Pattern = [
+  "................",
+  "................",
+  "................",
+  "................",
+  "...22....22.....",
+  "....22....22....",
+  ".....33....33...",
+  "......44....44..",
+  ".......44....44.",
+  "......44....44..",
+  ".....33....33...",
+  "....22....22....",
+  "...22....22.....",
+  "................",
+  "................",
+  "................",
+];
+
+/** The same drawing, mirrored left-to-right. */
+export function flipPattern(pattern: Pattern): Pattern {
+  return pattern.map((row) => [...row].reverse().join("")) as unknown as Pattern;
+}
+
+/**
+ * The same drawing, turned a quarter turn clockwise.
+ *
+ * Whole cells only, which is all a square grid can do -- and all the era could
+ * do either. Turning the art beats drawing it four times: four drawings drift.
+ */
+export function turnPattern(pattern: Pattern): Pattern {
+  const size = pattern.length;
+  const out: string[] = [];
+  for (let y = 0; y < size; y = (y + 1) | 0) {
+    let row = "";
+    for (let x = 0; x < size; x = (x + 1) | 0) {
+      row += (pattern[size - 1 - x] as string)[y] as string;
+    }
+    out.push(row);
+  }
+  return out as unknown as Pattern;
+}
+
 const SPIKES: Pattern = [
   ".......56.......",
   ".......54.......",
@@ -445,6 +505,11 @@ export const REEF: Tileset = {
   // Near-black up to a violet tip: the one thing on screen that is not a shade
   // of blue, because it is the one thing that is trying to be noticed.
   fireSub: [0, 42, 43, 44, 45, 46],
+  flow: FLOW,
+  // Water lit from within: deep blue up to near-white. It has to read against
+  // the deep it is drawn on without becoming a solid object, which is why the
+  // darkest step is barely lighter than the water itself.
+  flowSub: [7, 8, 9, 10, 11],
   ground: "#12306b",
 };
 

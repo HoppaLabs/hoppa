@@ -9,10 +9,12 @@ import { SPRITE_H, SPRITE_W, spriteIndex, type Sprite } from "../../core/sprite.
 import { ONE } from "../../core/fixed.ts";
 import { ENEMIES } from "../../core/enemies.ts";
 import {
-  TILE_PX, inkOf, tilesetFor, type Pattern, type Ramp, type Tileset,
+  TILE_PX, flipPattern, inkOf, tilesetFor, turnPattern,
+  type Pattern, type Ramp, type Tileset,
 } from "../../core/tileset.ts";
 import {
   TILE_ACTOR,
+  TILE_FLOW,
   TILE_GUARD_REELING,
   TILE_FIRE,
   TILE_LADDER,
@@ -385,6 +387,7 @@ export function tileChip(
     : tile === TILE_FLOOR ? set.floor
     : tile === TILE_LADDER ? set.ladder
     : tile === TILE_FIRE ? set.fire
+    : tile === TILE_FLOW ? (set.flow ?? null)
     : tile === TILE_TREASURE ? (GEM_FRAMES[0] as Pattern)
     : tile === TILE_EXIT_LOCKED ? (DOOR_SHUT[0] as Pattern)
     : tile === TILE_EXIT_OPEN ? (DOOR_OPEN[0] as Pattern)
@@ -394,7 +397,7 @@ export function tileChip(
   // and a shape cut out of nothing reads as a hole rather than as a thing.
   ctx.fillStyle = sideOn ? set.ground : (COLOUR[TILE_FLOOR] as string);
   ctx.fillRect(0, 0, size, size);
-  if (tile === TILE_LADDER || tile === TILE_FIRE) {
+  if (tile === TILE_LADDER || tile === TILE_FIRE || tile === TILE_FLOW) {
     paintPattern(ctx, set.floor, set.sub, set, size);
   }
 
@@ -435,7 +438,8 @@ export function tileChip(
   }
 
   if (pattern !== null) {
-    const sub = tile === TILE_FIRE ? set.fireSub
+    const sub = tile === TILE_FLOW ? (set.flowSub ?? set.sub)
+      : tile === TILE_FIRE ? set.fireSub
       : tile === TILE_LADDER ? set.ladderSub
       : set.sub;
     // The gem and the door carry their own colours rather than the terrain's.
@@ -575,6 +579,9 @@ export class GridRenderer {
    */
   private guardArt: ReadonlyMap<number, number> | null = null;
   private stamps: Map<number, HTMLCanvasElement> | null = null;
+  /** One stamp per direction: left, right, up, down. Turned, not redrawn. */
+  private flows: HTMLCanvasElement[] = [];
+  private flowArt: ReadonlyMap<number, number> | null = null;
   /**
    * The stamp key for a wall with open sky above it.
    *
@@ -690,6 +697,31 @@ export class GridRenderer {
     // Fire gets one stamp per frame. Everything else gets one.
     const frames = set.fireFrames ?? [set.fire];
     const flames: HTMLCanvasElement[] = [];
+
+    // A current gets one per direction, all four turned from the one drawing
+    // so they cannot drift apart. Order matches FLOW_GLYPHS: left, right, up,
+    // down -- and the drawing points right, so right is the one left alone.
+    const flows: HTMLCanvasElement[] = [];
+    if (set.flow !== undefined) {
+      const right = set.flow;
+      const turned: readonly Pattern[] = [
+        flipPattern(right),                            // left
+        right,                                         // right
+        turnPattern(turnPattern(turnPattern(right))),  // up
+        turnPattern(right),                            // down
+      ];
+      for (const pattern of turned) {
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(t * dpr));
+        canvas.height = Math.max(1, Math.round(t * dpr));
+        const ctx = canvas.getContext("2d");
+        if (ctx === null) continue;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        paintPattern(ctx, pattern, set.flowSub ?? set.sub, set, t);
+        flows.push(canvas);
+      }
+    }
+    this.flows = flows;
 
     for (const [tile, pattern, sub] of patterns) {
       const canvas = document.createElement("canvas");
@@ -940,6 +972,19 @@ export class GridRenderer {
    */
   setGuardArt(art: ReadonlyMap<number, number> | null): void {
     this.guardArt = art;
+  }
+
+  /**
+   * Which way the current in each cell flows.
+   *
+   * Read off the LEVEL, not off the engine -- the same arrangement guardArt
+   * uses to tell a goblin from a bat. Hard rule 5: an engine emits one tile
+   * index for a current and knows nothing about which way it points, and hard
+   * rule 4 keeps the drawing out of stateHash(). The direction is real state,
+   * but it is state that never changes, so the level is where it belongs.
+   */
+  setFlowArt(art: ReadonlyMap<number, number> | null): void {
+    this.flowArt = art;
   }
 
   setSprite(sprite: Sprite | null): void {
@@ -1385,6 +1430,18 @@ export class GridRenderer {
             ctx.fillStyle = COLOUR[TILE_FIRE] as string;
             ctx.fillRect(x * t, y * t, t, t);
           }
+          continue;
+        }
+
+        // A current is the water itself moving, so the water goes down first
+        // and the chevrons ride on top of it -- exactly as a ladder sits on
+        // its floor. Cut out of nothing it would read as a hole.
+        if (tile === TILE_FLOW) {
+          const floor = this.stamps?.get(TILE_FLOOR);
+          if (floor !== undefined) ctx.drawImage(floor, x * t, y * t, t, t);
+          const dir = this.flowArt?.get(y * GRID_W + x) ?? 1;
+          const arrows = this.flows[dir] ?? this.flows[1];
+          if (arrows !== undefined) ctx.drawImage(arrows, x * t, y * t, t, t);
           continue;
         }
 

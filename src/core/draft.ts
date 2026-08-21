@@ -379,6 +379,8 @@ export function draftFromLevel(level: {
   treasureSlot: Int8Array;
   guardCells: Int16Array;
   fireCells: Int16Array;
+  currentCells?: Int16Array;
+  currentDirs?: Uint8Array;
 }): Draft {
   const cells: Glyph[] = new Array<Glyph>(GRID_AREA);
   for (let i = 0; i < GRID_AREA; i = (i + 1) | 0) {
@@ -398,6 +400,14 @@ export function draftFromLevel(level: {
   }
   for (let i = 0; i < level.fireCells.length; i = (i + 1) | 0) {
     cells[level.fireCells[i] as number] = GLYPH_FIRE;
+  }
+  // ...and pointing the way they were pointing. Without this, opening a water
+  // level in the editor and saving it back would quietly flatten every current
+  // in it, which is the same class of bug as the enemies losing their kind.
+  const flowing = level.currentCells ?? new Int16Array(0);
+  const facing = level.currentDirs ?? new Uint8Array(0);
+  for (let i = 0; i < flowing.length; i = (i + 1) | 0) {
+    cells[flowing[i] as number] = (FLOW_SET[facing[i] ?? 1] ?? GLYPH_FLOW_RIGHT) as Glyph;
   }
   if (level.exitX >= 0) cells[idx(level.exitX, level.exitY)] = GLYPH_EXIT;
   cells[idx(level.startX, level.startY)] = GLYPH_START;
