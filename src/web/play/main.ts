@@ -43,6 +43,7 @@ import {
 } from "../../engines/types.ts";
 import { GridRenderer } from "./renderer.ts";
 import { goOffline } from "../offline.ts";
+import { holdStill } from "../nozoom.ts";
 
 
 /**
@@ -977,12 +978,31 @@ window.addEventListener("orientationchange", () => setTimeout(resize, 100));
 
 // --- taps -------------------------------------------------------------------
 
+/**
+ * Every pad button that gets a listener. THE SWING HAS TO BE IN HERE.
+ *
+ * It was not, and the button worked exactly as well as a photograph of a
+ * button: paintActionButton() unhides it for the side-on games and gives it a
+ * sword, PAD_BITS maps it to HELD_SWING, and the loop below -- which reads
+ * THIS list, not that one -- never reached it, so nothing was ever bound to it.
+ * Tapping it did nothing at all.
+ *
+ * Reported by a nine-year-old as "the sword is not working on the side view
+ * levels", which is precisely what it was. It survived because a keyboard goes
+ * through KEY_BITS instead (c, C, Shift), and that always worked -- so every
+ * test of it at a desk passed.
+ *
+ * The Input is only read by the turn-based games, where the weapon IS the
+ * action button and this one is hidden; INPUT_WAIT is that button, so a tap
+ * that somehow arrived there would do the right thing rather than nothing.
+ */
 const BUTTONS: ReadonlyArray<readonly [string, Input]> = [
   ["up", INPUT_UP],
   ["right", INPUT_RIGHT],
   ["down", INPUT_DOWN],
   ["left", INPUT_LEFT],
   ["wait", INPUT_WAIT],
+  ["swing", INPUT_WAIT],
 ];
 
 /** Which held-button bit each pad key maps to in a real-time game. */
@@ -1315,4 +1335,6 @@ if (moving !== null) {
 
 // Everything above works with no network. This is what makes that true after
 // the first visit as well -- see src/web/sw.ts.
+holdStill();
+
 goOffline("./");

@@ -31,6 +31,7 @@ import { forgetCharacter, loadCharacter, saveCharacter, startingCharacter } from
 import { ChrError, decodeCharacter, encodeCharacter } from "../../core/chr.ts";
 import { encodeQr, QrError } from "../../core/qr.ts";
 import { goOffline } from "../offline.ts";
+import { holdStill } from "../nozoom.ts";
 import { GALLERY } from "../../core/gallery.ts";
 
 const paper = document.getElementById("paper") as HTMLCanvasElement;
@@ -556,4 +557,6 @@ forget.addEventListener("click", () => {
 
 // Everything above works with no network. This is what makes that true after
 // the first visit as well -- see src/web/sw.ts.
+holdStill();
+
 goOffline("../");

@@ -41,6 +41,7 @@ import {
 } from "../../core/tiles.ts";
 import { loadCharacter, loadDraft, saveDraft } from "../stash.ts";
 import { goOffline } from "../offline.ts";
+import { holdStill } from "../nozoom.ts";
 
 // --- what you can draw with ---------------------------------------------------
 //
@@ -935,4 +936,6 @@ window.addEventListener("orientationchange", refit);
 
 // Everything above works with no network. This is what makes that true after
 // the first visit as well -- see src/web/sw.ts.
+holdStill(viewport);
+
 goOffline("../");
