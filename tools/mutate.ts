@@ -62,6 +62,15 @@ const MUTATIONS: readonly Mutation[] = [
     replace: "export const CASTS: Readonly<Record<string, readonly Enemy[]>> = {\n  garden: GARDEN_CAST,\n  reef: [REEF_CAST[2], REEF_CAST[1], REEF_CAST[0]] as readonly Enemy[],\n};",
   },
   {
+    // Eighteen days of undecodable QR codes. Everything that checked the
+    // encoder checked it against itself; nothing compared it to a number from
+    // outside. This mutation restores the exact swap.
+    breaks: "the QR generator polynomial is built reversed (the day-18 bug)",
+    file: "src/core/qr.ts",
+    find: "      next[j] = (next[j] as number) ^ (poly[j] as number);\n      next[j + 1] = (next[j + 1] as number) ^ gfMul(poly[j] as number, EXP[i] as number);",
+    replace: "      next[j] = (next[j] as number) ^ gfMul(poly[j] as number, EXP[i] as number);\n      next[j + 1] = (next[j + 1] as number) ^ (poly[j] as number);",
+  },
+  {
     breaks: "drowning stops saying it is drowning",
     file: "src/web/play/breath.ts",
     find: 'return { text: "no air -- swim up!", said: AIR_OUT };',

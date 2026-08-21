@@ -54,14 +54,31 @@ function gfMul(a: number, b: number): number {
   return EXP[((LOG[a] as number) + (LOG[b] as number)) % 255] as number;
 }
 
-/** The generator polynomial for `degree` error-correction codewords. */
+/**
+ * The generator polynomial for `degree` error-correction codewords.
+ *
+ * The product of (x - a^0)(x - a^1)...(x - a^degree-1), with the coefficients
+ * held highest power first.
+ *
+ * THE TWO LINES IN THE LOOP WERE THE OTHER WAY ROUND, which multiplies by
+ * (a^i * x + 1) instead of (x + a^i) and builds the polynomial reversed. At
+ * degree 1 the two agree -- [1, 1] either way -- which is exactly why it read
+ * as correct. From degree 2 they diverge: the right answer is [1, 3, 2] and it
+ * produced [2, 3, 1].
+ *
+ * Every QR this project ever drew had wrong error-correction codewords, so
+ * every one of them was a well-formed picture of a QR code that no reader
+ * could decode. Reported three times, most recently as "the biggest problem is
+ * the QR code still is not working" -- and the day-17 fix, drawing it twice as
+ * big, could not have helped: the shape was never the problem.
+ */
 function generator(degree: number): Uint8Array {
   let poly = new Uint8Array([1]);
   for (let i = 0; i < degree; i = (i + 1) | 0) {
     const next = new Uint8Array(poly.length + 1);
     for (let j = 0; j < poly.length; j = (j + 1) | 0) {
-      next[j] = (next[j] as number) ^ gfMul(poly[j] as number, EXP[i] as number);
-      next[j + 1] = (next[j + 1] as number) ^ (poly[j] as number);
+      next[j] = (next[j] as number) ^ (poly[j] as number);
+      next[j + 1] = (next[j + 1] as number) ^ gfMul(poly[j] as number, EXP[i] as number);
     }
     poly = next;
   }
