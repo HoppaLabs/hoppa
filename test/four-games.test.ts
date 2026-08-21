@@ -117,11 +117,13 @@ test("every game is reachable, named, and routed", () => {
   // source, which stopped finding it the moment the palette moved to its own
   // file, and would have gone on passing if the picker had been deleted from
   // one file and left in the other.
-  const named = ["adventure", "platformer", "underwater", "garden"];
+  const named = ["adventure", "platformer", "underwater", "garden", "beach"];
   // GAMES lists BUILDS and carries calm twice, so compare against the engines
   // it names rather than its rows.
   const engines = [...new Set(GAMES.map((game) => game.engine))];
-  expect(PICKER.map((game) => game.engine)).toEqual(engines);
+  // ...and the picker carries calm twice too now, because the beach is the
+  // garden's engine drawn somewhere else. Compare the engines each names.
+  expect([...new Set(PICKER.map((game) => game.engine))]).toEqual(engines);
   expect(PICKER.map((game) => game.label as string)).toEqual(named);
   for (const game of PICKER) {
     expect(ENGINE_IDS).toContain(game.engine);

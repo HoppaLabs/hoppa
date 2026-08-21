@@ -926,7 +926,7 @@ function reset(): void {
   // difference between smooth and not on a cheap phone.
   renderer.setSprite(chosen.sprite);
   renderer.setWeapon(chosen.weapon);
-  renderer.setSideOn(level.engine === "dash", level.engine);
+  renderer.setSideOn(level.engine === "dash", level.engine, level.tilesetId);
   renderer.setGuardArt(guardArtMap(level));
 renderer.setFlowArt(flowArtMap(level));
   renderer.setUnder(underMap(level));
@@ -1631,7 +1631,7 @@ paintShareGate();
 
 renderer.setSprite(chosen.sprite);
 renderer.setWeapon(chosen.weapon);
-renderer.setSideOn(level.engine === "dash", level.engine);
+renderer.setSideOn(level.engine === "dash", level.engine, level.tilesetId);
 renderer.setGuardArt(guardArtMap(level));
 renderer.setFlowArt(flowArtMap(level));
 renderer.setUnder(underMap(level));

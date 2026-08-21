@@ -131,10 +131,13 @@ export interface PackLevel {
   readonly text: string;
 }
 
-const roam = (seed: string) => `hoppa/1 roam seed=${seed} tiles=1 behaviour=8`;
-const dash = (seed: string) => `hoppa/1 dash seed=${seed} tiles=1 behaviour=8`;
-const swim = (seed: string) => `hoppa/1 swim seed=${seed} tiles=1 behaviour=3`;
-const calm = (seed: string) => `hoppa/1 calm seed=${seed} tiles=1 behaviour=2`;
+const roam = (seed: string) => `hoppa/1 roam seed=${seed} tiles=0 behaviour=8`;
+const dash = (seed: string) => `hoppa/1 dash seed=${seed} tiles=0 behaviour=8`;
+const swim = (seed: string) => `hoppa/1 swim seed=${seed} tiles=0 behaviour=3`;
+const calm = (seed: string) => `hoppa/1 calm seed=${seed} tiles=0 behaviour=2`;
+// The beach is the garden's engine drawn somewhere else: same rules, tiles=5.
+// See FIRST_SKIN in src/core/tileset.ts.
+const beach = (seed: string) => `hoppa/1 calm seed=${seed} tiles=5 behaviour=2`;
 
 /* -------------------------------------------------------------------------- */
 
@@ -446,6 +449,12 @@ export const PACK: readonly PackLevel[] = [
     teaches: "pick the flowers, mind the bear, keep out of the ponds",
     text: theGarden(),
   },
+  {
+    file: "14-the-beach.lvl",
+    name: "the beach",
+    teaches: "pick the shells up, mind the crab, keep out of the sea",
+    text: theBeach(),
+  },
 ];
 
 
@@ -708,6 +717,69 @@ function theGarden(): string {
   room.put(2, 2, "@");
   room.put(21, 12, ">");
   return room.text(calm("cccc"));
+}
+
+/**
+ * The beach. The garden's rules, at the seaside.
+ *
+ * "We have a request for beach levels." A beach is not a new game -- it is
+ * somewhere else to put one, and the garden's rules already fit it exactly:
+ * one thing that chases you, two that do not, water to walk round, a plank
+ * across it and something to collect. So this room is calm/2 with tiles=5,
+ * which is the first level in the pack whose `tiles=` field says anything at
+ * all. See FIRST_SKIN in src/core/tileset.ts.
+ *
+ * Laid out like a beach rather than like a garden, which is the whole reason
+ * to have both: the sea takes one WHOLE EDGE instead of sitting in the middle
+ * as a pond, so the room has a shore rather than an obstacle. Everything else
+ * lines up along it -- shells at the waterline, a jetty out over the water,
+ * palms up on the dry sand, and the crab down where the crabs are.
+ */
+function theBeach(): string {
+  const room = new Room().border();
+
+  // THE SEA IS A BAY, not a shoreline, and that is arithmetic rather than
+  // taste: water is an ENTITY and the wire format holds ten of them. A strip
+  // along the whole bottom edge came to forty-four cells and would not encode.
+  //
+  // Ten cells laid as a bay works better anyway. One body of it -- the tiles
+  // join up by reading their neighbours, so this comes out as one piece of
+  // water with one shoreline rather than as a row of puddles. See pondFor().
+  room.line(8, 11, 14, 11, "^");
+  room.line(9, 12, 13, 12, "^");
+
+  // A jetty out over it. In the garden the plank tile is a bridge across a
+  // pond; here it is the one way to stand out on the water, and it costs two
+  // cells of sea, which is two entities back.
+  room.line(11, 10, 11, 12, "H");
+
+  // Palms up on the dry sand, standing apart -- a lone wall cell is drawn as a
+  // canopy, and two together are a dune instead.
+  room.put(4, 2, WALL).put(8, 3, WALL).put(15, 2, WALL).put(20, 4, WALL);
+
+  // Two banks of dune, the only thing here you cannot see over.
+  room.box(2, 5, 5, 6, WALL);
+  room.box(17, 6, 20, 7, WALL);
+
+  // Shells: along the waterline where you find them, one out at the end of the
+  // jetty, and two up in the dry sand behind the dunes.
+  room.put(3, 9, "$").put(7, 10, "$").put(16, 10, "$").put(20, 9, "$");
+  room.put(11, 9, "$");
+  room.put(3, 3, "$").put(21, 2, "$");
+
+  // A gull and a jellyfish, and neither will ever come after you: on calm/2
+  // the glyph decides what a thing DOES. Gulls up on the sand where gulls
+  // stand about, the jellyfish at the water's edge.
+  room.put(6, 4, "B").put(18, 3, "B");
+  room.put(15, 10, "D");
+
+  // ONE crab, and it hunts. Down by the water between the far shells and the
+  // way out, which is what makes the weapon worth carrying.
+  room.put(19, 10, "G");
+
+  room.put(2, 1, "@");
+  room.put(22, 1, ">");
+  return room.text(beach("bbbb"));
 }
 
 /**

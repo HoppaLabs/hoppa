@@ -37,8 +37,14 @@ export interface Tool {
    *
    * A map rather than a field per world. It began as one `skyLabel`, took a
    * second when the water arrived, and a third would have been a nested
-   * ternary nobody could read -- so it is keyed by engine and the next world
-   * costs a line.
+   * ternary nobody could read -- so it is a map and the next world costs a
+   * line.
+   *
+   * Keyed by WORLD rather than by engine, and that is not a tidy-up: the beach
+   * is the garden's engine drawn somewhere else, so two entries here share an
+   * engine and differ in every word. Keying by world also makes the invariant
+   * the palette test checks -- the word and the picture are the same creature
+   * -- true by construction, because the picture already comes from the world.
    */
   readonly names?: Readonly<Record<string, string>>;
   /** Only offered for the games that have it. */
@@ -52,27 +58,27 @@ export const TOOLS: readonly Tool[] = [
   // tool you reach for most and the one you want before you have decided what
   // you are drawing, and it was sitting second behind the wall.
   { glyph: GLYPH_FLOOR, label: "clear", rubber: true },
-  { glyph: GLYPH_WALL, label: "wall", names: { swim: "rock", calm: "hedge" } },
+  { glyph: GLYPH_WALL, label: "wall", names: { reef: "rock", garden: "hedge", beach: "dune" } },
   { glyph: GLYPH_START, label: "start" },
   // Every game, again. It was withheld from the garden while calm/1 was the
   // only one there was: that build has no win, so it drew a door and never
   // opened it, and the tool was a button that did nothing. calm/2 was asked for
   // WITH a way out, and a new garden is drawn under calm/2. See adr/0045.
   { glyph: GLYPH_EXIT, label: "door / exit" },
-  { glyph: GLYPH_TREASURE, label: "treasure", names: { calm: "flowers" }, limit: 8 },
+  { glyph: GLYPH_TREASURE, label: "treasure", names: { garden: "flowers", beach: "shells" }, limit: 8 },
   // Three enemies, one tool each. They walk, chase and die exactly alike --
   // what changes is what a child sees walking towards them, which at nine
   // years old is most of what an enemy IS.
-  { glyph: GLYPH_GUARD, label: "goblin", names: { swim: "shark", calm: "bear" }, limit: 10 },
-  { glyph: GLYPH_BAT, label: "bat", names: { swim: "kraken", calm: "bunny" }, limit: 10 },
-  { glyph: GLYPH_DRAGON, label: "lizard", names: { swim: "squid", calm: "squirrel" }, limit: 10 },
-  { glyph: GLYPH_LADDER, label: "ladder", names: { calm: "bridge" }, engines: ["dash", "calm"] },
+  { glyph: GLYPH_GUARD, label: "goblin", names: { reef: "shark", garden: "bear", beach: "crab" }, limit: 10 },
+  { glyph: GLYPH_BAT, label: "bat", names: { reef: "kraken", garden: "bunny", beach: "gull" }, limit: 10 },
+  { glyph: GLYPH_DRAGON, label: "lizard", names: { reef: "squid", garden: "squirrel", beach: "jellyfish" }, limit: 10 },
+  { glyph: GLYPH_LADDER, label: "ladder", names: { garden: "bridge", beach: "jetty" }, engines: ["dash", "calm"] },
   // One tool, four directions. Drag it and the water goes the way you dragged.
   { glyph: GLYPH_FLOW_RIGHT, label: "current", engines: ["swim"], limit: MAX_FLOW },
   // One tool, two names. It is the same entity either way -- what changes is
   // what the world draws, because a flame standing on grass looks like a
   // mistake and spikes in a cave look like a floor. See src/core/tileset.ts.
-  { glyph: GLYPH_FIRE, label: "fire", names: { dash: "spikes", swim: "urchins", calm: "pond" }, limit: 10 },
+  { glyph: GLYPH_FIRE, label: "fire", names: { outside: "spikes", reef: "urchins", garden: "pond", beach: "sea" }, limit: 10 },
 ];
 
 /**
@@ -91,15 +97,24 @@ export const TOOLS: readonly Tool[] = [
  * A nine-year-old knows what a platformer is.
  */
 export const GAMES = [
-  { engine: "roam", label: "adventure" },
-  { engine: "dash", label: "platformer" },
-  { engine: "swim", label: "underwater" },
-  { engine: "calm", label: "garden" },
+  { engine: "roam", label: "adventure", tiles: 0 },
+  { engine: "dash", label: "platformer", tiles: 0 },
+  { engine: "swim", label: "underwater", tiles: 0 },
+  { engine: "calm", label: "garden", tiles: 0 },
+  // The beach: the garden's engine, drawn at the seaside. Asked for as "we
+  // have a request for beach levels", and a beach is not a new GAME -- it is
+  // somewhere else to put one. The garden's rules already fit it exactly: one
+  // thing that chases you (a crab), two that do not (a gull and a jellyfish),
+  // water you walk round, a plank across it, and something to collect.
+  //
+  // It is the first entry here whose `tiles` says anything. See FIRST_SKIN in
+  // src/core/tileset.ts for why the numbering starts at five.
+  { engine: "calm", label: "beach", tiles: 5 },
 ] as const;
 
 /** The world a game is drawn in, by name -- which cast of creatures it holds. */
-export function worldFor(engine: string): string {
-  return tilesetFor(sideOn(engine), engine).name;
+export function worldFor(engine: string, tiles = 0): string {
+  return tilesetFor(sideOn(engine), engine, tiles).name;
 }
 
 /**
@@ -109,8 +124,8 @@ export function worldFor(engine: string): string {
  * to have a shark on it, and this asked the global list -- so the underwater
  * palette showed a lizard while the game itself showed a shark.
  */
-export function enemyArtFor(glyph: string, engine: string): { rows: readonly string[]; inks: readonly string[] } | null {
-  const world = worldFor(engine);
+export function enemyArtFor(glyph: string, engine: string, tiles = 0): { rows: readonly string[]; inks: readonly string[] } | null {
+  const world = worldFor(engine, tiles);
   const enemy = enemyByGlyph(glyph, world);
   if (enemy === undefined) return null;
   return { rows: enemy.frames[0] as readonly string[], inks: enemy.inks };
@@ -124,8 +139,8 @@ export function enemyArtFor(glyph: string, engine: string): { rows: readonly str
  * underwater palette drew a shark under the word "goblin", because the art had
  * been fixed and the labels had not.
  */
-export function labelFor(entry: Tool, engine: string): string {
-  return entry.names?.[engine] ?? entry.label;
+export function labelFor(entry: Tool, engine: string, tiles = 0): string {
+  return entry.names?.[worldFor(engine, tiles)] ?? entry.label;
 }
 
 /** The tools offered in a game, in order. */

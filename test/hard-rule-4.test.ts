@@ -23,6 +23,7 @@ import { parseLevel } from "../src/core/level.ts";
 import { engineFor, knownBuilds } from "../src/engines/registry.ts";
 import { PRESETS } from "../src/core/creature.ts";
 import { hashHex } from "../src/core/hash.ts";
+import { FIRST_SKIN } from "../src/core/tileset.ts";
 
 /** The same presses for every engine: real-time reads a bitmask, turn-based a move. */
 const LOG = Array.from({ length: 120 }, (_, at) => (at * 7) % 24);
@@ -46,17 +47,20 @@ test("no build reads the tileset into its hash", () => {
   const table: string[] = [];
   for (const build of BUILDS) {
     const plain = draftToText(blankDraft(build.engine, build.version));
-    expect(plain).toContain("tiles=1");
-    // The same room, the same log, drawn in a different set of colours.
-    const restyled = plain.replace("tiles=1", "tiles=7");
-    expect(parseLevel(restyled).tilesetId).toBe(7);
+    // A blank draft asks for no skin: whatever its engine's world looks like.
+    expect(plain).toContain("tiles=0");
+    // The same room, the same log, drawn in a different set of colours -- and
+    // a REAL skin, not a spare number, so this is the change a child can
+    // actually make from the tab strip. See FIRST_SKIN in core/tileset.ts.
+    const restyled = plain.replace("tiles=0", `tiles=${FIRST_SKIN}`);
+    expect(parseLevel(restyled).tilesetId).toBe(FIRST_SKIN);
 
     const before = hashAfter(plain);
     const after = hashAfter(restyled);
     table.push(`  ${build.key.padEnd(8)} ${before}  ${after}  ${before === after ? "same" : "*** MOVED ***"}`);
     expect({ build: build.key, hash: after }).toEqual({ build: build.key, hash: before });
   }
-  console.log(`\n  build    tiles=1   tiles=7\n${table.join("\n")}`);
+  console.log(`\n  build    no skin   tiles=${FIRST_SKIN}\n${table.join("\n")}`);
 });
 
 test("it covers every build the registry routes, not a list somebody typed", () => {

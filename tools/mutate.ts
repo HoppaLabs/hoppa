@@ -32,6 +32,25 @@ interface Mutation {
 
 const MUTATIONS: readonly Mutation[] = [
   {
+    breaks: "a level's skin is read from 1, so every shipped reef link is a cave",
+    file: "src/core/tileset.ts",
+    find: "export const FIRST_SKIN = 5;",
+    replace: "export const FIRST_SKIN = 1;\nconst ALL_SETS: Readonly<Record<number, Tileset>> = " +
+      "{ 1: UNDERGROUND, 2: OUTSIDE, 3: REEF, 4: GARDEN };",
+  },
+  {
+    breaks: "the beach forgets it is a skin, so a beach level renders as a garden",
+    file: "src/core/tileset.ts",
+    find: "const SKINS: Readonly<Record<number, Tileset>> = { 5: BEACH };",
+    replace: "const SKINS: Readonly<Record<number, Tileset>> = {};",
+  },
+  {
+    breaks: "switching tab within one engine drops the skin, so the beach tab does nothing",
+    file: "src/core/draft.ts",
+    find: "  if (engine === draft.engine) return { ...draft, behaviourVersion, tilesetId };",
+    replace: "  if (engine === draft.engine) return { ...draft, behaviourVersion };",
+  },
+  {
     breaks: "the underwater weapon goes back to a sword",
     file: "src/web/play/weapon.ts",
     find: '  return engine === "swim" ? "trident" : "sword";',
@@ -76,14 +95,14 @@ const MUTATIONS: readonly Mutation[] = [
   {
     breaks: "the underwater palette says goblin over a picture of a shark",
     file: "src/web/level/palette.ts",
-    find: 'names: { swim: "shark", calm: "bear" }',
-    replace: 'names: { swim: "goblin", calm: "bear" }',
+    find: 'names: { reef: "shark", garden: "bear", beach: "crab" }',
+    replace: 'names: { reef: "goblin", garden: "bear", beach: "crab" }',
   },
   {
     breaks: "the reef's cast is listed out of glyph order, so a shark draws as a squid",
     file: "src/core/enemies.ts",
-    find: "export const CASTS: Readonly<Record<string, readonly Enemy[]>> = {\n  garden: GARDEN_CAST,\n  reef: REEF_CAST,\n};",
-    replace: "export const CASTS: Readonly<Record<string, readonly Enemy[]>> = {\n  garden: GARDEN_CAST,\n  reef: [REEF_CAST[2], REEF_CAST[1], REEF_CAST[0]] as readonly Enemy[],\n};",
+    find: "  reef: REEF_CAST,\n  beach: BEACH_CAST,\n};",
+    replace: "  reef: [REEF_CAST[2], REEF_CAST[1], REEF_CAST[0]] as readonly Enemy[],\n  beach: BEACH_CAST,\n};",
   },
   {
     // Eighteen days of undecodable QR codes. Everything that checked the

@@ -833,17 +833,149 @@ export const GARDEN: Tileset = {
   ground: "#6fd968",
 };
 
-export const TILESETS: readonly Tileset[] = [UNDERGROUND, OUTSIDE, REEF, GARDEN];
+/**
+ * The beach, seen from above. Asked for as "we have a request for beach
+ * levels" -- and a beach is not a new GAME, it is the adventure game drawn
+ * somewhere else.
+ *
+ * Which is why it is the first tileset chosen by the level's `tiles=` field
+ * rather than by its engine. See tilesetFor() for what that field can and
+ * cannot mean without breaking every link ever sent.
+ */
+const SAND: Pattern = [
+  "4444444444444444",
+  "4455555444444444",
+  "4533333544444444",
+  "4344444344444344",
+  "4444444444444444",
+  "4444434444555544",
+  "4444444445333354",
+  "4446644443444434",
+  "4445444444443444",
+  "4344555555444444",
+  "4445333333544444",
+  "4443444444344444",
+  "4444444434444444",
+  "4444444444445554",
+  "4444444444453335",
+  "4444444444434443",
+];
+
+const DUNE: Pattern = [
+  "3222222232221222",
+  "2222122223332333",
+  "2114411122223222",
+  "1221122212222222",
+  "2333233321112111",
+  "3222222232221222",
+  "2222122223442333",
+  "2111211122113222",
+  "1222322212222222",
+  "2333233321112111",
+  "3222224432221222",
+  "2222121123332333",
+  "2111211122223222",
+  "1222322212222442",
+  "2333233321112111",
+  "3222222232221222",
+];
+
+const PALM: Pattern = [
+  "........77......",
+  "...7...787......",
+  "...77..7887.....",
+  "..7997789777777.",
+  "..79897897887...",
+  "...7897899997...",
+  "77778882297777..",
+  "788878811888887.",
+  ".788888118999887",
+  "..79999229997877",
+  "...77799899897..",
+  "...78897897897..",
+  ".77999778978887.",
+  "..7977.787.777..",
+  "...7...77...7...",
+  "......7.........",
+];
+
+const BOARDWALK: Pattern = [
+  "2222222222222222",
+  "1444444444444441",
+  "1333333333333331",
+  "1333333333333331",
+  "1222222222222221",
+  "1333333333333331",
+  "1444444444444441",
+  "1333333333333331",
+  "1333333333333331",
+  "1222222222222221",
+  "1333333333333331",
+  "1444444444444441",
+  "1333333333333331",
+  "1333333333333331",
+  "1222222222222221",
+  "2222222222222222",
+];
+
+export const BEACH: Tileset = {
+  id: 5,
+  name: "beach",
+  // 1-6 are sand, darkest to a shell's white. 7-9 are the palm's greens, and
+  // they live on the end of the terrain ramp rather than in one of their own,
+  // because a palm is the only green thing here and a ramp per tile is how
+  // you end up with nine of them.
+  sub: [25, 26, 27, 28, 29, 5, 18, 20, 22],
+  wall: DUNE,
+  // One on its own is a palm. Same rule as the garden's tree: a wall cell with
+  // no wall beside it, which costs the wire format nothing at all.
+  tree: PALM,
+  floor: SAND,
+  // Planks over the water, the job the garden's bridge does. On a beach it is
+  // the jetty, and it is the only way across the sea without getting wet.
+  ladder: BOARDWALK,
+  ladderSub: [48, 49, 51, 52],
+  // The sea. It joins up the way a pond does -- see pondFor() -- because a
+  // beach with six separate rimmed puddles on it is not a beach.
+  fire: POND,
+  fireFor: pondFor,
+  // Deeper and colder than a garden pond: this is the sea, and the point of it
+  // is that it is the edge of the world rather than a puddle to step round.
+  fireSub: [6, 7, 8, 10, 5],
+  ground: "#ffc23d",
+};
+
+export const TILESETS: readonly Tileset[] = [UNDERGROUND, OUTSIDE, REEF, GARDEN, BEACH];
+
+/**
+ * The lowest `tiles=` value that names a skin rather than nothing.
+ *
+ * Everything below it is the engine's own world. This is not tidiness, it is
+ * the only reading of the field that keeps every shipped link intact: the
+ * value has been written since day one and read by nobody, so EVERY level ever
+ * encoded carries tiles=1 -- including the reef and the garden, which do not
+ * look remotely like tileset 1. Start reading it at 1 and every underwater
+ * link ever sent renders as a dungeon.
+ *
+ * So 1..4 keep meaning what they have always meant in practice, which is
+ * "whatever this game looks like", and the field starts saying something at 5.
+ */
+export const FIRST_SKIN = 5;
+
+/** The skins a level can ask for by number, by id. */
+const SKINS: Readonly<Record<number, Tileset>> = { 5: BEACH };
 
 /**
  * The tileset for a world.
  *
- * Chosen by which GAME this is, not by the level's `tiles=` field. That field
- * exists in the format and on the wire, and stays reserved: a level saying
- * tiles=1 today gets whatever its engine's world looks like, which is the
- * behaviour that lets the art improve without reissuing a single link.
+ * Chosen by which GAME this is, unless the level asks for a skin by number --
+ * see FIRST_SKIN for why the numbering starts where it does. A level that asks
+ * for nothing gets its engine's world, which is the behaviour that lets the
+ * art improve without reissuing a single link.
  */
-export function tilesetFor(sideOn: boolean, engine?: string): Tileset {
+export function tilesetFor(sideOn: boolean, engine?: string, tilesetId = 0): Tileset {
+  const skin = SKINS[tilesetId | 0];
+  if (skin !== undefined) return skin;
   // Underwater is drawn from the side and is not the outdoors, so the boolean
   // that used to answer this on its own no longer can. It stays as the default
   // for every caller that has only ever had two worlds to pick between.

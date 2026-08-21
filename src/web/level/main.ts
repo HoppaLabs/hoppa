@@ -274,7 +274,7 @@ function repaint(): void {
   renderer.setFlowArt(flows);
   // Sky for the side-on game, so tapping "from the side" visibly changes the
   // world rather than only changing which tools are on offer.
-  renderer.setSideOn(draft.engine === "dash", draft.engine);
+  renderer.setSideOn(draft.engine === "dash", draft.engine, draft.tilesetId);
   // The editor redraws only when something changes, so a spinning gem would sit
   // frozen at whatever angle the last tap caught it at.
   renderer.setSpinning(false);
@@ -315,7 +315,7 @@ function paintExamples(): void {
     // a thumbnail cannot disagree with what tapping it gives you.
     const small = new GridRenderer(thumb);
     small.setTileSize(4);
-    small.setSideOn(theirs.engine === "dash", theirs.engine);
+    small.setSideOn(theirs.engine === "dash", theirs.engine, theirs.tilesetId);
     small.setSpinning(false);
     const shown = new Uint8Array(GRID_W * GRID_H);
     for (let i = 0; i < shown.length; i = (i + 1) | 0) {
@@ -334,7 +334,7 @@ function paintExamples(): void {
 
 /** Is there anything here somebody would mind losing? */
 function drawnOn(): boolean {
-  const empty = blankDraft(draft.engine, draft.behaviourVersion);
+  const empty = blankDraft(draft.engine, draft.behaviourVersion, draft.tilesetId);
   return draft.cells.some((cell, at) => cell !== empty.cells[at]);
 }
 
@@ -699,8 +699,9 @@ function paintTools(): void {
         // two different scales.
         32,
         artFor(entry.glyph),
-        enemyArtFor(entry.glyph, draft.engine),
+        enemyArtFor(entry.glyph, draft.engine, draft.tilesetId),
         draft.engine,
+        draft.tilesetId,
       ),
     );
     if (entry.rubber === true) {
@@ -712,7 +713,7 @@ function paintTools(): void {
 
     const label = document.createElement("span");
     label.textContent =
-      labelFor(entry, draft.engine);
+      labelFor(entry, draft.engine, draft.tilesetId);
 
     button.append(chip, label);
 
@@ -737,13 +738,15 @@ function paintGames(): void {
   gamesBox.innerHTML = "";
   for (const game of GAMES) {
     const button = document.createElement("button");
-    const on = game.engine === draft.engine;
+    // The tab is the pair, not the engine: two tabs share calm and differ
+    // only in which world they are drawn in.
+    const on = game.engine === draft.engine && game.tiles === draft.tilesetId;
     button.className = on ? "on" : "";
     button.textContent = game.label;
     button.setAttribute("aria-pressed", on ? "true" : "false");
     button.addEventListener("click", () => {
-      if (game.engine === draft.engine) return;
-      draft = retarget(draft, game.engine, currentBuild(game.engine));
+      if (game.engine === draft.engine && game.tiles === draft.tilesetId) return;
+      draft = retarget(draft, game.engine, currentBuild(game.engine), game.tiles);
       // A ladder tool with no ladders in this game would be a dead button.
       if (tool === GLYPH_LADDER && game.engine !== "dash") tool = GLYPH_WALL;
       saying = "";
@@ -945,7 +948,7 @@ function paintWatched(engine: Watchable, level: ReturnType<typeof parseLevel>): 
 }
 
 clearButton.addEventListener("click", () => {
-  draft = blankDraft(draft.engine, currentBuild(draft.engine));
+  draft = blankDraft(draft.engine, currentBuild(draft.engine), draft.tilesetId);
   saying = "";
   repaint();
   review();

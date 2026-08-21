@@ -190,8 +190,18 @@
   }
   #tools .count { font-size: 10px; color: var(--ink); }
 
-  #games { display: flex; gap: 6px; width: 100%; max-width: 340px; }
-  #games button { flex: 1; font-size: 12px; padding: 9px 6px; }
+  /* Five tabs, and a phone is 360 pixels wide.
+     WRAPS rather than scrolls: a strip that scrolls sideways hides whatever is
+     past the edge, and the fifth tab -- the newest one, the one nobody knows
+     is there -- is exactly what ends up past it. Two rows of readable buttons
+     beat one row with a secret in it. */
+  #games {
+    display: flex; flex-wrap: wrap; justify-content: center;
+    gap: 6px; width: 100%; max-width: 340px;
+  }
+  #games button {
+    flex: 1 1 auto; min-width: 88px; font-size: 12px; padding: 9px 6px;
+  }
 
   #name { width: min(220px, 100%); }
 

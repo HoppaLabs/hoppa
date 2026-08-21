@@ -575,20 +575,167 @@ export const REEF_CAST: readonly Enemy[] = [
   },
 ];
 
+export const BEACH_CAST: readonly Enemy[] = [
+  {
+    name: "crab",
+    glyph: "G",
+    // The crab came off the reef when the kraken and the squid took those
+    // slots, and a beach is where it belonged all along -- it is the one
+    // creature on this list a child has actually met.
+    // RED, not the sandy brown it wore on the reef. A brown crab on brown
+    // sand is a crab nobody sees coming, and this is the one thing on the
+    // beach that hunts you -- the colour is the warning.
+    inks: ["#6b1420", "#a31d2e", "#d82f42", "#ff9f3d", "#ffffff", "#3a0d12"],
+    frames: [
+      [
+        ".6666......6666.",
+        "663366....663366",
+        "633336....633336",
+        "6333366666633336",
+        "6623663333663266",
+        ".66263333336266.",
+        ".66623333332666.",
+        "6622222222222266",
+        "6212225225222126",
+        "6211222222221126",
+        "6611111111111166",
+        "6161111111111616",
+        "3166166116616613",
+        "6666666666666666",
+        "................",
+        "................",
+      ],
+      [
+        "................",
+        ".6666......6666.",
+        "663366....663366",
+        "6333366666633336",
+        "6333366333363333",
+        "6632663333336633",
+        ".666233333326666",
+        "6622232222222266",
+        "6222225225222226",
+        "6221222222221226",
+        "6611111111111166",
+        "3661111111111661",
+        "6116166116616116",
+        "6666666666666666",
+        "................",
+        "................",
+      ],
+    ],
+  },
+  {
+    name: "gull",
+    glyph: "B",
+    // At sixteen pixels a gull IS its wings, so they reach the edge of the
+    // tile and change between the frames, which is the only animation a
+    // bird needs. Drawn from one half and mirrored: a bird with two
+    // different wings reads as a bird with a broken one.
+    inks: ["#39485c", "#7c8899", "#cdd6e0", "#ffffff", "#ff9f3d", "#0d1014"],
+    frames: [
+      [
+        "................",
+        "666....66....666",
+        "1116..6446..6111",
+        "1116664444666111",
+        "2333366446633332",
+        "2233344554433322",
+        "6222344554433226",
+        ".66224444442266.",
+        "...6644444466...",
+        "....64444446....",
+        "....64444446....",
+        "....64444446....",
+        ".....666666.....",
+        ".....633336.....",
+        ".....636636.....",
+        "......6..6......",
+      ],
+      [
+        "................",
+        ".......66.......",
+        "......6446......",
+        ".....644446.....",
+        ".....664466.....",
+        "....64455446....",
+        "...6644554466...",
+        ".66224444442266.",
+        "6333344444433336",
+        "2333344444433332",
+        "2332244444422332",
+        "2226644444466222",
+        "1116.666666.6111",
+        "1116.633336.6111",
+        "666..636636..666",
+        "......6..6......",
+      ],
+    ],
+  },
+  {
+    name: "jellyfish",
+    glyph: "D",
+    // The bell squeezes and opens between the frames and the tentacles trail
+    // the other way, which is how a jellyfish moves. Eyes, because every
+    // other creature here has them and one without read as a bag -- round
+    // ones, because two white bars read as a visor.
+    inks: ["#42126b", "#6b1fa8", "#9a3ad5", "#c46ff0", "#ffffff", "#25093a"],
+    frames: [
+      [
+        "....64444336....",
+        "...6444444336...",
+        "..644444444326..",
+        ".6224444443326..",
+        ".62235444353226.",
+        ".62236633366226.",
+        ".62233333333226.",
+        ".62233333333226.",
+        "..6622666662226.",
+        "...62222322226..",
+        "...62622322626..",
+        "..626623326626..",
+        "..626623326626..",
+        "..626623326626..",
+        "...6262336226...",
+        "...6226366226...",
+      ],
+      [
+        ".....666666.....",
+        "...6644444466...",
+        "..644444444326..",
+        ".62244444433226.",
+        ".622354443532226",
+        "6222366333662226",
+        "6222333333332226",
+        "6222333333332226",
+        "6222333333332226",
+        "626622666662266.",
+        ".66226223226226.",
+        "..622622322626..",
+        ".62662622626626.",
+        ".62662226326626.",
+        "..6266266326226.",
+        "..626626622626..",
+      ],
+    ],
+  },
+];
+
 export const CASTS: Readonly<Record<string, readonly Enemy[]>> = {
   garden: GARDEN_CAST,
   reef: REEF_CAST,
+  beach: BEACH_CAST,
 };
 
 /** Every drawing this file holds, for the checks below. */
-export const ALL: readonly Enemy[] = [...ENEMIES, ...GARDEN_CAST, ...REEF_CAST];
+export const ALL: readonly Enemy[] = [...ENEMIES, ...GARDEN_CAST, ...REEF_CAST, ...BEACH_CAST];
 
 export function check(): string[] {
   const wrong: string[] = [];
   // Per CAST, not globally: every cast uses the same three glyphs, because a
   // level stores an enemy as an index and the worlds are alternative art for
   // the same three slots.
-  for (const [world, cast] of [["dungeon", ENEMIES], ["garden", GARDEN_CAST], ["reef", REEF_CAST]] as const) {
+  for (const [world, cast] of [["dungeon", ENEMIES], ["garden", GARDEN_CAST], ["reef", REEF_CAST], ["beach", BEACH_CAST]] as const) {
     if (cast.length !== ENEMIES.length) {
       wrong.push(`${world}: ${cast.length} creatures, want ${ENEMIES.length}`);
     }
@@ -733,11 +880,15 @@ function enemiesModule(): string {
   lines.push("/** The reef's three. */");
   lines.push("export const REEF_CAST: readonly Enemy[] = [");
   write(REEF_CAST);
+  lines.push("");
+  lines.push("export const BEACH_CAST: readonly Enemy[] = [");
+  write(BEACH_CAST);
 
   lines.push("/** Which cast a world uses. Anything not named here uses the dungeon three. */");
   lines.push("export const CASTS: Readonly<Record<string, readonly Enemy[]>> = {");
   lines.push("  garden: GARDEN_CAST,");
   lines.push("  reef: REEF_CAST,");
+  lines.push("  beach: BEACH_CAST,");
   lines.push("};");
   lines.push("");
   lines.push("/** The enemy a level glyph means, or undefined. */");
@@ -758,5 +909,5 @@ if (import.meta.main) {
     process.exit(1);
   }
   await Bun.write("src/core/enemies.ts", enemiesModule());
-  console.log(`  src/core/enemies.ts — ${ALL.length} creatures across 3 casts, ${ALL.length * 2} frames`);
+  console.log(`  src/core/enemies.ts — ${ALL.length} creatures across ${Object.keys(CASTS).length + 1} casts, ${ALL.length * 2} frames`);
 }

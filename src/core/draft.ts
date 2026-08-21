@@ -83,6 +83,13 @@ export const FLOW_SET: readonly string[] = [
 export interface Draft {
   readonly engine: string;
   readonly behaviourVersion: number;
+  /**
+   * Which SKIN this level asks to be drawn in, or 0 for its engine's own
+   * world. Cosmetic and nothing but: no engine is ever told, so a beach and a
+   * garden with the same cells play identically and hash identically. See
+   * FIRST_SKIN in src/core/tileset.ts.
+   */
+  readonly tilesetId: number;
   /** GRID_AREA glyphs in reading order. */
   readonly cells: readonly Glyph[];
 }
@@ -221,7 +228,7 @@ function frame(cells: Glyph[], engine: string): void {
  * A kid who taps "make a level" and sees nothing has to be told what a level
  * is; a kid who sees a room with a door in it just starts drawing.
  */
-export function blankDraft(engine: string, behaviourVersion: number): Draft {
+export function blankDraft(engine: string, behaviourVersion: number, tilesetId = 0): Draft {
   const cells: Glyph[] = new Array<Glyph>(GRID_AREA);
   for (let i = 0; i < GRID_AREA; i = (i + 1) | 0) cells[i] = GLYPH_FLOOR;
   frame(cells, engine);
@@ -248,7 +255,7 @@ export function blankDraft(engine: string, behaviourVersion: number): Draft {
     cells[idx(1, 1)] = GLYPH_START;
     cells[idx((GRID_W - 2) | 0, (GRID_H - 2) | 0)] = GLYPH_EXIT;
   }
-  return { engine, behaviourVersion, cells };
+  return { engine, behaviourVersion, tilesetId, cells };
 }
 
 /**
@@ -388,7 +395,8 @@ export function tally(draft: Draft, glyph: Glyph): number {
  */
 export function draftToText(draft: Draft): string {
   const rows: string[] = [
-    `hoppa/1 ${draft.engine} seed=0 tiles=1 behaviour=${draft.behaviourVersion}`,
+    `hoppa/1 ${draft.engine} seed=0 tiles=${draft.tilesetId | 0} ` +
+      `behaviour=${draft.behaviourVersion}`,
   ];
   for (let y = 0; y < GRID_H; y = (y + 1) | 0) {
     let row = "";
@@ -402,6 +410,7 @@ export function draftToText(draft: Draft): string {
 export function draftFromLevel(level: {
   engine: string;
   behaviourVersion: number;
+  tilesetId: number;
   walls: Uint8Array;
   ladders: Uint8Array;
   startX: number;
@@ -448,12 +457,18 @@ export function draftFromLevel(level: {
   }
   if (level.exitX >= 0) cells[idx(level.exitX, level.exitY)] = GLYPH_EXIT;
   cells[idx(level.startX, level.startY)] = GLYPH_START;
-  return { engine: level.engine, behaviourVersion: level.behaviourVersion, cells };
+  return { engine: level.engine, behaviourVersion: level.behaviourVersion, tilesetId: level.tilesetId, cells };
 }
 
-/** Swap which game a draft is for, dropping anything the new one cannot hold. */
-export function retarget(draft: Draft, engine: string, behaviourVersion: number): Draft {
-  if (engine === draft.engine) return { ...draft, behaviourVersion };
+/**
+ * Swap which game a draft is for, dropping anything the new one cannot hold.
+ *
+ * `tilesetId` is which SKIN it is drawn in, and it moves with the tab: the
+ * beach and the garden are one engine, so switching between them changes
+ * nothing but this number and every cell survives.
+ */
+export function retarget(draft: Draft, engine: string, behaviourVersion: number, tilesetId = 0): Draft {
+  if (engine === draft.engine) return { ...draft, behaviourVersion, tilesetId };
   const cells = draft.cells.slice() as Glyph[];
   if (!underwater(engine)) {
     // Same reasoning as the ladders below: a current in a level that cannot
@@ -488,5 +503,5 @@ export function retarget(draft: Draft, engine: string, behaviourVersion: number)
       cells[ground] = GLYPH_START;
     }
   }
-  return { engine, behaviourVersion, cells };
+  return { engine, behaviourVersion, tilesetId, cells };
 }

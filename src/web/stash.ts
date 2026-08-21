@@ -161,6 +161,8 @@ export function startingCharacter(): Saved {
 interface StoredDraft {
   readonly engine: string;
   readonly behaviourVersion: number;
+  /** Which skin, or 0 for the engine's own world. Absent in older saves. */
+  readonly tilesetId?: number;
   readonly name: string;
   readonly cells: string;
 }
@@ -169,6 +171,7 @@ export function saveDraft(draft: Draft, name: string): void {
   const record: StoredDraft = {
     engine: draft.engine,
     behaviourVersion: draft.behaviourVersion,
+    tilesetId: draft.tilesetId,
     name,
     cells: draft.cells.join(""),
   };
@@ -204,6 +207,9 @@ export function loadDraft(): { draft: Draft; name: string } | null {
     const draft: Draft = {
       engine: typeof record.engine === "string" ? record.engine : "roam",
       behaviourVersion: typeof record.behaviourVersion === "number" ? record.behaviourVersion | 0 : 2,
+      // A draft saved before the skins existed has no tilesetId, and 0 is
+      // exactly right for it: whatever its engine's world looks like.
+      tilesetId: typeof record.tilesetId === "number" ? record.tilesetId | 0 : 0,
       cells: glyphs,
     };
     // A stored draft with no start is not a draft: it would crash the parser

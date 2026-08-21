@@ -8,6 +8,7 @@ import { botPlays, replayWins } from "../tools/bot.ts";
 import { newestBuild } from "../src/core/builds.ts";
 import { aPlace, blankDraft, draftFromLevel, paint } from "../src/core/draft.ts";
 import { GRID_H, GRID_W, idx } from "../src/core/grid.ts";
+import { FIRST_SKIN } from "../src/core/tileset.ts";
 
 /** The pack as level text, which is what the checks and the bot both want. */
 const rooms = await Promise.all(
@@ -41,14 +42,19 @@ const places = rooms.filter((room) => {
   return aPlace(level.engine, level.behaviourVersion);
 });
 const gardens = rooms.filter((room) => parseLevel(room.text).engine === "calm");
+// ...of which one is the beach: the same engine drawn in another world. Split
+// them by SKIN, because "is it a calm level" no longer answers "is it a
+// garden" -- see FIRST_SKIN in src/core/tileset.ts.
+const beaches = gardens.filter((room) => parseLevel(room.text).tilesetId === FIRST_SKIN);
 
-test("thirteen rooms ship, and the file on disk is the code in the bundle", () => {
-  // Six taught the game; three more teach the hazard that does not move; the
-  // tenth is not a challenge at all.
-  expect(PACK.length).toBe(13);
+test("fourteen rooms ship, and the file on disk is the code in the bundle", () => {
+  // Six taught the game; three more teach the hazard that does not move; three
+  // are in the water and two are on calm/2.
+  expect(PACK.length).toBe(14);
   // The pack ships no PLACE any more: the garden became a level in adr/0045.
   expect(places).toHaveLength(0);
-  expect(gardens).toHaveLength(1);
+  expect(gardens).toHaveLength(2);
+  expect(beaches).toHaveLength(1);
   for (const room of rooms) {
     // The .lvl file is the source; the code is generated from it. If they drift,
     // the level somebody plays is not the level anybody checked.
@@ -210,7 +216,7 @@ test("the play page is for playing: neither list is on it any more", () => {
 test("but the shipped rooms are still known to be shipped", () => {
   // Which matters for one thing that is NOT a list: a room the game ships with
   // has nobody to send a score back to, so it shares as a level.
-  expect(PACK.length).toBe(13);
+  expect(PACK.length).toBe(14);
   expect(play.includes("const shipped = new Set(PACK.map((room) => room.code));")).toBe(true);
   expect(play.includes("const isShipped = shipped.has(levelCode);")).toBe(true);
 });

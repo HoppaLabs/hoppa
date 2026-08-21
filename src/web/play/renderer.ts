@@ -375,6 +375,74 @@ const FLOWER_FRAMES: readonly Pattern[] = [
 ];
 
 /**
+ * A scallop, for the beach.
+ *
+ * It NODS rather than spins, the way the flower does: a shell lying on sand
+ * is a thing at rest, and one turning end over end read as a coin. Ribs, and
+ * a hinge flush with the bottom of the fan -- the first draft had a stalk
+ * under it and came out a mushroom.
+ *
+ * 1 is the rim, 2 the shadow between the ribs, 3 the shell, 4 the lit ribs,
+ * 5 the pearl at the hinge.
+ */
+const SHELL_FRAMES: readonly Pattern[] = [
+  [ // upright, and the frame the still buttons show
+    "................",
+    "................",
+    "................",
+    "......111.......",
+    "....1122211.....",
+    "..11222222211...",
+    ".1222433342221..",
+    "122344333443221.",
+    "123334434433321.",
+    "2233334343333221",
+    "2444334343344421",
+    "111444333444111.",
+    "...113355331....",
+    ".....111111.....",
+    "................",
+    "................",
+  ],
+  [ // half over
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    ".....11111......",
+    "...112222211....",
+    "..12223332221...",
+    ".1223443443221..",
+    "122333434333221.",
+    "124433434334421.",
+    ".1144433344411..",
+    "...113355331....",
+    ".....111111.....",
+    "................",
+    "................",
+  ],
+  [ // laid flat
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    "......111.......",
+    "...111222111....",
+    "..12224342221...",
+    ".1223343433221..",
+    ".1243343433421..",
+    "..14443334441...",
+    "...113355331....",
+    ".....111111.....",
+    "................",
+    "................",
+  ],
+];
+
+/**
  * The shape a world's treasure is, where it is not the gem.
  *
  * The INKS have varied per world since the first tileset; the SHAPE had not,
@@ -383,6 +451,7 @@ const FLOWER_FRAMES: readonly Pattern[] = [
  */
 const GEM_SHAPES: Record<string, readonly Pattern[]> = {
   garden: FLOWER_FRAMES,
+  beach: SHELL_FRAMES,
 };
 
 /** The frames this world's treasure turns, or nods, through. */
@@ -447,6 +516,10 @@ const GEM_INKS: Record<string, readonly string[]> = {
   // heart. Warm pink, which is what a child means by "flower" long before
   // anything about petals comes into it.
   garden: ["#6b1420", "#d82f42", "#ff5f4d", "#ffb3a8", "#ffe9a3"],
+  // A shell, in the warm end of the shore: rim, the shadow between the ribs,
+  // the shell, the lit ribs, and a pearl at the hinge. Not sand-coloured --
+  // a shell the colour of the beach it is lying on is a shell nobody finds.
+  beach: ["#6b350c", "#d87a1f", "#ff9f3d", "#ffd0a3", "#ffffff"],
 };
 
 /** The gem's shape: a diamond, so a spin is a change of width and nothing else. */
@@ -520,8 +593,9 @@ export function tileChip(
   sprite?: Sprite | null,
   enemy?: { rows: readonly string[]; inks: readonly string[] } | null,
   engine = "",
+  tilesetId = 0,
 ): HTMLCanvasElement {
-  const set = tilesetFor(sideOn, engine);
+  const set = tilesetFor(sideOn, engine, tilesetId);
   const canvas = document.createElement("canvas");
   const dpr = Math.min(window.devicePixelRatio || 1, 3);
   canvas.width = Math.max(1, Math.round(size * dpr));
@@ -760,10 +834,14 @@ export class GridRenderer {
     this.weapon = weapon;
   }
 
+  /** Which skin this level asks for, or 0 for its engine's own world. */
+  private skin = 0;
+
   /** Side-on levels are painted against sky. Cosmetic; see SKY above. */
-  setSideOn(sideOn: boolean, engine = ""): void {
+  setSideOn(sideOn: boolean, engine = "", tilesetId = 0): void {
     this.sideOn = sideOn;
     this.world = engine;
+    this.skin = tilesetId | 0;
   }
 
   /** One stamp per flame frame, in order. Empty until the stamps are built. */
@@ -824,7 +902,7 @@ export class GridRenderer {
 
   /** The tileset this world uses. Presentation only; see core/tileset.ts. */
   private tiles(): Tileset {
-    return tilesetFor(this.sideOn, this.world);
+    return tilesetFor(this.sideOn, this.world, this.skin);
   }
 
   /**
