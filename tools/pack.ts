@@ -467,6 +467,28 @@ function theReef(): string {
   // The rising current, in the gap. Swim down it if you can.
   room.line(17, 7, 17, 11, "u");
 
+  // Something living in it. The reef shipped with NO creatures at all -- three
+  // sea sprites drawn and a room with nothing to put them in, which an audit
+  // across the four games found and no test would have.
+  //
+  // NO CREATURE IN THIS ROOM, and that is a decision rather than an oversight.
+  //
+  // Three attempts. In the open water you cross: all three creatures died. Off
+  // the route at (4,10): Bash and Pell got out, Nim -- the four-heart one --
+  // lost every heart with plenty of air left and nowhere near the urchins,
+  // because an enemy notices you within SIGHT (three cells) and then follows.
+  // Boxed into a pocket behind a ledge: the ledge blocked the way out instead.
+  //
+  // The reef already asks two things at once, which is a lot for one room: come
+  // up for air, and get up a current. A thing that hunts you while you are
+  // learning both is a third, and the shipped rooms have to survive a bot that
+  // never dodges -- which is the same bar as a child on their first go.
+  //
+  // The sharks and the octopus are drawn and they are in the cast. They turn up
+  // the moment anybody paints one, which is where a hunting thing belongs: in a
+  // room somebody chose to make hard.
+
+
   // Urchins on the seabed, so the bottom is somewhere to be careful.
   room.line(6, 12, 7, 12, "^").put(13, 12, "^");
 

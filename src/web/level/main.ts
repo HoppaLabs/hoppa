@@ -127,18 +127,18 @@ const TOOLS: readonly Tool[] = [
  * afterwards was quietly still dash/2 -- so the sword a child had just been
  * given did nothing in the levels they made with it.
  *
- * The labels say where the CAMERA is, not what the game is called, because
- * that is the only difference a child needs to hold before they start drawing.
- * "underwater" is the exception and has to name itself: it is also from the
- * side, and what makes it different is the water.
+ * The labels name the GAME, not the camera angle. They were "from above" and
+ * "from the side", which describes how a level is drawn rather than what it is
+ * to play -- and it stopped scaling the moment a third and fourth arrived,
+ * because underwater is also from the side and a garden is also from above.
+ *
+ * A nine-year-old knows what a platformer is.
  */
 const GAMES = [
-  { engine: "roam", label: "from above" },
-  { engine: "dash", label: "from the side" },
+  { engine: "roam", label: "adventure" },
+  { engine: "dash", label: "platformer" },
   { engine: "swim", label: "underwater" },
-  // Not "from above" twice. What makes this one different is not the camera,
-  // it is that there is nothing to beat -- so the label says what it IS.
-  { engine: "calm", label: "a garden" },
+  { engine: "calm", label: "garden" },
 ] as const;
 
 function currentBuild(engine: string): number {

@@ -353,7 +353,6 @@ export class CalmV1 implements Engine {
 
     this.dousedThisTick = false;
     if (this.mercy > 0) this.mercy = (this.mercy - 1) | 0;
-    if (this.swing > 0) this.swing = (this.swing - 1) | 0;
     if (this.pour > 0) this.pour = (this.pour - 1) | 0;
 
     this.walk(buttons);
@@ -366,11 +365,13 @@ export class CalmV1 implements Engine {
       this.douse();
     }
 
-    // A swing starts when the button goes down; holding it does not flail.
-    if ((buttons & HELD_ACT) !== 0 && this.swing === 0) {
-      this.swing = SWING_TICKS;
-      this.strike();
-    }
+    // NO WEAPON. Not a disabled one, not one that does nothing -- there is no
+    // swing in a garden at all.
+    //
+    // This was left in from roam by accident and it was not a cosmetic slip:
+    // measured, five swings cleared every bunny out of the shipped garden. An
+    // engine whose entire premise is that nothing here can be hurt, shipping
+    // with a working sword, is the premise broken rather than bent.
 
     this.moveEnemies();
     this.touchEnemies();
@@ -557,60 +558,7 @@ export class CalmV1 implements Engine {
   }
 
   /** The sword. Strength decides how long what you hit stays down. */
-  private strike(): void {
-    const dx = FACE_DX[this.facing] as number;
-    const dy = FACE_DY[this.facing] as number;
 
-    for (let i = 0; i < this.enemies.length; i = (i + 1) | 0) {
-      const enemy = this.enemies[i] as Enemy;
-      if (enemy.down !== 0) continue;
-      if (enemy.stun > 0) continue;
-
-      // Measured from YOU, not from the blade's tip.
-      //
-      // v1 and v2 asked whether the enemy was within a cell of the tip, which
-      // is a ring 0.6 to 2.6 cells ahead with a hole in the middle. An enemy
-      // standing on top of you -- exactly when you most want to swing -- fell
-      // through the hole, so you took hits while swinging and nothing
-      // happened. Reported from a real game.
-      const away = chebyshev(enemy.x, enemy.y, this.x, this.y);
-      if (away > this.reach) continue;
-
-      // ...and it has to be in front of you, unless it is close enough to be
-      // touching, in which case which way you happen to face is not something
-      // a player is tracking while being chased.
-      const ahead = (((enemy.x - this.x) | 0) * dx + ((enemy.y - this.y) | 0) * dy) | 0;
-      if (away > BODY + BODY && ahead < 0) continue;
-
-      this.struckThisTick = true;
-
-      if (this.kills) {
-        enemy.hp = (enemy.hp - 1) | 0;
-        if (enemy.hp <= 0) {
-          enemy.down = 1;
-          enemy.chasing = 0;
-          enemy.stun = 0;
-          this.killedThisTick = true;
-          continue;
-        }
-      } else {
-        // A wand does not wear an enemy down: every wave is the same wave, and
-        // waving again at something already frozen just tops the freeze up.
-        this.frozeThisTick = true;
-      }
-
-      enemy.stun = this.stunTicks | 0;
-      enemy.chasing = 0;
-
-      // Knocked back along the swing, as far as the room allows. The whole
-      // body has to land clear: v1 tested the destination as a point, so a
-      // shove could park an enemy half inside a wall.
-      const shoveX = (enemy.x + sign((enemy.x - this.x) | 0) * ONE) | 0;
-      const shoveY = (enemy.y + sign((enemy.y - this.y) | 0) * ONE) | 0;
-      if (this.enemyFits(shoveX, enemy.y)) enemy.x = towards(enemy.x, shoveX, ONE);
-      if (this.enemyFits(enemy.x, shoveY)) enemy.y = towards(enemy.y, shoveY, ONE);
-    }
-  }
 
   /**
    * Playing with a bunny.

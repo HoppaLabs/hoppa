@@ -904,6 +904,12 @@ function paintActionButton(): void {
   const weaponIcon = wand ? WAND_ICON : SWORD_ICON;
   const weaponSays = wand ? "wave your wand" : "swing your sword";
 
+  // A garden has no action button, because there is nothing for it to do:
+  // there is no weapon, nothing jumps, and playing with a bunny is done by
+  // walking into it. A button that cannot do anything is worse than no button,
+  // and a SWORD in a cosy place is worse than either -- it says the game wants
+  // something of you that it does not.
+  button.hidden = aPlace();
   button.innerHTML = jumping ? JUMP_ICON : weaponIcon;
   button.setAttribute("aria-label", jumping ? "jump" : weaponSays);
 
