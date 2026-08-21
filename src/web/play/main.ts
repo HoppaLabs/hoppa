@@ -125,11 +125,29 @@ function aPlace(): boolean {
   return isAPlace(level.engine, level.behaviourVersion);
 }
 
+/**
+ * Whether the button is offered at all -- which is now: always.
+ *
+ * THE SHARE GATE IS OPEN. "You cannot share a level you haven't beaten" was
+ * spec S12 and one of the founding mechanics, and it came down to this:
+ *
+ *   "the kids want to share a level even if they haven't played it"
+ *
+ * It was already half-open. A garden was let through, on the grounds that the
+ * gate is "the biggest wall in front of the youngest player, who can paint
+ * long before they can finish a room" -- and that argument was never about
+ * gardens. It is about six-year-olds, and it applies to every room they draw.
+ *
+ * What the gate bought was "nobody receives an impossible level". Most of that
+ * is kept without it: L1-L5 still refuse a level with no way out or treasure
+ * walled off from the start, and the editor still shows a bot playing the room
+ * on demand. What is genuinely given up is the guarantee for a level that
+ * passes every check and is still too hard for anyone -- and the honest answer
+ * to that is the message, which now says whether it has been beaten. See
+ * adr/0046.
+ */
 function hasBeatenThis(): boolean {
-  // You cannot fail to beat a garden, so there is nothing for the gate to
-  // protect against -- and the gate is the biggest wall in front of the
-  // youngest player, who can paint long before they can finish a room.
-  return aPlace() || proven;
+  return true;
 }
 
 /**
@@ -1522,9 +1540,13 @@ async function share(): Promise<void> {
         ? `I did it in ${myScore()}. Beat that.`
         : wonIn >= 0
         ? `${mine ? "My level" : levelName}: I did it in ${wonIn}${scoreUnit()}. Beat that.`
+        // Not beaten by whoever is sending it. Said out loud rather than left
+        // ambiguous: the gate used to make "you got a link" mean "somebody has
+        // done this", and with the gate open the words have to carry it
+        // instead. It is also the better dare.
         : mine
-        ? `Play my level: ${levelName}`
-        : `Play this level: ${levelName}`,
+        ? `Play my level: ${levelName} -- I have not done it yet!`
+        : `Play this level: ${levelName} -- nobody has done it yet!`,
         url,
       });
       say("sent");
