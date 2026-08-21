@@ -113,8 +113,8 @@ test("you cannot jump in mid-air", () => {
 });
 
 test("strength is how high you jump", () => {
-  const springy = creatureFromBuild("s", "Spring", "?", { FORCE: 5, HASTE: 0, GUARD: 3, REACH: 0 }, starterSprite());
-  const leaden = creatureFromBuild("l", "Lead", "?", { FORCE: 0, HASTE: 3, GUARD: 5, REACH: 0 }, starterSprite());
+  const springy = creatureFromBuild("s", "Spring", "?", { FORCE: 5, HASTE: 0 }, starterSprite());
+  const leaden = creatureFromBuild("l", "Lead", "?", { FORCE: 0, HASTE: 3 }, starterSprite());
   expect(jumpFor(springy)).toBeGreaterThan(jumpFor(leaden));
 
   const peak = (creature: typeof springy) => {
@@ -137,8 +137,8 @@ test("strength is how high you jump", () => {
 });
 
 test("speed is how fast you run", () => {
-  const quick = creatureFromBuild("q", "Quick", "?", { FORCE: 0, HASTE: 5, GUARD: 2, REACH: 1 }, starterSprite());
-  const plod = creatureFromBuild("p", "Plod", "?", { FORCE: 3, HASTE: 0, GUARD: 5, REACH: 0 }, starterSprite());
+  const quick = creatureFromBuild("q", "Quick", "?", { FORCE: 0, HASTE: 5 }, starterSprite());
+  const plod = creatureFromBuild("p", "Plod", "?", { FORCE: 3, HASTE: 0 }, starterSprite());
   expect(runFor(quick)).toBeGreaterThan(runFor(plod));
 
   const travelled = (creature: typeof quick) => {
@@ -273,7 +273,7 @@ test("E10: cosmetics do not reach stateHash()", () => {
 test("E1/E2: uniform creatures play and terminate", () => {
   for (const value of [0, 255]) {
     const creature = creatureFromBuild("u", "Test", "?",
-      { FORCE: value === 0 ? 0 : 5, HASTE: value === 0 ? 0 : 5, GUARD: value === 0 ? 0 : 5, REACH: value === 0 ? 0 : 5 },
+      { FORCE: value === 0 ? 0 : 5, HASTE: value === 0 ? 0 : 5 },
       starterSprite());
     const engine = new DashV1(level, creature);
     let status: number = STATUS_PLAYING;

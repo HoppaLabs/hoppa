@@ -42,6 +42,7 @@ jobs:
 
       # Never ship a build that fails the determinism check.
       - run: bun run check:determinism
+      - run: bun run check:types
       - run: bun test
       - run: bun run build
 

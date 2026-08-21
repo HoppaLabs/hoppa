@@ -6,10 +6,10 @@ import { creatureFromCaps, creatureFromBuild, type Build } from "../src/core/cre
 import { starterSprite } from "../src/core/sprite.ts";
 import { hashHex } from "../src/core/hash.ts";
 import {
-  Recorder, beats, logLength, looksLikeLog, proofKey, replay,
+  Recorder, beats, logLength, looksLikeLog, proofKey, replay, type Replayable,
 } from "../src/core/proof.ts";
 import {
-  HELD_ACT, HELD_RIGHT, HELD_UP, STATUS_PLAYING, STATUS_WON, type Replayable,
+  HELD_ACT, HELD_RIGHT, HELD_UP, STATUS_PLAYING, STATUS_WON,
 } from "../src/engines/types.ts";
 
 // The day 7 golden vector: a log already committed as one that WINS. If the

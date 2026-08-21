@@ -42,6 +42,9 @@ These are not style preferences. Breaking them costs days.
    through `| 0` and `Math.imul`. Randomness only from the seeded PRNG. There is
    a CI check — do not weaken it to make a test pass.
 2. **Zero runtime dependencies.** Including QR generation. Ask first, always.
+   Still true and still the rule: nothing from `node_modules` reaches `dist/`.
+   `typescript` and `@types/bun` are devDependencies, asked for and granted on
+   day 18 so the typecheck could join the gate — see `docs/adr/0041`.
 3. **Never change engine behaviour in place.** Add a new behaviour version and
    keep the old build. Shipped links are permanent; a movement tweak silently
    invalidates every proof ever sent.
@@ -71,7 +74,9 @@ decision, then record it in `docs/adr/` as a short numbered file.
 ## Commands
 
 ```bash
-bun test              # must be green
+bun install           # once, and after pulling: two DEV dependencies, see adr/0041
+bun run check         # determinism + types + tests. The gate. Must be green.
+bun test              # just the tests
 bun run dev           # local dev server
 bun run cli <cmd>     # terminal tools: verify, play, sim
 bun run build         # static output

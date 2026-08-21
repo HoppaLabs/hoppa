@@ -31,9 +31,9 @@ test("sub-palettes are real palette entries", () => {
 });
 
 test("ink maps pattern characters onto the palette, and nothing else", () => {
-  expect(inkOf(UNDERGROUND, "1")).toBe(PALETTE[UNDERGROUND.sub[0]] as string);
-  expect(inkOf(UNDERGROUND, "2")).toBe(PALETTE[UNDERGROUND.sub[1]] as string);
-  expect(inkOf(UNDERGROUND, "3")).toBe(PALETTE[UNDERGROUND.sub[2]] as string);
+  expect(inkOf(UNDERGROUND, "1")).toBe(PALETTE[UNDERGROUND.sub[0] as number] as string);
+  expect(inkOf(UNDERGROUND, "2")).toBe(PALETTE[UNDERGROUND.sub[1] as number] as string);
+  expect(inkOf(UNDERGROUND, "3")).toBe(PALETTE[UNDERGROUND.sub[2] as number] as string);
   expect(inkOf(UNDERGROUND, ".")).toBeNull();
   expect(inkOf(UNDERGROUND, "x")).toBeNull();
 });

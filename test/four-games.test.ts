@@ -107,7 +107,7 @@ test("every game is reachable, named, and routed", () => {
   // one file and left in the other.
   const named = ["adventure", "platformer", "underwater", "garden"];
   expect(PICKER.map((game) => game.engine)).toEqual(GAMES.map((game) => game.engine));
-  expect(PICKER.map((game) => game.label)).toEqual(named);
+  expect(PICKER.map((game) => game.label as string)).toEqual(named);
   for (const game of PICKER) {
     expect(ENGINE_IDS).toContain(game.engine);
     expect(knownBuilds()).toContain(`${game.engine}/${newestBuild(game.engine)}`);

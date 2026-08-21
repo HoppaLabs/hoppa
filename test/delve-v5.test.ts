@@ -133,7 +133,7 @@ test("pips convert to axes and back without drifting", () => {
   for (let pips = 0; pips <= PIP_MAX; pips++) {
     const build: Record<string, number> = {};
     for (const spend of SPENDABLE) build[spend.key] = pips;
-    expect(capsToBuild(buildToCaps(build as never))).toEqual(build);
+    expect(capsToBuild(buildToCaps(build as never)) as Record<string, number>).toEqual(build);
   }
   expect(pipToCap(0)).toBe(0);
   expect(pipToCap(PIP_MAX)).toBe(255);

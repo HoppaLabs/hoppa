@@ -13,10 +13,20 @@ jobs:
         with:
           bun-version: latest
 
+      # Dev-only: typescript and @types/bun, for the typecheck below. Nothing
+      # here reaches the bundle -- the runtime is still zero dependencies.
+      - run: bun install --frozen-lockfile
+
       # The determinism zone check runs first and on its own, so a failure here
       # is unmistakable in the log. Do not weaken a rule to make this pass.
       - name: determinism zone
         run: bun run check:determinism
+
+      # The editor once shipped completely dead -- a missing import, a
+      # ReferenceError on load -- while 683 tests passed. Nothing in a test
+      # suite loads the pages a child actually opens; tsc does.
+      - name: types
+        run: bun run check:types
 
       - name: tests
         run: bun test

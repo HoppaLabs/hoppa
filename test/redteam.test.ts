@@ -5,11 +5,11 @@ import { ChrError, ALPHABET, decodeCharacter, encodeCharacter } from "../src/cor
 import { engineFor, knownBuilds, UnknownBehaviourError } from "../src/engines/registry.ts";
 import { creatureFromBuild, uniformCreature, type Build } from "../src/core/creature.ts";
 import { SpriteError, spriteFromText, starterSprite } from "../src/core/sprite.ts";
-import { beats, replay, Recorder } from "../src/core/proof.ts";
+import { beats, replay, Recorder, type Replayable } from "../src/core/proof.ts";
 import { adviceFor } from "../src/core/advice.ts";
 import { verifyLevelText } from "../src/core/verify.ts";
 import { DAY7_LEVEL_TEXT, ROAM3_LEVEL_TEXT, DASH3_LEVEL_TEXT } from "../src/core/fixtures.ts";
-import { STATUS_PLAYING, STATUS_WON, type Replayable } from "../src/engines/types.ts";
+import { STATUS_PLAYING, STATUS_WON } from "../src/engines/types.ts";
 import { TILE_COUNT } from "../src/core/tiles.ts";
 import { GRID_AREA, GRID_H, GRID_W } from "../src/core/grid.ts";
 
@@ -197,7 +197,7 @@ test("a level with no exit still runs, and still ends", () => {
  */
 const NEVER_ENDS: readonly string[] = ["delve/1", "calm/1"];
 
-test.each(NEVER_ENDS)("%s really does run forever, which is why it is excluded below", (key) => {
+test.each([...NEVER_ENDS])("%s really does run forever, which is why it is excluded below", (key) => {
   // Two builds, for opposite reasons. delve/1 was day one and simply had no
   // ending written yet. calm/1 has no ending ON PURPOSE: it is a place to walk
   // around, and every other engine turns a two-minute visit into a LOSS when

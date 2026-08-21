@@ -76,4 +76,14 @@ export interface Engine {
   render(): Uint8Array; // TILE INDICES
   stateHash(): number; // FNV-1a 32, authoritative state only
   message(): string | null;
+  /**
+   * Where the run stands, without advancing it.
+   *
+   * Part of the contract in practice long before it was written down here:
+   * the play page asks every engine this, on every frame, to decide whether to
+   * show the win. Twenty-two of the twenty-three builds answered it and the
+   * interface never said they had to -- so delve/1, which did not, went
+   * unnoticed until the typecheck was added to the gate.
+   */
+  currentStatus(): Status;
 }

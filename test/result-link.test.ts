@@ -21,9 +21,13 @@ test("a result carries the level, the creature and the score", () => {
   expect(sameLevel(back!.level, level)).toBe(true);
   expect(back!.who).toBe("Nim");
   expect(back!.score).toBe(41);
-  expect(back!.creature.weapon).toBe("wand");
-  expect(capsToBuild(back!.creature.caps)).toEqual(BUILD);
-  expect([...back!.creature.sprite.pixels]).toEqual([...nim.sprite.pixels]);
+  // The creature is allowed to come back null -- link.ts treats a damaged one
+  // as costing the boast rather than the game -- so a round-trip test has to
+  // say it arrived before it reads anything off it. It never did.
+  expect(back!.creature).not.toBeNull();
+  expect(back!.creature!.weapon).toBe("wand");
+  expect(capsToBuild(back!.creature!.caps)).toEqual(BUILD);
+  expect([...back!.creature!.sprite.pixels]).toEqual([...nim.sprite.pixels]);
 });
 
 test("it fits in a message, which is the whole reason it is not a replay", () => {
@@ -88,8 +92,9 @@ test("every creature survives the round trip, sword and wand alike", () => {
     for (const build of [{ FORCE: 5, HASTE: 1 }, { FORCE: 0, HASTE: 5 }, { FORCE: 3, HASTE: 3 }] as Build[]) {
       const url = resultLinkFor(level, "x", "Somebody", build, starterSprite(), weapon, 7, BASE);
       const back = resultFromHash(new URL(url).hash);
-      expect(capsToBuild(back!.creature.caps)).toEqual(build);
-      expect(back!.creature.weapon).toBe(weapon);
+      expect(back!.creature).not.toBeNull();
+      expect(capsToBuild(back!.creature!.caps)).toEqual(build);
+      expect(back!.creature!.weapon).toBe(weapon);
       expect(back!.score).toBe(7);
     }
   }

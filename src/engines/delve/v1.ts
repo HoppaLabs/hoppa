@@ -87,6 +87,20 @@ export class DelveV1 implements Engine {
     return null; // personality arrives with capabilities on day 4
   }
 
+  /**
+   * The status, which for this one is always STATUS_PLAYING.
+   *
+   * NOT a behaviour change, and this file's banner still holds: it reads the
+   * status, it cannot alter it, nothing here touches step() or stateHash(),
+   * and the golden vectors prove it. Day 1 had no win and no loss, so there is
+   * nothing to return but PLAYING -- what was missing was saying so. Every
+   * other engine has had this method for weeks and the Engine interface never
+   * declared it, so the one build without it was invisible.
+   */
+  currentStatus(): Status {
+    return STATUS_PLAYING;
+  }
+
   // --- presentation helpers, never part of the hash ---
   position(): { x: number; y: number } {
     return { x: this.x, y: this.y };

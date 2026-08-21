@@ -85,9 +85,6 @@ const STUN_BY_PIP: readonly number[] = [14, 20, 26, 32, 40, 48];
 /** Ticks a wand freezes one for, by strength pips. Always from a single wave. */
 const FREEZE_BY_PIP: readonly number[] = [90, 110, 130, 150, 170, 190];
 
-export function reachFor(_creature: Creature): number {
-  return REACH;
-}
 /** Swings this creature needs to put an enemy down for good. 0 for a wand. */
 export function hitsToKillFor(creature: Creature): number {
   if (creature.weapon === "wand") return 0;
@@ -159,7 +156,6 @@ export class DashV4 implements Engine {
   private readonly walkerHits: number;
   private readonly kills: boolean;
   private readonly hearts: number;
-  private readonly reach: number;
 
   private x: number;
   private y: number;

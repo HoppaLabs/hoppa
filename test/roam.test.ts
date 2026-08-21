@@ -136,8 +136,8 @@ function chargeTheNearest(engine: RoamV1, until: () => boolean, extra = 0): void
 }
 
 test("the sword knocks an enemy down, and strength decides for how long", () => {
-  const strong = creatureFromBuild("s", "Swinger", "?", { FORCE: 5, HASTE: 2, GUARD: 1, REACH: 0 }, starterSprite());
-  const weak = creatureFromBuild("w", "Weak", "?", { FORCE: 0, HASTE: 2, GUARD: 3, REACH: 3 }, starterSprite());
+  const strong = creatureFromBuild("s", "Swinger", "?", { FORCE: 5, HASTE: 2 }, starterSprite());
+  const weak = creatureFromBuild("w", "Weak", "?", { FORCE: 0, HASTE: 2 }, starterSprite());
   expect(stunFor(strong)).toBeGreaterThan(stunFor(weak));
 
   const engine = new RoamV1(arena, strong);
@@ -200,8 +200,8 @@ test("an enemy that notices you comes after you", () => {
 // --- movement ----------------------------------------------------------------------
 
 test("speed decides how far a held direction carries you", () => {
-  const quick = creatureFromBuild("q", "Quick", "?", { FORCE: 0, HASTE: 5, GUARD: 2, REACH: 1 }, starterSprite());
-  const slow = creatureFromBuild("p", "Plod", "?", { FORCE: 3, HASTE: 0, GUARD: 5, REACH: 0 }, starterSprite());
+  const quick = creatureFromBuild("q", "Quick", "?", { FORCE: 0, HASTE: 5 }, starterSprite());
+  const slow = creatureFromBuild("p", "Plod", "?", { FORCE: 3, HASTE: 0 }, starterSprite());
   expect(speedFor(quick)).toBeGreaterThan(speedFor(slow));
 
   const a = new RoamV1(level, quick);
@@ -213,8 +213,8 @@ test("speed decides how far a held direction carries you", () => {
 });
 
 test("you are faster than a guard only if you spent pips on it", () => {
-  const quick = creatureFromBuild("q", "Quick", "?", { FORCE: 0, HASTE: 5, GUARD: 2, REACH: 1 }, starterSprite());
-  const plod = creatureFromBuild("p", "Plod", "?", { FORCE: 3, HASTE: 0, GUARD: 5, REACH: 0 }, starterSprite());
+  const quick = creatureFromBuild("q", "Quick", "?", { FORCE: 0, HASTE: 5 }, starterSprite());
+  const plod = creatureFromBuild("p", "Plod", "?", { FORCE: 3, HASTE: 0 }, starterSprite());
   expect(speedFor(quick)).toBeGreaterThan(ENEMY_SPEED);
   expect(speedFor(plod)).toBeLessThan(ENEMY_SPEED);
 });
@@ -255,19 +255,17 @@ test("a body never ends a tick inside a wall", () => {
 
 // --- winning and losing -------------------------------------------------------------
 
-test("reach lifts a gem from further away", () => {
-  const longArm = creatureFromBuild("l", "Long", "?", { FORCE: 0, HASTE: 0, GUARD: 3, REACH: 5 }, starterSprite());
-  const shortArm = creatureFromBuild("s", "Short", "?", { FORCE: 0, HASTE: 0, GUARD: 3, REACH: 0 }, starterSprite());
-
-  // Both walk the same path; the long arm should collect no later than the short.
-  const a = new RoamV1(level, longArm);
-  const b = new RoamV1(level, shortArm);
-  for (let i = 0; i < 400; i++) {
-    a.step(HELD_RIGHT);
-    b.step(HELD_RIGHT);
-  }
-  expect(a.collectedCount()).toBeGreaterThanOrEqual(b.collectedCount());
-});
+// GONE: "reach lifts a gem from further away".
+//
+// It built a long arm and a short arm, walked them the same path, and checked
+// the long one collected no later. Both creatures were IDENTICAL: reach stopped
+// being something you spend points on in ADR 0012 (day 9), so `Build` has no
+// REACH key and buildToCaps never read the one this test was setting. It was
+// comparing a number to itself, and passing, every run since.
+//
+// Deleted rather than repaired -- there is no characteristic left to test. The
+// reach that remains is the same for everyone, which is reachFor's whole job
+// and ADR 0029's whole subject. Found by adding tsc to the gate.
 
 test("E4: the game always ends", () => {
   const engine = fresh();

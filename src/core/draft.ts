@@ -393,6 +393,11 @@ export function draftFromLevel(level: {
   exitY: number;
   treasureSlot: Int8Array;
   guardCells: Int16Array;
+  // Which creature each one was drawn as. It was missing from this shape while
+  // the body below read it -- so anything passing exactly what is declared here
+  // would have thrown on `level.guardArt[i]`. Every real caller passes a whole
+  // Level, which is the only reason it never did.
+  guardArt: Uint8Array;
   fireCells: Int16Array;
   currentCells?: Int16Array;
   currentDirs?: Uint8Array;

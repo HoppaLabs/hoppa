@@ -115,7 +115,8 @@ export function encodeIndexedPng(
     for (let x = 0; x < width; x++) {
       const value = (pixels[y * width + x] as number) & 3;
       // Most significant bits first, which is how PNG reads sub-byte pixels.
-      raw[row + 1 + (x >> 2)] |= value << (6 - (x % 4) * 2);
+      const at = (row + 1 + (x >> 2)) | 0;
+      raw[at] = (raw[at] as number) | (value << (6 - (x % 4) * 2));
     }
   }
 
