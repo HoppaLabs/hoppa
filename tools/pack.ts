@@ -133,7 +133,7 @@ export interface PackLevel {
 
 const roam = (seed: string) => `hoppa/1 roam seed=${seed} tiles=1 behaviour=8`;
 const dash = (seed: string) => `hoppa/1 dash seed=${seed} tiles=1 behaviour=7`;
-const swim = (seed: string) => `hoppa/1 swim seed=${seed} tiles=1 behaviour=2`;
+const swim = (seed: string) => `hoppa/1 swim seed=${seed} tiles=1 behaviour=3`;
 const calm = (seed: string) => `hoppa/1 calm seed=${seed} tiles=1 behaviour=1`;
 
 /* -------------------------------------------------------------------------- */
@@ -425,7 +425,7 @@ export const PACK: readonly PackLevel[] = [
   {
     file: "10-the-reef.lvl",
     name: "the reef",
-    teaches: "swim up for air; strength beats a current, speed goes round",
+    teaches: "strength beats a current, speed goes round the long way",
     text: theReef(),
   },
   {
@@ -449,9 +449,11 @@ export const PACK: readonly PackLevel[] = [
  * one is pushed back out of, or the long way round the outside, which a fast
  * one does quicker than a strong one manages the short way.
  *
- * It also has to teach the air, and the honest way to teach air is to make the
- * player notice they want some -- so the deep gem is far enough down that the
- * trip back up is a decision rather than a formality.
+ * IT USED TO TEACH THE AIR AS WELL, and on swim/3 there is no air to teach:
+ * the deep gem was placed far enough down that the trip back up was a decision
+ * rather than a formality, and now it is simply the long way to a gem. That is
+ * still a route worth having, so the room is unchanged apart from the version
+ * it pins. See docs/adr/0042.
  */
 function theReef(): string {
   const room = new Room().border();

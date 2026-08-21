@@ -21,6 +21,7 @@ import { RoamV7, ROAM_V7_BEHAVIOUR } from "./roam/v7.ts";
 import { RoamV8, ROAM_V8_BEHAVIOUR } from "./roam/v8.ts";
 import { SwimV1, SWIM_V1_BEHAVIOUR } from "./swim/v1.ts";
 import { SwimV2, SWIM_V2_BEHAVIOUR } from "./swim/v2.ts";
+import { SwimV3, SWIM_V3_BEHAVIOUR } from "./swim/v3.ts";
 import { CalmV1, CALM_V1_BEHAVIOUR } from "./calm/v1.ts";
 import { DashV1, DASH_V1_BEHAVIOUR } from "./dash/v1.ts";
 import { DashV2, DASH_V2_BEHAVIOUR } from "./dash/v2.ts";
@@ -157,7 +158,8 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
       creature === undefined ? new RoamV8(level) : new RoamV8(level, creature),
   ],
   // The third game. Underwater, from the side, and nothing in it falls: free
-  // movement with momentum, and a breath you have to go up for. See adr/0038.
+  // movement with momentum. v1 and v2 also give you a breath you have to go up
+  // for; v3 takes it back out again. See adr/0038 and adr/0042.
   [
     `swim/${SWIM_V1_BEHAVIOUR}`,
     (level, creature) =>
@@ -178,6 +180,15 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
     `calm/${CALM_V1_BEHAVIOUR}`,
     (level, creature) =>
       creature === undefined ? new CalmV1(level) : new CalmV1(level, creature),
+  ],
+  // v3: no air. You do not drown; you just swim. The clock that took a heart
+  // for taking your time is gone, and the momentum and the currents that made
+  // the water worth building are untouched. v2 is still here and still drowns
+  // you, because every reef link already sent pins it. See docs/adr/0042.
+  [
+    `swim/${SWIM_V3_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new SwimV3(level) : new SwimV3(level, creature),
   ],
 ]);
 

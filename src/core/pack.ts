@@ -70,8 +70,8 @@ export const PACK: readonly PackLevel[] = [
   {
     slug: "the-reef",
     name: "the reef",
-    teaches: "swim up for air; strength beats a current, speed goes round",
-    code: "EUCEAFIDM______-fkGkOkOkOkOlBEukOkOkOkOkOlBoDQjpGaLimKk0k8lsKuZozpoDRmBC",
+    teaches: "strength beats a current, speed goes round the long way",
+    code: "EUDEAFIDM______-fkGkOkOkOkOlBEukOkOkOkOkOlBoDQjpGaLimKk0k8lsKuZozpoDRmAC",
   },
   {
     slug: "the-garden",

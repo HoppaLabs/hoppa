@@ -8,14 +8,17 @@
 // the same three words an urchin uses, on a tick with nothing anywhere near.
 //
 // The engine is right and shipped; this is what the PAGE says about it.
+//
+// AIR IS GONE FROM swim/3 -- see adr/0042 -- and every line below still has to
+// hold, because swim/1 and swim/2 are shipped forever and every reef link
+// already sent pins one of them. So this stops asking the PACK (which is on v3
+// now and does not drown anybody) and pins its own swim/2 level instead.
 
 import { expect, test } from "bun:test";
 import {
   AIR_OUT, AIR_QUIET, AIR_WARNED, LOW, breathPips, breathWarning,
 } from "../src/web/play/breath.ts";
 import { AIR_TICKS, DROWN_TICKS } from "../src/engines/swim/v2.ts";
-import { PACK } from "../src/core/pack.ts";
-import { decodeLevel, levelToText } from "../src/core/codec.ts";
 import { parseLevel } from "../src/core/level.ts";
 import { engineFor } from "../src/engines/registry.ts";
 import { PRESETS } from "../src/core/creature.ts";
@@ -72,10 +75,18 @@ test("the meter turns colour at the same moment the warning speaks", () => {
   expect(breathPips({ left: 1, full }, 6).state).toBe("air-0");
 });
 
-test("the reef really does drown you, which is what all of this is about", () => {
-  const room = PACK.find((one) => one.name === "the reef");
-  expect(room).toBeDefined();
-  const level = parseLevel(levelToText(decodeLevel(room!.code)));
+/** A swim/2 room: open along the top, rock everywhere else. */
+const DROWNABLE = [
+  "hoppa/1 swim seed=0 tiles=1 behaviour=2",
+  "........................",
+  "#.@...................>#",
+  ...Array.from({ length: 11 }, () => "#......................#"),
+  "########################",
+].join("\n");
+
+test("swim/2 really does drown you, which is what all of this is about", () => {
+  const level = parseLevel(DROWNABLE);
+  expect(level.behaviourVersion).toBe(2);
   const engine = engineFor(level, PRESETS[0] as (typeof PRESETS)[number]) as unknown as {
     step(held: number): number;
     breath(): { left: number; full: number };

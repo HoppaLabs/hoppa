@@ -41,6 +41,12 @@ those terms, in `swim/2`.
 
 ## Air is up
 
+> **Superseded on day 18 by `0042`.** The air is gone from `swim/3`. The
+> argument below still describes `swim/1` and `swim/2`, which are shipped
+> forever and still drown you. What it missed is that a child has to know there
+> is a question before a direction can be an answer.
+
+
 The one mechanic worth taking from Ecco, and the reason it is safe to take.
 
 A breath meter is usually cruel: it punishes the child who explores slowly, and

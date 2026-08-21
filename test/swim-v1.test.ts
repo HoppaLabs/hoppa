@@ -179,9 +179,11 @@ test("it is a world of its own, on the wire and on the screen", () => {
   // nothing at all.
   expect(ENGINE_IDS.indexOf("swim")).toBe(4);
   expect(ENGINE_IDS.slice(0, 4)).toEqual(["delve", "shove", "roam", "dash"]);
-  // v1 is still routed; v2 is what a new level is drawn under.
-  expect(newestBuild("swim")).toBe(2);
+  // v1 and v2 are still routed; v3 is what a new level is drawn under. Nothing
+  // ever leaves -- a link that pinned the drowning builds still finds them.
+  expect(newestBuild("swim")).toBe(3);
   expect(knownBuilds()).toContain("swim/1");
+  expect(knownBuilds()).toContain("swim/2");
   // Drawn from the side, and NOT the outdoors -- which is why the boolean that
   // used to pick a tileset could not go on doing it alone.
   expect(tilesetFor(true, "swim")).toBe(REEF);
