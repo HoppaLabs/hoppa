@@ -500,50 +500,50 @@ function theReef(): string {
 function theGarden(): string {
   const room = new Room().border();
 
-  // ONE pond, three by three, with a bridge across the middle of it.
+  // CLUSTERED, not scattered. The first garden spaced everything evenly across
+  // the room, which is how you lay out a LEVEL -- each obstacle its own problem,
+  // nothing near anything else -- and it is exactly why a room that was a third
+  // full still read as empty. A place is the other way round: things gather,
+  // and the gaps between the gatherings are what make it feel like somewhere.
   //
-  // Every cell of water is an ENTITY on the wire -- the same budget the flowers
-  // and the bunnies come out of -- and the format holds 31 in total, with
-  // MAX_FIRE capping the water at ten. The first draft ignored that and would
-  // not encode at all: 32 entities for a format that holds 31.
-  //
-  // The second draft spent the ten on two five-cell ponds and that was worse
-  // for a reason only a screenshot showed: a bridge across a five-cell pond
-  // covers its whole middle, so what is left is two blue squares with planks
-  // between them. Nine cells in a block, crossed by a bridge, leaves water
-  // visible on BOTH sides of the crossing -- which is the only arrangement
-  // that reads as a pond somebody built a bridge over.
-  room.box(5, 7, 7, 9, "^");
+  // So: three corners of planting, one pond with a bridge, and a wide open lawn
+  // through the middle to walk across.
 
-  // Hedges, in clumps. Nothing spans far enough to read as a barrier.
-  room.box(10, 2, 12, 3, WALL);
-  room.box(2, 9, 3, 10, WALL);
-  room.box(17, 3, 18, 4, WALL);
-  room.box(8, 11, 11, 11, WALL);
+  // A pond in the west, with a bridge over it. Nine cells, which is what the
+  // ten-cell water budget allows and enough that a crossing leaves water
+  // showing on both sides of the planks.
+  room.box(4, 6, 6, 8, "^");
+  room.line(3, 7, 7, 7, "H");
 
-  // No path. A ladder is the only tile that could have drawn one, and a
-  // top-down world does not draw ladders at all -- worse, `carriesLadders()` is
-  // dash-only, so the cells were not even written to the link. The first draft
-  // of this garden had a path down the middle of it and it was invisible in
-  // the game and gone from the code, which is two different kinds of nothing.
+  // The orchard, north-east: trees standing apart, which is what makes them
+  // trees. A lone wall cell has no wall beside it and is drawn as a canopy;
+  // put two together and they are a hedge instead.
+  room.put(16, 2, WALL).put(19, 3, WALL).put(21, 2, WALL);
+  room.put(18, 6, WALL).put(21, 6, WALL);
+  // Flowers under the trees, in a bed rather than one each.
+  room.put(17, 3, "$").put(20, 4, "$").put(19, 2, "$");
 
-  // Flowers, out to the corners.
-  room.put(2, 6, "$").put(9, 5, "$").put(21, 2, "$").put(6, 12, "$");
-  room.put(16, 12, "$").put(21, 11, "$").put(2, 11, "$").put(11, 8, "$");
+  // A thicket in the south-west, behind the pond: a proper mass of hedge, and
+  // the one thing in the room you cannot see over.
+  room.box(2, 10, 5, 11, WALL);
+  room.put(7, 11, WALL);          // one tree pulled out of it, on its own
 
-  // The bridge, running a cell past the water at each end so it lands on the
-  // bank rather than stopping at the edge. A bridge is the ladder tile, which
-  // every other top-down world ignores -- a plank across water is the first
-  // thing from above that is worth walking ALONG.
-  room.line(4, 8, 8, 8, "H");
+  // A second bed, south-east, tucked against a short hedge.
+  room.box(16, 10, 19, 10, WALL);
+  room.put(17, 11, "$").put(18, 11, "$").put(20, 11, "$");
 
-  // The garden's creatures: bunnies, a bird and a squirrel. Same three kinds
-  // the dungeon uses, patrolling the same way, and not one of them can hurt
-  // you -- what changes is what a child sees hopping towards them.
-  // Not on the bridge: a cell holds one glyph, so a bunny placed at (7,8)
-  // simply replaced a plank and left a hole in the crossing.
-  room.put(9, 10, "G").put(3, 2, "G").put(15, 12, "G");
-  room.put(19, 2, "B").put(11, 4, "D");
+  // Two more trees loose on the lawn, so the middle is not bare.
+  room.put(11, 4, WALL).put(12, 9, WALL);
+
+  // The creatures gather where the cover is, the way animals do: a pair by the
+  // thicket, one in the orchard, one crossing the open.
+  room.put(3, 12, "G").put(6, 12, "G");
+  room.put(19, 4, "D");
+  room.put(13, 6, "B");
+  room.put(9, 10, "G");
+
+  // Two flowers out on the lawn, so there is a reason to cross it.
+  room.put(10, 7, "$").put(13, 11, "$");
 
   // You, by the gate. And no door: there is nowhere you are trying to get to.
   room.put(2, 2, "@");

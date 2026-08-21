@@ -248,6 +248,13 @@ export interface Tileset {
    */
   readonly fireFrames?: readonly Pattern[];
   /**
+   * A lone wall cell, if this world draws one differently.
+   *
+   * Absent in a world where a wall is a wall however many of them there are;
+   * present in the garden, where one on its own is a tree.
+   */
+  readonly tree?: Pattern;
+  /**
    * Water that flows, if this world has any. Drawn pointing RIGHT; the renderer
    * turns it for the other three. Absent in a world with no currents in it.
    */
@@ -539,6 +546,38 @@ const GRASS: Pattern = [
   "................",
 ]
 
+/**
+ * A tree, seen from above: one round canopy.
+ *
+ * Unlike the bush it must NOT tile. A bush is many cells of texture; a tree is
+ * ONE cell and its silhouette is the whole point, so it has an outline and the
+ * bush does not.
+ *
+ * Which cells are trees costs nothing to say, because the level already says
+ * it: a wall cell with no wall beside it is a tree, and a run of them is a
+ * hedge. That is the spec's own rule for moving parts -- behaviour derived
+ * from geometry, zero bytes in the encoding -- applied to a drawing, and it
+ * matches how a child paints anyway. Tap once for a tree, drag for a hedge.
+ */
+const TREE: Pattern = [
+  ".......111......",
+  "...111113111....",
+  ".1113114333111..",
+  ".1443333333331..",
+  "114433333333311.",
+  "133333333333331.",
+  "1233333333333311",
+  "1243333333334331",
+  "1333333334433333",
+  "1233333334433332",
+  "1233333333333332",
+  "1123333333333321",
+  ".123333323333321",
+  ".112232212232211",
+  "..1112111112111.",
+  "....111...111...",
+];
+
 const SPIKES: Pattern = [
   ".......56.......",
   ".......54.......",
@@ -669,6 +708,8 @@ export const GARDEN: Tileset = {
   // child is steering across is not a cosmetic problem.
   sub: [18, 19, 20, 29, 21, 23, 51, 50],
   wall: BUSH,
+  // One on its own is a tree. See TREE.
+  tree: TREE,
   // No separate cap: a bush seen from above has no top edge, and giving it one
   // is what made the first hedges read as a bank of soil.
   floor: GRASS,

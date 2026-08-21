@@ -594,6 +594,8 @@ export class GridRenderer {
    * It is a second DRAWING of the same tile, chosen by what is next to it.
    */
   private static readonly WALL_TOP = -1;
+  /** A wall cell with no wall beside it. In the garden, that is a tree. */
+  private static readonly LONE_WALL = -2;
   private stampedAt = -1;
   private stampedSet = "";
   /** Frames of landing squash left to draw, and what we saw last frame. */
@@ -694,6 +696,7 @@ export class GridRenderer {
     const patterns: ReadonlyArray<readonly [number, Pattern, Ramp]> = [
       [TILE_WALL, set.wall, set.sub],
       [GridRenderer.WALL_TOP, set.wallTop ?? set.wall, set.sub],
+      [GridRenderer.LONE_WALL, set.tree ?? set.wall, set.sub],
       [TILE_FLOOR, set.floor, set.sub],
       [TILE_LADDER, set.ladder, set.ladderSub],
       [TILE_FIRE, set.fire, set.fireSub],
@@ -895,6 +898,18 @@ export class GridRenderer {
       ctx.fillRect(x + r - step, y, step, r);
     }
     ctx.restore();
+  }
+
+  /** How many of the four cells beside this one are also wall. */
+  private wallsAround(tiles: Uint8Array, x: number, y: number): number {
+    let n = 0;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (nx < 0 || nx >= GRID_W || ny < 0 || ny >= GRID_H) continue;
+      if ((tiles[ny * GRID_W + nx] as number) === TILE_WALL) n = (n + 1) | 0;
+    }
+    return n;
   }
 
   /** The colour for a tile, in whichever world this level is. */
@@ -1481,7 +1496,14 @@ export class GridRenderer {
         // top of the ground rather than through the middle of it.
         const capped = tile === TILE_WALL
           && (y === 0 || (tiles[(y - 1) * GRID_W + x] as number) !== TILE_WALL);
-        const stamp = this.stamps?.get(capped ? GridRenderer.WALL_TOP : tile);
+        // A wall with nothing beside it is a tree, in the one world that draws
+        // trees. Read off the neighbours rather than out of the level, which is
+        // why it costs the wire format nothing at all -- see Tileset.tree.
+        const alone = tile === TILE_WALL && this.tiles().tree !== undefined
+          && this.wallsAround(tiles, x, y) === 0;
+        const stamp = this.stamps?.get(
+          alone ? GridRenderer.LONE_WALL : capped ? GridRenderer.WALL_TOP : tile,
+        );
         if (stamp !== undefined) {
           ctx.drawImage(stamp, x * t, y * t, t, t);
           continue;

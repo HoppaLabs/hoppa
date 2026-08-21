@@ -288,3 +288,38 @@ test("the garden is a place, and the tests know the difference", () => {
     `${level.fireCells.length} cells of pond, and no way out`,
   );
 });
+
+test("a tree is a wall with nothing beside it, and costs the link nothing", async () => {
+  // The spec's own rule for moving parts -- behaviour derived from geometry,
+  // zero bytes in the encoding -- applied to a drawing. A lone wall cell is a
+  // tree and a run of them is a hedge, so the level never has to say which, and
+  // it matches how a child paints anyway: tap for a tree, drag for a hedge.
+  const garden = places[0] as { text: string; code: string };
+  const level = parseLevel(garden.text);
+  let lone = 0;
+  let hedged = 0;
+  for (let y = 0; y < GRID_H; y++) {
+    for (let x = 0; x < GRID_W; x++) {
+      if (level.walls[y * GRID_W + x] !== 1) continue;
+      if (x === 0 || y === 0 || x === GRID_W - 1 || y === GRID_H - 1) continue;
+      let around = 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx < 0 || nx >= GRID_W || ny < 0 || ny >= GRID_H) continue;
+        if (level.walls[ny * GRID_W + nx] === 1) around++;
+      }
+      if (around === 0) lone++; else hedged++;
+    }
+  }
+  console.log(`\n  inside the garden's own hedge: ${lone} trees, ${hedged} cells of thicket`);
+  // A garden with no trees in it is a lawn, and one with no thicket has nothing
+  // you cannot see over.
+  expect(lone).toBeGreaterThan(4);
+  expect(hedged).toBeGreaterThan(4);
+
+  // And the renderer really does branch on it, in the one world that has trees.
+  const renderer = await Bun.file("src/web/play/renderer.ts").text();
+  expect(renderer).toContain("this.wallsAround(tiles, x, y) === 0");
+  expect(renderer).toContain("this.tiles().tree !== undefined");
+});
