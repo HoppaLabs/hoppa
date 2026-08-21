@@ -10,7 +10,7 @@ import { TILE_FIRE } from "../src/core/tiles.ts";
 import { HELD_ACT, HELD_RIGHT, HELD_SWING, STATUS_WON } from "../src/engines/types.ts";
 import { botPlays, replayWins } from "../tools/bot.ts";
 import { MAX_FIRE, blankDraft, paint, tally } from "../src/core/draft.ts";
-import { OUTSIDE, UNDERGROUND } from "../src/core/tileset.ts";
+import { OUTSIDE, TILE_PX, UNDERGROUND } from "../src/core/tileset.ts";
 import { hashHex } from "../src/core/hash.ts";
 
 function room(engine: string, version: number, rows: readonly string[]): string {
@@ -122,15 +122,15 @@ test("one tile index, two worlds, and neither engine knows which", () => {
   // Hard rule 5: engines emit tile indices, presentation maps them. A flame
   // standing on grass would look like a mistake; spikes in a cave would not.
   expect(UNDERGROUND.fire).not.toEqual(OUTSIDE.fire);
-  expect(UNDERGROUND.fire.length).toBe(8);
-  expect(OUTSIDE.fire.length).toBe(8);
+  expect(UNDERGROUND.fire.length).toBe(TILE_PX);
+  expect(OUTSIDE.fire.length).toBe(TILE_PX);
   for (const row of [...UNDERGROUND.fire, ...OUTSIDE.fire]) {
-    expect(row.length).toBe(8);
+    expect(row.length).toBe(TILE_PX);
     expect(row).toMatch(/^[.123]+$/);
   }
   // Spikes sit ON the ground, so the bottom row is solid and the top is not:
   // the shape has to say which way is down.
-  expect((OUTSIDE.fire[7] as string).includes(".")).toBe(false);
+  expect((OUTSIDE.fire[TILE_PX - 1] as string).includes(".")).toBe(false);
   expect((OUTSIDE.fire[0] as string).includes(".")).toBe(true);
 });
 

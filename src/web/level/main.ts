@@ -674,7 +674,10 @@ function paintTools(): void {
       tileChip(
         TILE_OF[entry.glyph] as number,
         draft.engine === "dash",
-        24,
+        // Two screen pixels per art pixel. See artUnit(): a chip that is not a
+        // whole multiple of the art grid draws the tile and the sprite in it at
+        // two different scales.
+        32,
         artFor(entry.glyph),
         enemyArtFor(entry.glyph),
       ),

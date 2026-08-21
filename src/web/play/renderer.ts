@@ -64,24 +64,64 @@ const COLOUR: Record<number, string> = {
 type Cloud = readonly string[];
 
 const CLOUD_WIDE: Cloud = [
-  "......XXXXXX........",
-  "....XXXXXXXXXX......",
-  "...XXXXXXXXXXXXX....",
-  "..XXXXXXXXXXXXXXX.XX",
-  ".XXXXXXXXXXXXXXXXXXX",
-  "XXXXXXXXXXXXXXXXXXXX",
-  "XXXXXXXXXXXXXXXXXXXX",
-  ".ssssssssssssssssss.",
+  "...............................XXXXX........................",
+  ".............................XXXXXXXXX......................",
+  "...........................XXXXXXXXXXXXX....................",
+  "................XXXXXXXXXXXXXXXXXXXXXXXXX...................",
+  "..............XXXXXXXXXXXXXXXXXXXXXXXXXXXX..................",
+  "............XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.............",
+  "...........XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX...........",
+  "...........XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.........",
+  ".......XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX........",
+  "......XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.....",
+  ".....XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX....",
+  "....XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX...",
+  "....XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX...",
+  "...XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX..",
+  "...XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX..",
+  "...XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX..",
+  "...XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX..",
+  "...sssssssssssssssssssssssssssssssssssssssssssssssssssssss..",
+  "...sssssssssssssssssssssssssssssssssssssssssssssssssssssss..",
+  "...sssssssssssssssssssssssssssssssssssssssssssssssssssssss..",
+];
+const CLOUD_SMALL: Cloud = [
+  "....................XXXXXXX...........",
+  "...................XXXXXXXXX..........",
+  "..........XXXXXXXXXXXXXXXXXXX.........",
+  ".........XXXXXXXXXXXXXXXXXXXX.........",
+  "........XXXXXXXXXXXXXXXXXXXXXX........",
+  "......XXXXXXXXXXXXXXXXXXXXXXXXXXX.....",
+  "...XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX....",
+  "..XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX....",
+  "..XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX...",
+  ".XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX...",
+  ".XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX...",
+  ".ssssssssssssssssssssssssssssssssss...",
+  ".ssssssssssssssssssssssssssssssssss...",
 ];
 
-const CLOUD_SMALL: Cloud = [
-  "....XXXX......",
-  "..XXXXXXXX....",
-  ".XXXXXXXXXXX..",
-  "XXXXXXXXXXXXXX",
-  "XXXXXXXXXXXXXX",
-  ".ssssssssssss.",
-];
+/**
+ * How big one art pixel is on screen, in CSS pixels.
+ *
+ * THE RULE, and the reason it is a function rather than three sums: every
+ * drawing in this game -- terrain, gem, door, cloud, creature, enemy -- is
+ * authored on a grid of TILE_PX units to the cell, and drawn at this many
+ * screen pixels per unit. So one pixel of a gem is the same size as one pixel
+ * of the knight standing next to it.
+ *
+ * It was not always. Tiles were drawn on a grid of eight and sprites on a grid
+ * of sixteen, both one cell wide, so terrain came out at double scale.
+ * Reported as "treasure pixels look much bigger than the other sprites", and
+ * that is precisely what it was: two art styles on one screen. test/artgrid
+ * fails if anything drifts off the grid again.
+ *
+ * Whole numbers only. The era's hardware could not scale by a fraction, and a
+ * fractional scale is what turns a hard edge into a smear.
+ */
+function artUnit(tile: number): number {
+  return Math.max(1, Math.round(tile / TILE_PX));
+}
 
 /**
  * Where the clouds sit, in cells across and down.
@@ -114,34 +154,58 @@ const CLOUDS: readonly { at: Cloud; x: number; y: number; drift: number }[] = [
  */
 const GEM_FRAMES: readonly Pattern[] = [
   [
-    "...11...",
-    "..1331..",
-    ".133221.",
-    "13322221",
-    ".132221.",
-    "..1221..",
-    "...11...",
-    "........",
+    ".......11.......",
+    "......1321......",
+    ".....132221.....",
+    "....13322221....",
+    "...1332222221...",
+    "..133322222221..",
+    ".13332222222221.",
+    ".12222222222221.",
+    "..122222222221..",
+    "...1222222221...",
+    "....12222221....",
+    ".....122221.....",
+    "......1221......",
+    ".......11.......",
+    "................",
+    "................",
   ],
   [
-    "...11...",
-    "..1331..",
-    "..1322..",
-    "..13221.",
-    "..1221..",
-    "..1221..",
-    "...11...",
-    "........",
+    ".......11.......",
+    "......1321......",
+    "......1321......",
+    ".....132221.....",
+    ".....132221.....",
+    "....13322221....",
+    "....13222221....",
+    "....12222221....",
+    ".....122221.....",
+    ".....122221.....",
+    "......1221......",
+    "......1221......",
+    ".......11.......",
+    ".......11.......",
+    "................",
+    "................",
   ],
   [
-    "...11...",
-    "...13...",
-    "...13...",
-    "...132..",
-    "...12...",
-    "...12...",
-    "...11...",
-    "........",
+    ".......11.......",
+    ".......11.......",
+    "......1321......",
+    "......1321......",
+    "......1321......",
+    "......1321......",
+    "......1321......",
+    "......1221......",
+    "......1221......",
+    "......1221......",
+    "......1221......",
+    "......1221......",
+    ".......11.......",
+    ".......11.......",
+    "................",
+    "................",
   ],
 ];
 
@@ -157,25 +221,41 @@ const GEM_FRAMES: readonly Pattern[] = [
  * 1 is the frame, 2 the face, 3 the brass (shut) or the lit way through (open).
  */
 const DOOR_SHUT: readonly Pattern[] = [[
-  "........",
-  ".111111.",
-  ".122221.",
-  ".122221.",
-  ".113311.",
-  ".123321.",
-  ".122221.",
-  ".111111.",
+  "................",
+  ".11111111111111.",
+  ".12221222212221.",
+  ".12221222212221.",
+  ".12221222212221.",
+  ".12221233212221.",
+  ".12221322312221.",
+  ".12221333312221.",
+  ".12221333312221.",
+  ".12221333312221.",
+  ".12221311312221.",
+  ".12221222212221.",
+  ".12221222212221.",
+  ".12221222212221.",
+  ".11111111111111.",
+  "................",
 ]];
 
 const DOOR_OPEN: readonly Pattern[] = [[
-  "........",
-  ".111111.",
-  ".133331.",
-  ".133331.",
-  ".133331.",
-  ".133331.",
-  ".133331.",
-  ".111111.",
+  "................",
+  ".11111111111111.",
+  ".13333333333331.",
+  ".13333333333331.",
+  ".13333333333331.",
+  ".13333333333331.",
+  ".13333333333331.",
+  ".13333333333331.",
+  ".13333333333331.",
+  ".13333333333331.",
+  ".13333333333331.",
+  ".13333333333331.",
+  ".13333333333331.",
+  ".13333333333331.",
+  ".11111111111111.",
+  "................",
 ]];
 
 /** Frame, face, brass or glow. */
@@ -292,7 +372,7 @@ export function tileChip(
 
   // An enemy, which has its own inks rather than a creature's three.
   if (enemy != null) {
-    const scale = Math.max(1, Math.floor(size / SPRITE_W));
+    const scale = artUnit(size);
     const pad = Math.floor((size - SPRITE_W * scale) / 2);
     for (let y = 0; y < SPRITE_H; y++) {
       const row = enemy.rows[y] ?? "";
@@ -312,7 +392,7 @@ export function tileChip(
   // This is what was missing: every entity button was a flat block of one
   // colour, so the tool grid showed no sprites at all.
   if (sprite != null) {
-    const scale = Math.max(1, Math.floor(size / SPRITE_W));
+    const scale = artUnit(size);
     const drawn = SPRITE_W * scale;
     const pad = Math.floor((size - drawn) / 2);
     for (let y = 0; y < SPRITE_H; y++) {
@@ -493,11 +573,12 @@ export class GridRenderer {
    */
   private paintClouds(ctx: CanvasRenderingContext2D, t: number): void {
     if (!this.sideOn) return;
-    // A third of a tile per cloud pixel rather than an eighth, so a cloud is
-    // four tiles across rather than two. Reported as wanting them bigger, and
-    // they were: at two tiles they read as specks rather than as weather.
-    const step = Math.max(1, Math.round(t / 5));
-    if (step < 2) return;
+    // One art pixel, the same size as every other art pixel on the screen --
+    // see artUnit(). The clouds used to be drawn at a fifth of a tile each,
+    // which made them three times chunkier than the creature standing under
+    // them; they are the same size on screen as before because the DRAWING is
+    // three times wider now, not because the pixels are bigger.
+    const step = artUnit(t);
 
     const wide = t * GRID_W;
     for (const cloud of CLOUDS) {
@@ -810,7 +891,7 @@ export class GridRenderer {
       // Integer scale factors only is the era's rule and the reason its art
       // still looks like itself. A 16px sprite slightly overhangs a 15px tile,
       // which is what sprites have always done.
-      const scale = Math.max(1, Math.round(t / SPRITE_W));
+      const scale = artUnit(t);
       const size = SPRITE_W * scale;
       const left = Math.round(px(enemy.x) - size / 2);
       const foot = Math.round(px(enemy.y) + size / 2);

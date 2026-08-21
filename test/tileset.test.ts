@@ -4,7 +4,7 @@ import {
   OUTSIDE, TILESETS, TILE_PX, UNDERGROUND, inkOf, patternIsSound, tilesetFor,
 } from "../src/core/tileset.ts";
 
-test("every tile is 8x8 and uses three colours plus transparent", () => {
+test("every tile is square on the shared grid, three colours plus transparent", () => {
   for (const set of TILESETS) {
     for (const [name, pattern] of [["wall", set.wall], ["floor", set.floor], ["ladder", set.ladder]] as const) {
       expect({ set: set.name, name, sound: patternIsSound(pattern) })
@@ -51,10 +51,11 @@ test("the ladder leaves gaps, so what is behind it shows through", () => {
 });
 
 test("patternIsSound catches a malformed tile", () => {
-  expect(patternIsSound(["1234567"])).toBe(false);              // too few rows
-  expect(patternIsSound(new Array(8).fill("1234567"))).toBe(false);  // rows too short
-  expect(patternIsSound(new Array(8).fill("11111119"))).toBe(false); // bad character
-  expect(patternIsSound(new Array(8).fill("...11223"))).toBe(true);
+  const wide = (fill: string) => new Array(TILE_PX).fill(fill.repeat(TILE_PX / 8));
+  expect(patternIsSound(["1234567"])).toBe(false);            // too few rows
+  expect(patternIsSound(wide("1234567"))).toBe(false);        // rows too short
+  expect(patternIsSound(wide("11111119"))).toBe(false);       // bad character
+  expect(patternIsSound(wide("...11223"))).toBe(true);
 });
 
 test("a flame frame index is never negative, however long the game has run", async () => {
@@ -93,6 +94,6 @@ test("fire flickers and spikes do not", async () => {
   expect(OUTSIDE.fireFrames).toBeUndefined();
   for (const frame of UNDERGROUND.fireFrames ?? []) expect(patternIsSound(frame)).toBe(true);
   // Only the tip moves: a base that wandered reads as the whole fire sliding.
-  const bases = new Set((UNDERGROUND.fireFrames ?? []).map((f) => f.slice(5).join("|")));
+  const bases = new Set((UNDERGROUND.fireFrames ?? []).map((f) => f.slice(TILE_PX - 2).join("|")));
   expect(bases.size).toBe(1);
 });
