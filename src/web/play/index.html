@@ -65,6 +65,17 @@
   h1 {
     margin: 0; font-size: 12px; font-weight: 400; letter-spacing: .14em;
     text-transform: uppercase; color: var(--ink);
+    display: flex; align-items: center; gap: 8px;
+  }
+  /* The wordmark. Pixel art, so whole scales and no smoothing -- see
+     src/web/logo.ts. It carries the name visually; `.said` carries it for a
+     screen reader, which cannot read a canvas. */
+  /* No border: the rule further down is for the game canvases, and a frame
+     round a logo is not a logo. */
+  #logo { display: block; image-rendering: pixelated; border: 0; border-radius: 0; }
+  .said {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap;
   }
   h1 b { color: var(--ink-bright); font-weight: 600; }
   #stage {
@@ -323,7 +334,7 @@
         <path d="M20 3v5h-5"/>
       </svg>
     </button>
-    <h1>hoppa &middot; <span id="levelname">delve</span></h1>
+    <h1><canvas id="logo" aria-hidden="true"></canvas><span class="said">hoppa</span> &middot; <span id="levelname">delve</span></h1>
     <!-- Off until asked for: a link gets opened on a bus. See src/web/play/sound.ts.
          An icon rather than the words "sound off", because it is a setting you
          touch once and then never again, and it was taking a place in the row

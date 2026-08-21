@@ -44,6 +44,7 @@ import {
 import { GridRenderer } from "./renderer.ts";
 import { goOffline } from "../offline.ts";
 import { holdStill } from "../nozoom.ts";
+import { paintLogo } from "../logo.ts";
 
 
 /**
@@ -1370,3 +1371,12 @@ if (moving !== null) {
 holdStill();
 
 goOffline("./");
+
+// The wordmark, drawn rather than typed. See src/web/logo.ts.
+//
+// Two on a phone and three from a tablet up: at two it is 36px tall, which is
+// about what the row it sits in was already, so it costs the level almost
+// nothing. Whole scales only -- a fractional one blurs pixel art, and blurred
+// pixel art reads as a mistake rather than a choice.
+const logoCanvas = document.getElementById("logo") as HTMLCanvasElement | null;
+if (logoCanvas !== null) paintLogo(logoCanvas, window.innerWidth >= 560 ? 3 : 2);
