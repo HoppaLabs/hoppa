@@ -357,8 +357,17 @@ export function paint(draft: Draft, x: number, y: number, glyph: Glyph): PaintRe
   return { draft: { ...draft, cells }, changed: true, reason: "" };
 }
 
-/** How many of a thing the draft holds. Used for the counters in the editor. */
+/**
+ * How many of a thing the draft holds, against the limit that thing shares.
+ *
+ * An enemy counts every OTHER enemy too, because the cap is on enemies and not
+ * on each kind: the engine holds so many walking things and does not care which
+ * is a bat. The editor used to count them separately, so ten sharks left the
+ * octopus button reading "0 of 10" -- plenty of room -- and then refused the
+ * tap. Reported as "You can't place octopus or crab in underwater world".
+ */
 export function tally(draft: Draft, glyph: Glyph): number {
+  if (ENEMY_GLYPHS.includes(glyph)) return countOfAny(draft.cells, ENEMY_GLYPHS);
   return countOf(draft.cells, glyph);
 }
 

@@ -18,7 +18,7 @@ import { parseLevel, type Level } from "./level.ts";
 import { verifyLevelText } from "./verify.ts";
 import { reachableFrom } from "./reach.ts";
 import { bestStepUp, landingFrom, reachableWithGravity, typicalStepUp } from "./playable.ts";
-import { aPlace, sideOn } from "./draft.ts";
+import { aPlace, falls } from "./draft.ts";
 
 /** Above this a link starts getting awkward in a group chat. Spec S13's L7. */
 export const CODE_WARN = 150;
@@ -142,10 +142,17 @@ export function adviceFor(text: string): Advice {
   }
 
   // Gravity. From above, "connected through open space" is the whole story;
-  // from the side it is not, and a flood fill will happily promise you a ledge
-  // nobody can jump to. Only side-on levels get this, because it is the only
-  // place the question is different.
-  if (sideOn(result.level.engine)) {
+  // where things FALL it is not, and a flood fill will happily promise you a
+  // ledge nobody can jump to.
+  //
+  // falls(), not sideOn(). Underwater is drawn from the side and nothing in it
+  // falls, so a gem hanging in open water is simply a gem you swim up to --
+  // and this told a child "one treasure is too high to jump to, so the door
+  // can never open", fatally, which switched off the play button on a level
+  // that was fine. Reported as "in the underwater levels you don't jump, so
+  // the guidance is wrong". The same two words came apart for tilesets on day
+  // 17 and this is the other place that never got the split.
+  if (falls(result.level.engine)) {
     for (const note of jumpNotes(result.level)) notes.push(note);
   }
 

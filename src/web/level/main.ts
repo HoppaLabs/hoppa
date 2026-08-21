@@ -776,7 +776,21 @@ function review(): void {
     says.className = "good";
   }
 
-  playButton.disabled = !advice.playable;
+  // NEVER DISABLED. Advice advises; it does not hold the door shut.
+  //
+  // "No matter the guidance you should always be able to play it, sometimes is
+  // blocking the user from playing it based on faulty guidance." Three times
+  // in one day the guidance was the thing that was wrong -- a garden told to
+  // add a door the palette does not sell, an underwater gem called too high to
+  // jump to in a game with no jumping -- and each time it switched the button
+  // off on a level that was fine.
+  //
+  // It was never load-bearing anyway. The SHARE gate is what stops an
+  // impossible level reaching a friend, and it cannot be fooled by bad advice
+  // because it wants an actual win. This page's job, in its own words at the
+  // top of this file, is "to stop a kid wasting an attempt on something
+  // obviously broken, in words they can act on" -- the words, not a lock.
+  playButton.disabled = false;
   paintTools();
 }
 
