@@ -89,9 +89,35 @@ function firstOf(cells: readonly Glyph[], glyph: Glyph): number {
   return -1;
 }
 
-/** Side-on games are open sky with ground under them, not a box. */
+/**
+ * Drawn from the side, rather than looked down on.
+ *
+ * This used to be one question with one answer, because until swimming arrived
+ * "seen from the side" and "things fall" were the same set of one engine. They
+ * are not the same question and swimming is what proves it: an underwater level
+ * is drawn from the side and nothing in it falls at all.
+ *
+ * This is the PICTURE: which tileset, whether there is a sky, which way the
+ * frame goes.
+ */
 export function sideOn(engine: string): boolean {
+  return engine === "dash" || engine === "swim";
+}
+
+/**
+ * Things fall, and there are ladders to get back up.
+ *
+ * This is the RULE, and it is what the level's shape has to answer to: how
+ * high a platform can be, whether a spike has anything to sit on, whether the
+ * bot routes by jumping or by swimming. Only dash.
+ */
+export function falls(engine: string): boolean {
   return engine === "dash";
+}
+
+/** Underwater: the frame is rock, and the top row is the surface you breathe at. */
+export function underwater(engine: string): boolean {
+  return engine === "swim";
 }
 
 /**
@@ -119,15 +145,31 @@ function standsOn(cells: readonly Glyph[], cell: number): boolean {
 }
 
 function frame(cells: Glyph[], engine: string): void {
-  const ground = sideOn(engine);
   for (let y = 0; y < GRID_H; y = (y + 1) | 0) {
     for (let x = 0; x < GRID_W; x = (x + 1) | 0) {
       const onRing = x === 0 || y === 0 || x === GRID_W - 1 || y === GRID_H - 1;
       if (!onRing) continue;
       const cell = idx(x, y);
       if (cells[cell] === GLYPH_START || cells[cell] === GLYPH_EXIT) continue;
-      const wanted = ground ? y === GRID_H - 1 : true;
-      cells[cell] = wanted ? GLYPH_WALL : GLYPH_FLOOR;
+
+      let solid: boolean;
+      if (underwater(engine)) {
+        // Rock on three sides and the TOP ROW LEFT OPEN, because that row is
+        // the surface and the surface is where you breathe. It is the only
+        // frame that has to be open somewhere: seal it and the level has no
+        // air in it at all.
+        solid = y !== 0;
+      } else if (falls(engine)) {
+        // Outdoors: ground along the bottom, sky everywhere else. A border in
+        // the air says nothing about where you can go and hides the one thing
+        // that matters, which is that the open space is air you fall through.
+        solid = y === GRID_H - 1;
+      } else {
+        // From above a level is a ROOM, and the edge of the world has to look
+        // like something you cannot walk through.
+        solid = true;
+      }
+      cells[cell] = solid ? GLYPH_WALL : GLYPH_FLOOR;
     }
   }
 }
@@ -144,9 +186,14 @@ export function blankDraft(engine: string, behaviourVersion: number): Draft {
   for (let i = 0; i < GRID_AREA; i = (i + 1) | 0) cells[i] = GLYPH_FLOOR;
   frame(cells, engine);
 
-  if (sideOn(engine)) {
+  if (underwater(engine)) {
+    // Just under the surface, top left: where the air is, which is where a
+    // swimmer should be taught to think of as home.
+    cells[idx(2, 1)] = GLYPH_START;
+    cells[idx((GRID_W - 3) | 0, (GRID_H - 2) | 0)] = GLYPH_EXIT;
+  } else if (falls(engine)) {
     // Bottom left, on the ground, with the whole level ahead of you. Anywhere
-    // else in a side-on level is either mid-air or already past something.
+    // else in a level with gravity is either mid-air or already past something.
     cells[idx(2, (GRID_H - 2) | 0)] = GLYPH_START;
     cells[idx((GRID_W - 3) | 0, (GRID_H - 2) | 0)] = GLYPH_EXIT;
   } else {
@@ -218,7 +265,7 @@ export function paint(draft: Draft, x: number, y: number, glyph: Glyph): PaintRe
   //
   // The bottom row is exempt: that is the ground, not a platform, and a step
   // standing on it is exactly the thing you are meant to jump onto.
-  if (glyph === GLYPH_WALL && sideOn(draft.engine)) {
+  if (glyph === GLYPH_WALL && falls(draft.engine)) {
     const floor = (GRID_H - 1) | 0;
     if (y !== floor) {
       const above = y > 0 ? cells[cell - GRID_W] : GLYPH_FLOOR;
@@ -321,9 +368,10 @@ export function draftFromLevel(level: {
 export function retarget(draft: Draft, engine: string, behaviourVersion: number): Draft {
   if (engine === draft.engine) return { ...draft, behaviourVersion };
   const cells = draft.cells.slice() as Glyph[];
-  if (!sideOn(engine)) {
-    // Only side-on games climb. A ladder left in a top-down level would encode
-    // as nothing and then vanish on the way back, which looks like a bug.
+  if (!falls(engine)) {
+    // Only a game with gravity climbs. Nothing underwater needs a ladder, and a
+    // ladder left in a level that cannot hold one would encode as nothing and
+    // then vanish on the way back, which looks like a bug.
     for (let i = 0; i < cells.length; i = (i + 1) | 0) {
       if (cells[i] === GLYPH_LADDER) cells[i] = GLYPH_FLOOR;
     }
@@ -336,7 +384,7 @@ export function retarget(draft: Draft, engine: string, behaviourVersion: number)
   // a start hanging in the sky once the level has gravity. Put it back on the
   // ground at the bottom left. A start already standing on something was put
   // there on purpose and is left alone.
-  if (sideOn(engine)) {
+  if (falls(engine)) {
     const at = firstOf(cells, GLYPH_START);
     if (at >= 0 && !standsOn(cells, at)) {
       cells[at] = GLYPH_FLOOR;

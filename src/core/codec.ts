@@ -43,7 +43,10 @@ import {
 export const CODEC_VERSION = 1;
 
 /** Index is the wire value. Append only -- never reorder, never remove. */
-export const ENGINE_IDS: readonly string[] = ["delve", "shove", "roam", "dash"];
+export const ENGINE_IDS: readonly string[] = ["delve", "shove", "roam", "dash", "swim"];
+// "shove" at 1 is a slot the spec reserved for a block-pushing game and never
+// filled. It stays where it is: the index IS the wire value, so closing the
+// gap would silently repoint every link ever made.
 
 const KIND_START = 0;
 const KIND_EXIT = 1;

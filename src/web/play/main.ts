@@ -676,6 +676,28 @@ function paintPourState(): void {
   bucket.classList.toggle("pouring", pouring > 0);
 }
 
+/**
+ * The breath meter, underwater and nowhere else.
+ *
+ * Bubbles rather than a bar, and they EMPTY from the right, so it reads the
+ * same way as the row of hearts already sitting next to it -- a child who has
+ * learned one has learned the other.
+ *
+ * It goes orange and then red near the end. A meter that only changes length
+ * is a meter nobody looks at while they are busy swimming; a colour arrives in
+ * the corner of the eye, which is the whole point of a warning.
+ */
+function breathBar(game: Moving): string {
+  const breath = (game as unknown as { breath?: () => { left: number; full: number } }).breath?.();
+  if (breath === undefined) return "";
+  const pips = 6;
+  const lit = Math.ceil((breath.left / breath.full) * pips);
+  const state = lit <= 1 ? "air-0" : lit <= 2 ? "air-1" : "air";
+  return `<span class="${state}" aria-label="air"><b>` +
+    "\u25cf".repeat(Math.max(0, lit)) + "\u25cb".repeat(Math.max(0, pips - lit)) +
+    "</b></span>";
+}
+
 function paintMovingHud(): void {
   const game = moving as Moving;
   if (!finished()) flashMessage(loop === null ? null : loop.takeMessage());
@@ -686,6 +708,7 @@ function paintMovingHud(): void {
 
   hud.innerHTML =
     `<span class="hearts hearts-${health.hp}"><b>${hearts}</b></span>` +
+    breathBar(game) +
     `<span class="${got === total ? "done" : "gold"}"><b>${got}/${total}</b> treasure</span>` +
     `<span><b>${game.seconds()}</b>s</span>`;
 
@@ -735,7 +758,7 @@ function reset(): void {
   // difference between smooth and not on a cheap phone.
   renderer.setSprite(chosen.sprite);
   renderer.setWeapon(chosen.weapon);
-  renderer.setSideOn(level.engine === "dash");
+  renderer.setSideOn(level.engine === "dash", level.engine);
   renderer.setGuardArt(guardArtMap(level));
   // Only the real-time engines redraw every frame. A turn-based level redraws
   // when you press something, so a spinning gem would freeze between moves.
@@ -1349,7 +1372,7 @@ paintShareGate();
 
 renderer.setSprite(chosen.sprite);
 renderer.setWeapon(chosen.weapon);
-renderer.setSideOn(level.engine === "dash");
+renderer.setSideOn(level.engine === "dash", level.engine);
 renderer.setGuardArt(guardArtMap(level));
 // Only the real-time engines redraw every frame. A turn-based level redraws
 // when you press something, so a spinning gem would freeze between moves.

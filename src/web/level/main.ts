@@ -59,13 +59,18 @@ interface Tool {
    */
   readonly rubber?: boolean;
   /**
-   * What it is called in the side-on game.
+   * What it is called in each world that calls it something else.
    *
-   * The same entity is a flame below ground and spikes out in the open, so a
-   * button labelled "fire" that paints spikes is a button that lies -- exactly
-   * what skyColour exists to stop, one level up.
+   * One entity, three faces: the same hazard is a flame below ground, spikes
+   * out in the open and an urchin on the seabed. A button labelled "fire" that
+   * paints spikes is a button that lies.
+   *
+   * A map rather than a field per world. It began as one `skyLabel`, took a
+   * second when the water arrived, and a third would have been a nested
+   * ternary nobody could read -- so it is keyed by engine and the next world
+   * costs a line.
    */
-  readonly skyLabel?: string;
+  readonly names?: Readonly<Record<string, string>>;
   /** Only offered for the games that have it. */
   readonly engines?: readonly string[];
   /** Shows "3 of 8" under the button when there is a limit worth knowing. */
@@ -91,20 +96,26 @@ const TOOLS: readonly Tool[] = [
   // One tool, two names. It is the same entity either way -- what changes is
   // what the world draws, because a flame standing on grass looks like a
   // mistake and spikes in a cave look like a floor. See src/core/tileset.ts.
-  { glyph: GLYPH_FIRE, label: "fire", skyLabel: "spikes", limit: 10 },
+  { glyph: GLYPH_FIRE, label: "fire", names: { dash: "spikes", swim: "urchins" }, limit: 10 },
 ];
 
 /**
- * The two games, and the rules a NEW level is drawn under.
+ * The three games, and the rules a NEW level is drawn under.
  *
  * The version comes from the registry, never from a number written here. A
  * hardcoded one went stale the moment dash/3 shipped, and every level drawn
  * afterwards was quietly still dash/2 -- so the sword a child had just been
  * given did nothing in the levels they made with it.
+ *
+ * The labels say where the CAMERA is, not what the game is called, because
+ * that is the only difference a child needs to hold before they start drawing.
+ * "underwater" is the exception and has to name itself: it is also from the
+ * side, and what makes it different is the water.
  */
 const GAMES = [
   { engine: "roam", label: "from above" },
   { engine: "dash", label: "from the side" },
+  { engine: "swim", label: "underwater" },
 ] as const;
 
 function currentBuild(engine: string): number {
@@ -300,7 +311,7 @@ function repaint(): void {
   renderer.setGuardArt(art);
   // Sky for the side-on game, so tapping "from the side" visibly changes the
   // world rather than only changing which tools are on offer.
-  renderer.setSideOn(draft.engine === "dash");
+  renderer.setSideOn(draft.engine === "dash", draft.engine);
   // The editor redraws only when something changes, so a spinning gem would sit
   // frozen at whatever angle the last tap caught it at.
   renderer.setSpinning(false);
@@ -341,7 +352,7 @@ function paintExamples(): void {
     // a thumbnail cannot disagree with what tapping it gives you.
     const small = new GridRenderer(thumb);
     small.setTileSize(4);
-    small.setSideOn(theirs.engine === "dash");
+    small.setSideOn(theirs.engine === "dash", theirs.engine);
     small.setSpinning(false);
     const shown = new Uint8Array(GRID_W * GRID_H);
     for (let i = 0; i < shown.length; i = (i + 1) | 0) {
@@ -694,6 +705,7 @@ function paintTools(): void {
         32,
         artFor(entry.glyph),
         enemyArtFor(entry.glyph),
+        draft.engine,
       ),
     );
     if (entry.rubber === true) {
@@ -705,7 +717,7 @@ function paintTools(): void {
 
     const label = document.createElement("span");
     label.textContent =
-      draft.engine === "dash" && entry.skyLabel !== undefined ? entry.skyLabel : entry.label;
+      entry.names?.[draft.engine] ?? entry.label;
 
     button.append(chip, label);
 

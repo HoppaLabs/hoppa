@@ -632,6 +632,10 @@ export function botPlays(text: string, creature: Creature, cap = 3600): Attempt 
  */
 export function botPlaysLevel(level: Level, creature: Creature, cap = 3600): Attempt {
   const engine = engineFor(level, creature) as unknown as Playable;
+  // Only gravity needs the jumping router. Swimming is free movement, which is
+  // the same contract the top-down router already solves -- which is the single
+  // practical reason this engine is affordable at all: the pack stays verifiable
+  // and the editor's autoplay works on water from the first day.
   const sideOn = level.engine === "dash";
 
   // How high THIS creature can get from standing. Judged by the rules the

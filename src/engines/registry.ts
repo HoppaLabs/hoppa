@@ -19,6 +19,7 @@ import { RoamV5, ROAM_V5_BEHAVIOUR } from "./roam/v5.ts";
 import { RoamV6, ROAM_V6_BEHAVIOUR } from "./roam/v6.ts";
 import { RoamV7, ROAM_V7_BEHAVIOUR } from "./roam/v7.ts";
 import { RoamV8, ROAM_V8_BEHAVIOUR } from "./roam/v8.ts";
+import { SwimV1, SWIM_V1_BEHAVIOUR } from "./swim/v1.ts";
 import { DashV1, DASH_V1_BEHAVIOUR } from "./dash/v1.ts";
 import { DashV2, DASH_V2_BEHAVIOUR } from "./dash/v2.ts";
 import { DashV3, DASH_V3_BEHAVIOUR } from "./dash/v3.ts";
@@ -152,6 +153,13 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
     `roam/${ROAM_V8_BEHAVIOUR}`,
     (level, creature) =>
       creature === undefined ? new RoamV8(level) : new RoamV8(level, creature),
+  ],
+  // The third game. Underwater, from the side, and nothing in it falls: free
+  // movement with momentum, and a breath you have to go up for. See adr/0038.
+  [
+    `swim/${SWIM_V1_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new SwimV1(level) : new SwimV1(level, creature),
   ],
 ]);
 

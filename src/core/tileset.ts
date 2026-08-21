@@ -414,7 +414,41 @@ export const OUTSIDE: Tileset = {
   ground: "#8fc4e8",
 };
 
-export const TILESETS: readonly Tileset[] = [UNDERGROUND, OUTSIDE];
+/**
+ * The reef. Underwater, seen from the side.
+ *
+ * Drawn out of the same patterns as the ground above it, on a different ramp,
+ * which is the whole point of a ramp: EARTH lit in teal is a reef, and nobody
+ * had to draw a second set of rocks.
+ *
+ * The water itself is the `ground` colour behind everything, deep enough that
+ * the pale gems and a child's own creature stand out against it. It is the one
+ * world where the empty space is a THING rather than the absence of one, which
+ * is also why it is the only one whose frame is open at the top: that row is
+ * the surface, and the surface is where the air is.
+ */
+export const REEF: Tileset = {
+  id: 3,
+  name: "reef",
+  // Three steps of algae over four of the rock it is growing on: teal down
+  // into navy. Sand would have been the obvious floor and it is wrong -- pale
+  // sand against pale water leaves nothing to read the shape against.
+  sub: [15, 14, 13, 7, 6, 1, 2, 3],
+  wall: EARTH,
+  wallTop: EARTH_TOP,
+  floor: AIR,
+  ladder: LADDER,
+  ladderSub: [1, 52, 51, 49],
+  // Sea urchins. A flame underwater would be a joke and a metal spike would be
+  // litter; an urchin is the thing that is actually down there and hurts.
+  fire: SPIKES,
+  // Near-black up to a violet tip: the one thing on screen that is not a shade
+  // of blue, because it is the one thing that is trying to be noticed.
+  fireSub: [0, 42, 43, 44, 45, 46],
+  ground: "#12306b",
+};
+
+export const TILESETS: readonly Tileset[] = [UNDERGROUND, OUTSIDE, REEF];
 
 /**
  * The tileset for a world.
@@ -424,7 +458,11 @@ export const TILESETS: readonly Tileset[] = [UNDERGROUND, OUTSIDE];
  * tiles=1 today gets whatever its engine's world looks like, which is the
  * behaviour that lets the art improve without reissuing a single link.
  */
-export function tilesetFor(sideOn: boolean): Tileset {
+export function tilesetFor(sideOn: boolean, engine?: string): Tileset {
+  // Underwater is drawn from the side and is not the outdoors, so the boolean
+  // that used to answer this on its own no longer can. It stays as the default
+  // for every caller that has only ever had two worlds to pick between.
+  if (engine === "swim") return REEF;
   return sideOn ? OUTSIDE : UNDERGROUND;
 }
 

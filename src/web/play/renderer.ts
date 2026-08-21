@@ -132,6 +132,25 @@ function artUnit(tile: number): number {
  * layout that changed per level would be one more thing moving on a page that
  * already has enough.
  */
+/**
+ * Where the bubbles are, how big, and how fast they rise.
+ *
+ * Fixed, for the same reason the clouds are fixed. Different rates so they
+ * never form a row, which is the thing that gives away a loop.
+ */
+const BUBBLES: readonly { x: number; y: number; size: number; rate: number }[] = [
+  // Sizes in art pixels across. The first pass used 2 to 4 and the small ones
+  // came out as single dots -- a ring needs at least four pixels a side before
+  // the hole in the middle survives.
+  { x: 3, y: 2, size: 5, rate: 90 },
+  { x: 7, y: 9, size: 4, rate: 130 },
+  { x: 12, y: 5, size: 6, rate: 70 },
+  { x: 16, y: 12, size: 4, rate: 110 },
+  { x: 20, y: 7, size: 5, rate: 100 },
+  { x: 9, y: 1, size: 4, rate: 150 },
+  { x: 18, y: 4, size: 5, rate: 80 },
+];
+
 const CLOUDS: readonly { at: Cloud; x: number; y: number; drift: number }[] = [
   { at: CLOUD_WIDE, x: 0, y: 0, drift: 300 },
   { at: CLOUD_SMALL, x: 13, y: 2, drift: 190 },
@@ -346,8 +365,9 @@ export function tileChip(
   size: number,
   sprite?: Sprite | null,
   enemy?: { rows: readonly string[]; inks: readonly string[] } | null,
+  engine = "",
 ): HTMLCanvasElement {
-  const set = tilesetFor(sideOn);
+  const set = tilesetFor(sideOn, engine);
   const canvas = document.createElement("canvas");
   const dpr = Math.min(window.devicePixelRatio || 1, 3);
   canvas.width = Math.max(1, Math.round(size * dpr));
@@ -537,6 +557,8 @@ export class GridRenderer {
   private weapon: string = "sword";
   /** Which palette to paint the terrain in. Presentation only. */
   private sideOn = false;
+  /** Which world this is, so the tileset can be more than "side-on or not". */
+  private world = "";
   /**
    * Whether anything is animating. The game redraws every frame and wants the
    * spin; the level editor redraws only when you change something, so an
@@ -578,8 +600,9 @@ export class GridRenderer {
   }
 
   /** Side-on levels are painted against sky. Cosmetic; see SKY above. */
-  setSideOn(sideOn: boolean): void {
+  setSideOn(sideOn: boolean, engine = ""): void {
     this.sideOn = sideOn;
+    this.world = engine;
   }
 
   /** One stamp per flame frame, in order. Empty until the stamps are built. */
@@ -592,6 +615,10 @@ export class GridRenderer {
    * pixels a tile, and a cloud there is three grey pixels that read as dirt.
    */
   private paintClouds(ctx: CanvasRenderingContext2D, t: number): void {
+    if (this.world === "swim") {
+      this.paintSurface(ctx, t);
+      return;
+    }
     if (!this.sideOn) return;
     // One art pixel, the same size as every other art pixel on the screen --
     // see artUnit(). The clouds used to be drawn at a fifth of a tile each,
@@ -634,7 +661,7 @@ export class GridRenderer {
 
   /** The tileset this world uses. Presentation only; see core/tileset.ts. */
   private tiles(): Tileset {
-    return tilesetFor(this.sideOn);
+    return tilesetFor(this.sideOn, this.world);
   }
 
   /**
@@ -727,6 +754,110 @@ export class GridRenderer {
     this.ctx.fillStyle = this.tiles().ground;
     this.ctx.fillRect(x * t, y * t, t, t);
     this.ctx.drawImage(floor, x * t, y * t, t, t);
+  }
+
+  /**
+   * The surface of the water, along the top row.
+   *
+   * The single most important thing on an underwater screen, because it is the
+   * answer to the only question the level keeps asking. Air is UP -- that is
+   * the whole rule, and a rule nobody can see is not a rule, it is a surprise.
+   * Without this the top of a reef level is just more blue.
+   *
+   * Drawn as the era drew water: a bright band, a row of highlight on top of
+   * it, and a broken line of glints under that. Whole art pixels, and it moves
+   * on the same clock as the clouds so a still screen stays still.
+   */
+  private paintSurface(ctx: CanvasRenderingContext2D, t: number): void {
+    const step = artUnit(t);
+    const wide = t * GRID_W;
+    const slide = this.spinning ? Math.floor(Date.now() / 260) : 0;
+
+    // The band itself: the top row, a shade lighter than the deep.
+    ctx.fillStyle = "#3a7bd5";
+    ctx.fillRect(0, 0, wide, t);
+    // The line where air meets water, which is the line a player aims for.
+    ctx.fillStyle = "#b6dcff";
+    ctx.fillRect(0, 0, wide, step * 2);
+
+    // Glints, ticking along the band. Two rows so it reads as a moving surface
+    // rather than as a painted stripe.
+    ctx.fillStyle = "#6fb2f0";
+    const run = step * 12;
+    for (let x = -run; x < wide + run; x += run) {
+      const at = x + ((slide * step) % run);
+      ctx.fillRect(at, step * 3, step * 5, step);
+      ctx.fillRect(at + step * 6, step * 5, step * 3, step);
+    }
+
+    this.paintShafts(ctx, t, step);
+    this.paintBubbles(ctx, t, step);
+  }
+
+  /**
+   * Sunlight coming down through the water.
+   *
+   * The underwater answer to the clouds, and it exists for exactly the same
+   * reason they do: a flat field of one colour is the only part of a screen
+   * with nothing in it, and it reads as unfinished rather than as open water.
+   * Deep blue is a bigger empty field than sky ever was.
+   *
+   * Angled, because vertical beams read as bars. A diagonal in pixel art is a
+   * staircase and that is correct -- the era had no other way to draw one, and
+   * the steps are what stop it looking like a gradient somebody airbrushed on.
+   */
+  private paintShafts(ctx: CanvasRenderingContext2D, t: number, step: number): void {
+    const wide = t * GRID_W;
+    const tall = t * GRID_H;
+    ctx.save();
+    ctx.globalAlpha = 0.07;
+    ctx.fillStyle = "#b6dcff";
+    // Fixed positions, like the clouds: light through water is not a thing to
+    // be surprised by, and a layout that changed per level would be one more
+    // thing moving on a page that has enough already.
+    for (const from of [2, 9, 15, 21]) {
+      const top = from * t;
+      const width = step * 10;
+      for (let y = 0; y < tall; y += step) {
+        // One step right for every two down: a shallow rake, the way light
+        // actually comes in, rather than a 45-degree wedge.
+        const shift = Math.floor(y / (step * 2)) * step;
+        const x = top + shift;
+        if (x > wide) break;
+        ctx.fillRect(x, y, width, step);
+      }
+    }
+    ctx.restore();
+  }
+
+  /**
+   * Bubbles, rising.
+   *
+   * The one thing on screen that says which way is up without any words, on a
+   * screen whose whole rule is that air is up. Slow, few, and drawn as rings
+   * rather than dots so they read as bubbles and not as bullets.
+   */
+  private paintBubbles(ctx: CanvasRenderingContext2D, t: number, step: number): void {
+    const tall = t * GRID_H;
+    const drift = this.spinning ? Date.now() : 0;
+    ctx.save();
+    ctx.globalAlpha = 0.65;
+    ctx.fillStyle = "#b6dcff";
+    for (const bubble of BUBBLES) {
+      // Rising and wrapping: up past the surface, back in at the seabed.
+      const travelled = Math.floor(drift / bubble.rate) * step;
+      const y = tall - (((travelled + bubble.y * t) % (tall + t)) | 0);
+      // A slow sway, in whole pixels, so it wobbles rather than sliding.
+      const sway = Math.floor(y / (step * 6)) % 2 === 0 ? 0 : step;
+      const x = bubble.x * t + sway;
+      const r = bubble.size * step;
+      // A ring: the outline, and nothing in the middle.
+      ctx.fillRect(x, y, r, step);
+      ctx.fillRect(x, y + r - step, r, step);
+      ctx.fillRect(x, y, step, r);
+      ctx.fillRect(x + r - step, y, step, r);
+    }
+    ctx.restore();
   }
 
   /** The colour for a tile, in whichever world this level is. */

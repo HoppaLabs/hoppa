@@ -1,7 +1,7 @@
 // The engine contract. Engines are pure state machines over integer state:
 // they take an input, advance, and emit tile indices. They never touch pixels.
 
-export type EngineID = "delve" | "shove" | "roam" | "dash";
+export type EngineID = "delve" | "shove" | "roam" | "dash" | "swim";
 
 // The closed capability vocabulary (spec S6). Nothing consumes these yet;
 // they arrive with preset creatures on day 4.

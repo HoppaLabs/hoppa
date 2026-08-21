@@ -27,7 +27,7 @@ test("every build ships: retiring one would break every link that pinned it", ()
     // Append-only, and in the order the table declares them rather than in
     // version order: roam/7 sits next to roam/6 because that is where it was
     // added. What matters is that nothing ever LEAVES.
-    "roam/6", "roam/7", "dash/6", "dash/7", "roam/8",
+    "roam/6", "roam/7", "dash/6", "dash/7", "roam/8", "swim/1",
   ]);
 });
 
