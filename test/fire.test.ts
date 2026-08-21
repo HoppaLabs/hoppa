@@ -126,7 +126,7 @@ test("one tile index, two worlds, and neither engine knows which", () => {
   expect(OUTSIDE.fire.length).toBe(TILE_PX);
   for (const row of [...UNDERGROUND.fire, ...OUTSIDE.fire]) {
     expect(row.length).toBe(TILE_PX);
-    expect(row).toMatch(/^[.123]+$/);
+    expect(row).toMatch(/^[.1-9]+$/);
   }
   // Spikes sit ON the ground, so the bottom row is solid and the top is not:
   // the shape has to say which way is down.

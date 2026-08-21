@@ -24,7 +24,7 @@
 // drawing somebody made: those are animated or personal, and flattening them
 // into static tiles would be a step backwards.
 
-import { PALETTE, type SubPalette } from "./palette.ts";
+import { PALETTE } from "./palette.ts";
 import { SPRITE_W } from "./sprite.ts";
 
 export const TILE_PX = SPRITE_W;
@@ -32,69 +32,89 @@ export const TILE_PX = SPRITE_W;
 /**
  * A tile as sixteen rows of sixteen characters.
  *
- * "." is transparent -- whatever is behind shows through -- and 1, 2 and 3 are
- * the three colours of whichever sub-palette the world is using.
+ * "." is transparent -- whatever is behind shows through -- and 1 upwards are
+ * steps of whichever RAMP the pattern is drawn against, darkest first.
+ *
+ * It used to be 1, 2 and 3 and nothing else, because a tile borrowed the
+ * machinery a CREATURE uses and a creature is three colours by spec S5: it
+ * travels in a link and gets two bits a pixel. A tile travels nowhere. That
+ * ceiling was inherited, not chosen, and it is the reason the terrain read as
+ * flat next to the era it is imitating -- the SNES gave a sprite fifteen
+ * colours and a background layer more, and what it spent them on was
+ * SHADING: a lit top edge, a mid face, a shadowed underside, in one material.
+ *
+ * A creature is still three. It still travels in a link.
  */
 export type Pattern = readonly string[];
 
+/**
+ * The colours a pattern is drawn in: palette indices, darkest first.
+ *
+ * Nine at most, because a pattern row is characters and "1".."9" is what
+ * there is. Nothing has needed nine yet.
+ */
+export type Ramp = readonly number[];
+
+export const RAMP_MAX = 9;
+
 /** Stone, seen from above: blocks with mortar between them, offset by row. */
 const STONE: Pattern = [
-  "2222222222222222",
-  "2333333322333333",
-  "2333333322333333",
-  "2333333322333333",
-  "2222222222222222",
-  "3333223333333322",
-  "3333223333333322",
-  "3333223333333322",
-  "2222222222222222",
-  "2333333322333333",
-  "2333333322333333",
-  "2333333322333333",
-  "2222222222222222",
-  "3333223333333322",
-  "3333223333333322",
+  "2111111121111111",
+  "2444444424444444",
+  "2333333323333333",
+  "2322333323333233",
+  "1111111111111111",
+  "4444424444444424",
+  "3333323333333323",
+  "3323323332333323",
+  "2111111121111111",
+  "2444444424444444",
+  "2333333323333333",
+  "2333233323322333",
+  "1111111111111111",
+  "4444424444444424",
+  "3333323333333323",
   "1111111111111111",
 ];
 
 /** Ground, seen from the side: a bright top edge and darker earth below. */
 const EARTH: Pattern = [
-  "3333333333333333",
-  "3333333333333333",
-  "3333333333333333",
-  "3333333333333333",
-  "2333233332333332",
-  "2233222322232222",
+  "5555555555555555",
+  "4544455444554455",
+  "4444444444444444",
+  "3343333433343333",
   "2222222222222222",
-  "2222112222221122",
-  "2222112222221122",
-  "2222222222222222",
-  "1122222211222222",
-  "1122222211222222",
-  "2222222222222222",
-  "2221122222211222",
-  "2221122222211222",
-  "2222222222222222",
+  "1111111111111111",
+  "7777677777777677",
+  "7767777777677777",
+  "7777778777777778",
+  "6777777776777777",
+  "7778777777787777",
+  "7777776777777767",
+  "7677777777677777",
+  "7777788777778877",
+  "7777777777777777",
+  "6666666666666666",
 ];
 
 /** Open ground from above. Nearly plain: it is the thing you walk on, not the
  *  thing you look at, and a busy floor makes a gem hard to spot. */
 const GROUND: Pattern = [
   "1111111111111111",
+  "1222222212222222",
+  "1222222212222222",
+  "1222232212222222",
+  "1222222212223222",
+  "1222222212222222",
+  "1222222212222222",
   "1111111111111111",
-  "1111111111111111",
-  "1111221111111111",
-  "1111221111111111",
-  "1111111111111111",
-  "1111111111111111",
-  "1111111111112211",
-  "1111111111112211",
-  "1111111111111111",
-  "1122111111111111",
-  "1122111111111111",
-  "1111111111111111",
-  "1111111111111111",
-  "1111111111111111",
+  "1222222212222222",
+  "1222222212222222",
+  "1222222212222222",
+  "1223222212222222",
+  "1222222212222322",
+  "1222222212222222",
+  "1222222212222222",
   "1111111111111111",
 ];
 
@@ -118,38 +138,45 @@ const AIR: Pattern = [
   "................",
 ];
 
-/** A ladder: two rails and a rung, tileable end to end. */
+/** A ladder: two round wooden rails and a rung, tileable end to end. */
 const LADDER: Pattern = [
-  "..33........33..",
-  "..33........33..",
-  "..33........33..",
-  "..33........33..",
-  "..333333333333..",
-  "..333333333333..",
-  "..33........33..",
-  "..33........33..",
-  "..33........33..",
-  "..33........33..",
-  "..333333333333..",
-  "..333333333333..",
-  "..33........33..",
-  "..33........33..",
-  "..33........33..",
-  "..33........33..",
+  "..1432....1432..",
+  "..1432....1432..",
+  "..1432....1432..",
+  "..1432....1432..",
+  "..144444444441..",
+  "..122222222221..",
+  "..1432....1432..",
+  "..1432....1432..",
+  "..1432....1432..",
+  "..1432....1432..",
+  "..144444444441..",
+  "..122222222221..",
+  "..1432....1432..",
+  "..1432....1432..",
+  "..1432....1432..",
+  "..1432....1432..",
 ];
 
 export interface Tileset {
   readonly id: number;
   readonly name: string;
-  /** Three palette indices: dark, mid, light. */
-  readonly sub: SubPalette;
+  /** The terrain's ramp: palette indices, darkest first. */
+  readonly sub: Ramp;
   readonly wall: Pattern;
   readonly floor: Pattern;
   readonly ladder: Pattern;
+  /**
+   * A ramp for the ladder alone, for the same reason the hazard has one: it is
+   * a different MATERIAL from the ground it is bolted to. Borrowing the
+   * terrain's ramp made it stone underground and GRASS GREEN outside, which is
+   * not a thing a ladder is made of.
+   */
+  readonly ladderSub: Ramp;
   /** The hazard that does not move: a flame below ground, spikes above it. */
   readonly fire: Pattern;
   /**
-   * Three colours for the hazard alone.
+   * A ramp for the hazard alone.
    *
    * It is a different MATERIAL from the terrain, and it borrowed the terrain's
    * palette at first: underground that made the flame stone grey, so it read
@@ -157,7 +184,7 @@ export interface Tileset {
    * else on screen needs its own palette, because nothing else is trying to
    * look hot.
    */
-  readonly fireSub: SubPalette;
+  readonly fireSub: Ramp;
   /**
    * Extra frames for the hazard, if it is the kind of thing that moves.
    *
@@ -187,20 +214,20 @@ export interface Tileset {
 const FLAME: Pattern = [
   "................",
   "................",
-  ".......33.......",
+  "......222.......",
+  "......222.......",
+  "......222.......",
   "......333.......",
-  "......3323......",
-  ".....33223......",
-  ".....332233.....",
-  "....3322233.....",
-  "....33221233....",
-  "...332211233....",
-  "...332111233....",
-  "..33321112333...",
-  "..33221112233...",
-  "..33221112233...",
-  ".33322111223333.",
-  "3333222222233333",
+  "......333.......",
+  ".....34443......",
+  ".....44444......",
+  "....3445443.....",
+  "....4455544.....",
+  "...345565543....",
+  "..23455655432...",
+  "..23455655432...",
+  "1223344555443221",
+  "1122333444333221",
 ];
 
 /**
@@ -223,38 +250,38 @@ const FLAME_FRAMES: readonly Pattern[] = [
   [
     "................",
     "................",
-    "......33........",
-    "......333.......",
-    ".....3323.......",
-    ".....33223......",
-    "....332233......",
-    "....3322233.....",
-    "...33221233.....",
-    "...33211233.....",
-    "..333211123.....",
-    "..33211122333...",
-    "..33221112233...",
-    ".333221112233...",
-    ".33322111223333.",
-    "3333222222233333",
+    ".....12.........",
+    ".....22.........",
+    ".....22.........",
+    ".....333........",
+    ".....333........",
+    "....33444.......",
+    "....34444.......",
+    "....445544......",
+    "...3455554......",
+    "...34556544.....",
+    "..3345665443....",
+    ".233455654432...",
+    "1223344555443221",
+    "1122333444333221",
   ],
   [
     "................",
     "................",
-    "........33......",
+    "........21......",
+    "........22......",
+    "........22......",
     ".......333......",
-    ".......3233.....",
-    "......33223.....",
-    "......332233....",
-    ".....3322233....",
-    ".....33221233...",
-    "....332211233...",
-    "....3321112333..",
-    "...3321112233...",
-    "..33221112233...",
-    "..332211122333..",
-    ".33322111223333.",
-    "3333222222233333",
+    ".......333......",
+    "......44433.....",
+    "......44443.....",
+    ".....445544.....",
+    ".....4555543....",
+    "....44565543....",
+    "...3445665433...",
+    "..234456554332..",
+    "1223344555443221",
+    "1122333444333221",
   ],
 ];
 
@@ -275,35 +302,39 @@ const FLAME_FRAMES: readonly Pattern[] = [
  * The pale flank down the left is what lights it.
  */
 const SPIKES: Pattern = [
-  ".......11.......",
-  ".......12.......",
-  "......1122......",
-  "......1222......",
-  ".....112222.....",
-  ".....122222.....",
-  "....11222222....",
-  "....12222222....",
-  "...1122222222...",
-  "...1222222222...",
-  "..112222222222..",
-  "..122222222222..",
-  ".11222222222222.",
-  ".12222222222222.",
-  "3333333333333333",
-  "3333333333333333",
+  ".......56.......",
+  ".......54.......",
+  "......4543......",
+  "......4443......",
+  ".....45443......",
+  ".....44443......",
+  "....4544432.....",
+  "....4444332.....",
+  "...45444332.....",
+  "...444433322....",
+  "..4544433322....",
+  "..4444333222....",
+  ".454443332222...",
+  ".444433322222...",
+  "2222222222222222",
+  "1111111111111111",
 ];
 
 export const UNDERGROUND: Tileset = {
   id: 1,
   name: "underground",
-  sub: [1, 2, 3], // #1a212b edge, #39485c stone, #7c8899 highlight
+  // Darkest first: pit, mortar, shadow, face, lit edge.
+  sub: [0, 1, 2, 3, 4],
   wall: STONE,
   floor: GROUND,
   ladder: LADDER,
+  // Wood, everywhere: edge, lit, face, shadow.
+  ladderSub: [1, 52, 51, 49],
   fire: FLAME,
   fireFrames: FLAME_FRAMES,
   // Pale core, orange body, red edge: hot, and nothing else down here is warm.
-  fireSub: [29, 34, 40], // #ffe9a3, #ff9f3d, #ff5f4d
+  // Dark red edge up to a white heart.
+  fireSub: [39, 40, 34, 28, 29, 5],
   ground: PALETTE[0] as string, // #0d1014
 };
 
@@ -311,16 +342,19 @@ export const UNDERGROUND: Tileset = {
 export const OUTSIDE: Tileset = {
   id: 2,
   name: "outside",
-  sub: [19, 20, 21], // #12521f earth, #1c7d2c grass, #2fae42 lit grass
+  // Four steps of grass, then three of the soil under it.
+  sub: [18, 19, 20, 21, 22, 49, 50, 51],
   wall: EARTH,
   floor: AIR,
   ladder: LADDER,
+  ladderSub: [1, 52, 51, 49],
   // Spikes, not a flame: see SPIKES.
   fire: SPIKES,
   // Dark metal with a bright tip, which is the way round that reads: a pale
   // spike is lost against the sky above it, and a dark one stands out against
   // both the sky and the green it is standing on.
-  fireSub: [4, 2, 1], // #cdd6e0 tips, #39485c body, #1a212b base
+  // Metal, lit from the left, on a shadow it casts into its own tile.
+  fireSub: [0, 1, 2, 3, 4, 5],
   ground: "#8fc4e8",
 };
 
@@ -339,19 +373,21 @@ export function tilesetFor(sideOn: boolean): Tileset {
 }
 
 /** The colour of one pattern character, or null where it is transparent. */
-export function inkOf(set: Tileset, ch: string, sub: SubPalette = set.sub): string | null {
-  if (ch === "1") return PALETTE[sub[0]] as string;
-  if (ch === "2") return PALETTE[sub[1]] as string;
-  if (ch === "3") return PALETTE[sub[2]] as string;
-  return null;
+export function inkOf(set: Tileset, ch: string, sub: Ramp = set.sub): string | null {
+  const step = (ch.charCodeAt(0) - 49) | 0;   // "1" -> 0
+  if (step < 0 || step >= sub.length) return null;
+  const index = sub[step];
+  if (index === undefined) return null;
+  return PALETTE[index] as string;
 }
 
-/** Every pattern is 16x16 and uses nothing but ".", "1", "2" and "3". */
-export function patternIsSound(pattern: Pattern): boolean {
+/** Every pattern is 16x16 and uses nothing but "." and the digits 1 to 9. */
+export function patternIsSound(pattern: Pattern, steps = RAMP_MAX): boolean {
   if (pattern.length !== TILE_PX) return false;
+  const allowed = `.${"123456789".slice(0, Math.max(0, Math.min(RAMP_MAX, steps)))}`;
   for (const row of pattern) {
     if (row.length !== TILE_PX) return false;
-    for (const ch of row) if (!".123".includes(ch)) return false;
+    for (const ch of row) if (!allowed.includes(ch)) return false;
   }
   return true;
 }

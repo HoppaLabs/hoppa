@@ -1,13 +1,13 @@
 import { expect, test } from "bun:test";
 import { PALETTE, PALETTE_SIZE } from "../src/core/palette.ts";
 import {
-  OUTSIDE, TILESETS, TILE_PX, UNDERGROUND, inkOf, patternIsSound, tilesetFor,
+  OUTSIDE, RAMP_MAX, TILESETS, TILE_PX, UNDERGROUND, inkOf, patternIsSound, tilesetFor,
 } from "../src/core/tileset.ts";
 
 test("every tile is square on the shared grid, three colours plus transparent", () => {
   for (const set of TILESETS) {
     for (const [name, pattern] of [["wall", set.wall], ["floor", set.floor], ["ladder", set.ladder]] as const) {
-      expect({ set: set.name, name, sound: patternIsSound(pattern) })
+      expect({ set: set.name, name, sound: patternIsSound(pattern, set.sub.length) })
         .toEqual({ set: set.name, name, sound: true });
       expect(pattern).toHaveLength(TILE_PX);
     }
@@ -21,8 +21,12 @@ test("sub-palettes are real palette entries", () => {
       expect(index).toBeGreaterThanOrEqual(0);
       expect(index).toBeLessThan(PALETTE_SIZE);
     }
-    // Three DIFFERENT colours, or the art has no shading to work with.
-    expect(new Set(set.sub).size).toBe(3);
+    // A RAMP: at least three steps, all different, no more than the digits
+    // "1".."9" can name. Three was the old ceiling, inherited from the
+    // creature format for no reason a tile has to obey -- see Pattern.
+    expect(set.sub.length).toBeGreaterThanOrEqual(3);
+    expect(set.sub.length).toBeLessThanOrEqual(RAMP_MAX);
+    expect(new Set(set.sub).size).toBe(set.sub.length);
   }
 });
 
@@ -54,7 +58,10 @@ test("patternIsSound catches a malformed tile", () => {
   const wide = (fill: string) => new Array(TILE_PX).fill(fill.repeat(TILE_PX / 8));
   expect(patternIsSound(["1234567"])).toBe(false);            // too few rows
   expect(patternIsSound(wide("1234567"))).toBe(false);        // rows too short
-  expect(patternIsSound(wide("11111119"))).toBe(false);       // bad character
+  expect(patternIsSound(wide("1111111x"))).toBe(false);       // bad character
+  // ...and a digit past the end of the ramp it is drawn against.
+  expect(patternIsSound(wide("11111119"), 3)).toBe(false);
+  expect(patternIsSound(wide("11111113"), 3)).toBe(true);
   expect(patternIsSound(wide("...11223"))).toBe(true);
 });
 

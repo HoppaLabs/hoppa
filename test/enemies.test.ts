@@ -61,7 +61,14 @@ test("an enemy may have more materials than a creature can", () => {
   // holding it to three inks was drawing it with the creature machinery.
   for (const one of ENEMIES) {
     expect(one.inks.length).toBeGreaterThanOrEqual(3);
-    expect(one.inks.length).toBeLessThanOrEqual(7);
+    // Nine: a row is characters and "1".."9" is what there is.
+    expect(one.inks.length).toBeLessThanOrEqual(9);
+    // ...and every one of them is spent. A ramp with an unused step is a step
+    // that was never drawn with.
+    const used = new Set(one.frames.flat().join("").split("").filter((c) => c !== "."));
+    expect({ enemy: one.name, unused: one.inks.length - used.size }).toEqual({
+      enemy: one.name, unused: 0,
+    });
     for (const ink of one.inks) expect(ink).toMatch(/^#[0-9a-f]{6}$/);
   }
   // ...and every ink is actually drawn with. An unused colour in a budget this

@@ -8,7 +8,9 @@ import { colourFor } from "../../core/palette.ts";
 import { SPRITE_H, SPRITE_W, spriteIndex, type Sprite } from "../../core/sprite.ts";
 import { ONE } from "../../core/fixed.ts";
 import { ENEMIES } from "../../core/enemies.ts";
-import { TILE_PX, inkOf, tilesetFor, type Pattern, type Tileset } from "../../core/tileset.ts";
+import {
+  TILE_PX, inkOf, tilesetFor, type Pattern, type Ramp, type Tileset,
+} from "../../core/tileset.ts";
 import {
   TILE_ACTOR,
   TILE_GUARD_REELING,
@@ -155,17 +157,17 @@ const CLOUDS: readonly { at: Cloud; x: number; y: number; drift: number }[] = [
 const GEM_FRAMES: readonly Pattern[] = [
   [
     ".......11.......",
-    "......1321......",
-    ".....132221.....",
-    "....13322221....",
-    "...1332222221...",
-    "..133322222221..",
-    ".13332222222221.",
-    ".12222222222221.",
-    "..122222222221..",
-    "...1222222221...",
-    "....12222221....",
-    ".....122221.....",
+    "......1441......",
+    ".....144551.....",
+    "....14445531....",
+    "...1444553321...",
+    "..144445533221..",
+    ".14444455332221.",
+    ".13334455533221.",
+    "..133344533221..",
+    "...1333333221...",
+    "....13333221....",
+    ".....133221.....",
     "......1221......",
     ".......11.......",
     "................",
@@ -173,16 +175,16 @@ const GEM_FRAMES: readonly Pattern[] = [
   ],
   [
     ".......11.......",
+    "......1441......",
+    "......1451......",
+    ".....144531.....",
+    ".....145531.....",
+    "....14453321....",
+    "....13453321....",
+    "....1333321.....",
+    ".....133321.....",
+    ".....133221.....",
     "......1321......",
-    "......1321......",
-    ".....132221.....",
-    ".....132221.....",
-    "....13322221....",
-    "....13222221....",
-    "....12222221....",
-    ".....122221.....",
-    ".....122221.....",
-    "......1221......",
     "......1221......",
     ".......11.......",
     ".......11.......",
@@ -192,14 +194,14 @@ const GEM_FRAMES: readonly Pattern[] = [
   [
     ".......11.......",
     ".......11.......",
+    "......1451......",
+    "......1451......",
+    "......1451......",
+    "......1431......",
+    "......1431......",
+    "......1331......",
     "......1321......",
     "......1321......",
-    "......1321......",
-    "......1321......",
-    "......1321......",
-    "......1221......",
-    "......1221......",
-    "......1221......",
     "......1221......",
     "......1221......",
     ".......11.......",
@@ -223,18 +225,18 @@ const GEM_FRAMES: readonly Pattern[] = [
 const DOOR_SHUT: readonly Pattern[] = [[
   "................",
   ".11111111111111.",
-  ".12221222212221.",
-  ".12221222212221.",
-  ".12221222212221.",
-  ".12221233212221.",
-  ".12221322312221.",
-  ".12221333312221.",
-  ".12221333312221.",
-  ".12221333312221.",
-  ".12221311312221.",
-  ".12221222212221.",
-  ".12221222212221.",
-  ".12221222212221.",
+  ".14341243412431.",
+  ".14341243412431.",
+  ".11111111111111.",
+  ".14341556412431.",
+  ".14341565412431.",
+  ".14341555412431.",
+  ".14341555412431.",
+  ".14341565412431.",
+  ".11111555111111.",
+  ".14341243412431.",
+  ".14341243412431.",
+  ".14341243412431.",
   ".11111111111111.",
   "................",
 ]];
@@ -242,32 +244,36 @@ const DOOR_SHUT: readonly Pattern[] = [[
 const DOOR_OPEN: readonly Pattern[] = [[
   "................",
   ".11111111111111.",
-  ".13333333333331.",
-  ".13333333333331.",
-  ".13333333333331.",
-  ".13333333333331.",
-  ".13333333333331.",
-  ".13333333333331.",
-  ".13333333333331.",
-  ".13333333333331.",
-  ".13333333333331.",
-  ".13333333333331.",
-  ".13333333333331.",
+  ".12222222222221.",
+  ".12333333333321.",
+  ".12344444444321.",
+  ".12344444444321.",
+  ".12344444444321.",
+  ".12344444444321.",
+  ".12344444444321.",
+  ".12344444444321.",
+  ".12344444444321.",
+  ".12333333333321.",
+  ".12222222222221.",
   ".13333333333331.",
   ".11111111111111.",
   "................",
 ]];
 
 /** Frame, face, brass or glow. */
-const DOOR_INKS: Record<string, readonly [string, string, string]> = {
-  shut: ["#6f5681", "#8a6f9e", "#ffc23d"],
-  open: ["#2f7a4a", "#6fe08a", "#d8ffe6"],
+const DOOR_INKS: Record<string, readonly string[]> = {
+  // Oak: edge, shadow, face, lit; then brass and its shine.
+  shut: ["#2a1a0d", "#4a2f16", "#6f4823", "#9a6b38", "#a37c14", "#ffc23d"],
+  // The way through: frame, the dark beyond, glow, the light you walk into.
+  open: ["#2a1a0d", "#12306b", "#2f7a4a", "#6fe08a"],
 };
 
 /** Outline, face, highlight -- for each world. */
-const GEM_INKS: Record<string, readonly [string, string, string]> = {
-  underground: ["#0e3b4a", "#7fe3ff", "#ffffff"],
-  outside: ["#3d0029", "#a3006f", "#ff9fd8"],
+const GEM_INKS: Record<string, readonly string[]> = {
+  // Rim, shadowed facet, body, lit facet, specular. A gem is not one blue and
+  // a white dot -- what makes it read as CUT is that the facets disagree.
+  underground: ["#062f2f", "#12807a", "#1fb3a6", "#5fe0d2", "#ffffff"],
+  outside: ["#25093a", "#6b1fa8", "#9a3ad5", "#e8b6ff", "#ffffff"],
 };
 
 /** The gem's shape: a diamond, so a spin is a change of width and nothing else. */
@@ -407,7 +413,9 @@ export function tileChip(
   }
 
   if (pattern !== null) {
-    const sub = tile === TILE_FIRE ? set.fireSub : set.sub;
+    const sub = tile === TILE_FIRE ? set.fireSub
+      : tile === TILE_LADDER ? set.ladderSub
+      : set.sub;
     // The gem and the door carry their own colours rather than the terrain's.
     const own =
       tile === TILE_TREASURE
@@ -438,7 +446,7 @@ export function tileChip(
 function paintInked(
   ctx: CanvasRenderingContext2D,
   pattern: Pattern,
-  inks: readonly [string, string, string],
+  inks: readonly string[],
   left: number,
   top: number,
   size: number,
@@ -449,7 +457,9 @@ function paintInked(
     for (let x = 0; x < TILE_PX; x++) {
       const ch = row[x] as string;
       if (ch === ".") continue;
-      ctx.fillStyle = inks[(ch.charCodeAt(0) - 49) as 0 | 1 | 2] as string;
+      const ink = inks[ch.charCodeAt(0) - 49];
+      if (ink === undefined) continue;
+      ctx.fillStyle = ink;
       ctx.fillRect(
         left + Math.floor(x * step),
         top + Math.floor(y * step),
@@ -463,7 +473,7 @@ function paintInked(
 function paintPattern(
   ctx: CanvasRenderingContext2D,
   pattern: Pattern,
-  sub: Tileset["sub"],
+  sub: Ramp,
   set: Tileset,
   size: number,
 ): void {
@@ -597,7 +607,10 @@ export class GridRenderer {
         for (let x = 0; x < row.length; x++) {
           const ch = row[x] as string;
           if (ch === ".") continue;
-          ctx.fillStyle = ch === "X" ? "#ffffff" : "#d7ecfa";
+          // Three tones. A cloud lit from above is white on top, its own
+          // colour through the middle and blue-grey underneath -- two tones
+          // read as a paper cut-out, which is what these were.
+          ctx.fillStyle = y < 3 ? "#ffffff" : ch === "X" ? "#e4f1fb" : "#b6d3ea";
           ctx.fillRect(left + x * step, top + y * step, step, step);
         }
       }
@@ -629,10 +642,10 @@ export class GridRenderer {
     // The hazard is the one thing that does not use the terrain palette: it is
     // a different material, and borrowing the terrain's colours made the flame
     // stone grey. See Tileset.fireSub.
-    const patterns: ReadonlyArray<readonly [number, Pattern, typeof set.sub]> = [
+    const patterns: ReadonlyArray<readonly [number, Pattern, Ramp]> = [
       [TILE_WALL, set.wall, set.sub],
       [TILE_FLOOR, set.floor, set.sub],
-      [TILE_LADDER, set.ladder, set.sub],
+      [TILE_LADDER, set.ladder, set.ladderSub],
       [TILE_FIRE, set.fire, set.fireSub],
     ];
 
@@ -732,7 +745,7 @@ export class GridRenderer {
   private stampGems(t: number): void {
     const set = this.tiles();
     if (this.gemStampedAt === t && this.gemStampedSet === set.name) return;
-    const inks = GEM_INKS[set.name] ?? GEM_INKS.underground as readonly [string, string, string];
+    const inks = GEM_INKS[set.name] ?? (GEM_INKS.underground as readonly string[]);
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
     this.gemStamps = GEM_FRAMES.map((frame) => {
       const canvas = document.createElement("canvas");
@@ -1133,7 +1146,7 @@ export class GridRenderer {
           paintInked(
             ctx,
             (open ? DOOR_OPEN[0] : DOOR_SHUT[0]) as Pattern,
-            (open ? DOOR_INKS.open : DOOR_INKS.shut) as readonly [string, string, string],
+            (open ? DOOR_INKS.open : DOOR_INKS.shut) as readonly string[],
             x * t,
             y * t,
             t,
