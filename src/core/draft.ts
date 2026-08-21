@@ -17,6 +17,10 @@ import {
   ENEMY_GLYPHS,
   GLYPH_BAT,
   GLYPH_DRAGON,
+  GLYPH_FLOW_DOWN,
+  GLYPH_FLOW_LEFT,
+  GLYPH_FLOW_RIGHT,
+  GLYPH_FLOW_UP,
   GLYPH_GUARD,
   GLYPH_LADDER,
   GLYPH_START,
@@ -45,6 +49,16 @@ export const MAX_GUARDS = 10;
  */
 export const MAX_FIRE = 10;
 
+/**
+ * How many cells of current a level may hold.
+ *
+ * The wire format's cap (see MAX_CURRENTS in codec.ts) and the same number.
+ * Twenty-four is two long corridors' worth, and it costs about 46 characters of
+ * link at the very worst -- against a level link that is 126 today and a
+ * ceiling of 350.
+ */
+export const MAX_FLOW = 24;
+
 export type Glyph =
   | typeof GLYPH_WALL
   | typeof GLYPH_FLOOR
@@ -55,7 +69,16 @@ export type Glyph =
   | typeof GLYPH_BAT
   | typeof GLYPH_DRAGON
   | typeof GLYPH_LADDER
-  | typeof GLYPH_FIRE;
+  | typeof GLYPH_FIRE
+  | typeof GLYPH_FLOW_LEFT
+  | typeof GLYPH_FLOW_RIGHT
+  | typeof GLYPH_FLOW_UP
+  | typeof GLYPH_FLOW_DOWN;
+
+/** The four currents, as a set to test against. */
+export const FLOW_SET: readonly string[] = [
+  GLYPH_FLOW_LEFT, GLYPH_FLOW_RIGHT, GLYPH_FLOW_UP, GLYPH_FLOW_DOWN,
+];
 
 export interface Draft {
   readonly engine: string;
@@ -287,6 +310,23 @@ export function paint(draft: Draft, x: number, y: number, glyph: Glyph): PaintRe
   // a FLAME on the floor of a cave, so it is fine anywhere.
   //
   // The bottom row of the grid counts as ground: you cannot fall off it.
+  // A current is water going somewhere, so it is only in the game that HAS
+  // water. Everywhere else the tool is not even offered; this is the backstop
+  // for a draft that arrived from a link or from storage.
+  if (FLOW_SET.includes(glyph)) {
+    if (!underwater(draft.engine)) {
+      return { draft, changed: false, reason: "currents are an underwater thing" };
+    }
+    const already = FLOW_SET.includes(cells[cell] as string);
+    if (!already && countOfAny(cells, FLOW_SET) >= MAX_FLOW) {
+      return {
+        draft,
+        changed: false,
+        reason: `${MAX_FLOW} cells of current is all a link will carry`,
+      };
+    }
+  }
+
   if (glyph === GLYPH_FIRE && sideOn(draft.engine)) {
     const below = y + 1 >= GRID_H ? GLYPH_WALL : (cells[cell + GRID_W] as string);
     if (below !== GLYPH_WALL) {
@@ -368,6 +408,15 @@ export function draftFromLevel(level: {
 export function retarget(draft: Draft, engine: string, behaviourVersion: number): Draft {
   if (engine === draft.engine) return { ...draft, behaviourVersion };
   const cells = draft.cells.slice() as Glyph[];
+  if (!underwater(engine)) {
+    // Same reasoning as the ladders below: a current in a level that cannot
+    // hold one encodes as nothing and then vanishes on the way back, which
+    // looks like a bug rather than like a rule.
+    for (let i = 0; i < cells.length; i = (i + 1) | 0) {
+      if (FLOW_SET.includes(cells[i] as string)) cells[i] = GLYPH_FLOOR;
+    }
+  }
+
   if (!falls(engine)) {
     // Only a game with gravity climbs. Nothing underwater needs a ladder, and a
     // ladder left in a level that cannot hold one would encode as nothing and

@@ -21,14 +21,29 @@ import {
 import { pixelsToText, spriteFromText, starterSprite } from "../core/sprite.ts";
 import { GRID_AREA } from "../core/grid.ts";
 import {
-  GLYPH_EXIT, GLYPH_FLOOR, GLYPH_GUARD, GLYPH_LADDER,
+  ENEMY_GLYPHS, FLOW_GLYPHS,
+  GLYPH_EXIT, GLYPH_FIRE, GLYPH_FLOOR, GLYPH_LADDER,
   GLYPH_START, GLYPH_TREASURE, GLYPH_WALL,
 } from "../core/level.ts";
 import type { Draft, Glyph } from "../core/draft.ts";
 
+/**
+ * Every glyph a stored draft may contain.
+ *
+ * Anything not in here throws the whole draft away as corrupt -- which is the
+ * right posture for storage that lies, and the wrong one to be careless with.
+ * It had fallen three entities behind: a bat, a lizard or a flame in a
+ * half-drawn level meant the level was silently gone on the next visit, and the
+ * child who drew it had no way to know why. Found while adding the currents.
+ *
+ * Built from the tool list rather than typed out, so the next entity cannot
+ * drift out of it the way those three did.
+ */
 const LEGAL_GLYPHS: readonly string[] = [
   GLYPH_WALL, GLYPH_FLOOR, GLYPH_START, GLYPH_EXIT,
-  GLYPH_TREASURE, GLYPH_GUARD, GLYPH_LADDER,
+  GLYPH_TREASURE, GLYPH_LADDER, GLYPH_FIRE,
+  ...ENEMY_GLYPHS,
+  ...FLOW_GLYPHS,
 ];
 import { normaliseSubPalette } from "../core/palette.ts";
 

@@ -20,6 +20,7 @@ import { RoamV6, ROAM_V6_BEHAVIOUR } from "./roam/v6.ts";
 import { RoamV7, ROAM_V7_BEHAVIOUR } from "./roam/v7.ts";
 import { RoamV8, ROAM_V8_BEHAVIOUR } from "./roam/v8.ts";
 import { SwimV1, SWIM_V1_BEHAVIOUR } from "./swim/v1.ts";
+import { SwimV2, SWIM_V2_BEHAVIOUR } from "./swim/v2.ts";
 import { DashV1, DASH_V1_BEHAVIOUR } from "./dash/v1.ts";
 import { DashV2, DASH_V2_BEHAVIOUR } from "./dash/v2.ts";
 import { DashV3, DASH_V3_BEHAVIOUR } from "./dash/v3.ts";
@@ -160,6 +161,14 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
     `swim/${SWIM_V1_BEHAVIOUR}`,
     (level, creature) =>
       creature === undefined ? new SwimV1(level) : new SwimV1(level, creature),
+  ],
+  // v2: the water goes somewhere. Currents are what give STRENGTH a job
+  // underwater -- and they invert the obvious, because the slowest creature in
+  // the game is the fastest one through a current. See docs/adr/0039.
+  [
+    `swim/${SWIM_V2_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new SwimV2(level) : new SwimV2(level, creature),
   ],
 ]);
 

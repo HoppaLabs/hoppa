@@ -18,6 +18,8 @@
 //   entity count       5 bits
 //   entities          12 bits each: 9-bit cell, 3-bit kind
 //   ladders                     ONLY for side-on engines -- see below
+//   currents                    ONLY for swimming engines -- 5-bit count, then
+//                               11 bits each: 9-bit cell, 2-bit direction
 //   (pad to a byte)
 //   checksum           8 bits   FNV-1a over every byte above
 //
@@ -66,6 +68,24 @@ const KIND_DRAGON = 6;
 const ENEMY_KINDS: readonly number[] = [KIND_GUARD, KIND_BAT, KIND_DRAGON];
 
 const MAX_ENTITIES = 31; // 5-bit count
+
+/**
+ * Engines whose levels carry currents.
+ *
+ * The same trick as the ladder map above, for the same reason and at the same
+ * price -- nothing. A current needs a DIRECTION, and the entity-kind field is
+ * three bits with seven of its eight values already spent, so four directions
+ * could never have been four kinds. Carried as its own field behind the engine
+ * id, it costs every level that is not underwater exactly zero bits.
+ */
+const CURRENT_ENGINES: readonly string[] = ["swim"];
+
+/** Spec L-something's cousin: a level may hold this many currents. */
+export const MAX_CURRENTS = 24;
+
+function carriesCurrents(engine: string): boolean {
+  return CURRENT_ENGINES.includes(engine);
+}
 
 /** Engines whose levels carry a ladder map. */
 const CLIMBING_ENGINES: readonly string[] = ["dash"];
@@ -226,6 +246,15 @@ export function encodeLevel(level: Level): string {
     }
   }
 
+  if (carriesCurrents(level.engine)) {
+    const many = Math.min(level.currentCells.length, MAX_CURRENTS);
+    bits.write(many, 5);
+    for (let i = 0; i < many; i = (i + 1) | 0) {
+      bits.write(level.currentCells[i] as number, 9);
+      bits.write((level.currentDirs[i] ?? 0) & 3, 2);
+    }
+  }
+
   const payload = bits.finish();
   const stamped = new Uint8Array(payload.length + 1);
   stamped.set(payload, 0);
@@ -355,6 +384,19 @@ export function decodeLevel(code: string): Level {
       }
     }
 
+    const flows: number[] = [];
+    const flowDirs: number[] = [];
+    if (carriesCurrents(engine)) {
+      const many = bits.read(5);
+      if (many > MAX_CURRENTS) throw new CodecError(`${many} currents; the format holds ${MAX_CURRENTS}`);
+      for (let i = 0; i < many; i = (i + 1) | 0) {
+        const cell = bits.read(9);
+        if (cell >= GRID_AREA) throw new CodecError("a current is off the grid");
+        flows.push(cell);
+        flowDirs.push(bits.read(2));
+      }
+    }
+
     if (startX < 0) throw new CodecError("the code has no start");
 
     const treasureCells = new Int16Array(treasures.length);
@@ -387,6 +429,8 @@ export function decodeLevel(code: string): Level {
       guardCells,
       guardArt: guardArtOut,
       ladders,
+      currentCells: Int16Array.from(flows),
+      currentDirs: Uint8Array.from(flowDirs),
       fireCells,
       fires,
     };

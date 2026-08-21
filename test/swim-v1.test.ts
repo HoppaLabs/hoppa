@@ -179,7 +179,8 @@ test("it is a world of its own, on the wire and on the screen", () => {
   // nothing at all.
   expect(ENGINE_IDS.indexOf("swim")).toBe(4);
   expect(ENGINE_IDS.slice(0, 4)).toEqual(["delve", "shove", "roam", "dash"]);
-  expect(newestBuild("swim")).toBe(1);
+  // v1 is still routed; v2 is what a new level is drawn under.
+  expect(newestBuild("swim")).toBe(2);
   expect(knownBuilds()).toContain("swim/1");
   // Drawn from the side, and NOT the outdoors -- which is why the boolean that
   // used to pick a tileset could not go on doing it alone.

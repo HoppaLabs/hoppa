@@ -39,6 +39,31 @@ export const GLYPH_LADDER = "H";
  */
 export const GLYPH_FIRE = "^";
 
+/**
+ * Water that flows, one glyph per direction.
+ *
+ * Lower-case letters rather than arrows, because a .lvl file is meant to be
+ * read by a person and `>` was already the exit. A row of `rrrrr` in a level
+ * file says what it does out loud.
+ *
+ * These are NOT entities. They ride in a swim-only field of their own, the way
+ * ladders ride in a dash-only one -- which is what stops them costing the
+ * entity-kind budget, of which exactly one value was left.
+ */
+export const GLYPH_FLOW_LEFT = "l";
+export const GLYPH_FLOW_RIGHT = "r";
+export const GLYPH_FLOW_UP = "u";
+export const GLYPH_FLOW_DOWN = "d";
+
+/** Index is the wire value, and the value the engine pushes by. Append only. */
+export const FLOW_GLYPHS: readonly string[] = [
+  GLYPH_FLOW_LEFT, GLYPH_FLOW_RIGHT, GLYPH_FLOW_UP, GLYPH_FLOW_DOWN,
+];
+
+/** How far one step of a current moves you, per direction. */
+export const FLOW_DX: readonly number[] = [-1, 1, 0, 0];
+export const FLOW_DY: readonly number[] = [0, 0, -1, 1];
+
 export interface Level {
   readonly schema: number;
   readonly engine: string;
@@ -88,6 +113,10 @@ export interface Level {
    * anyway, so that two levels with the same fires encode to the same bytes.
    */
   readonly fireCells: Int16Array;
+  /** Cells with a current in them. Swim only; empty everywhere else. */
+  readonly currentCells: Int16Array;
+  /** Which way each of them flows, in the SAME order. Index into FLOW_GLYPHS. */
+  readonly currentDirs: Uint8Array;
   /** GRID_AREA lookup: 1 where a cell is on fire. */
   readonly fires: Uint8Array;
 }
@@ -153,6 +182,8 @@ export function parseLevel(text: string): Level {
   const ladders = new Uint8Array(GRID_AREA);
   const fires = new Uint8Array(GRID_AREA);
   const burning: number[] = [];
+  const flows: number[] = [];
+  const flowDirs: number[] = [];
   let startX = -1;
   let startY = -1;
   let exitX = -1;
@@ -195,6 +226,12 @@ export function parseLevel(text: string): Level {
       } else if (ch === GLYPH_LADDER) {
         walls[idx(x, y)] = 0;
         ladders[idx(x, y)] = 1;
+      } else if (FLOW_GLYPHS.includes(ch)) {
+        // A current is open water with somewhere to be. Not a wall, and not an
+        // entity: you swim straight through it and it takes you with it.
+        walls[idx(x, y)] = 0;
+        flows.push(idx(x, y));
+        flowDirs.push(FLOW_GLYPHS.indexOf(ch) | 0);
       } else if (ch === GLYPH_FIRE) {
         // Fire stands on open ground, like every other entity. It is not a
         // wall: you CAN walk into it, which is the whole point of it.
@@ -224,6 +261,11 @@ export function parseLevel(text: string): Level {
     guardArt[i] = guardKinds[i] as number;
   }
 
+  const currentCells = new Int16Array(flows.length);
+  for (let i = 0; i < flows.length; i = (i + 1) | 0) currentCells[i] = flows[i] as number;
+  const currentDirs = new Uint8Array(flowDirs.length);
+  for (let i = 0; i < flowDirs.length; i = (i + 1) | 0) currentDirs[i] = flowDirs[i] as number;
+
   const fireCells = new Int16Array(burning.length);
   for (let i = 0; i < burning.length; i = (i + 1) | 0) {
     fireCells[i] = burning[i] as number;
@@ -247,6 +289,8 @@ export function parseLevel(text: string): Level {
     guardArt,
     ladders,
     fireCells,
+    currentCells,
+    currentDirs,
     fires,
   };
 }
