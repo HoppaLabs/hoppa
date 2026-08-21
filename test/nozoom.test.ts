@@ -6,11 +6,11 @@ const pages: Record<string, string> = {
   make: await Bun.file("src/web/make/main.ts").text(),
   level: await Bun.file("src/web/level/main.ts").text(),
 };
-const html: Record<string, string> = {
+const html = {
   play: await Bun.file("src/web/play/index.html").text(),
   make: await Bun.file("src/web/make/index.html").text(),
   level: await Bun.file("src/web/level/index.html").text(),
-};
+} as const;
 
 test("every page holds still under a stray pinch", () => {
   // Reported from watching children: they zoom the whole page by accident,
@@ -56,13 +56,52 @@ test("the level editor keeps the pinch it means", () => {
   expect(html.level).toContain("pinch to");
 });
 
-test("double-tap is still handled by CSS, where it is cheapest", () => {
-  // touch-action does double-tap for free and costs nothing at runtime; the
-  // listener is only a backstop for browsers that zoom anyway.
-  for (const [name, page] of Object.entries(html)) {
-    expect({ page: name, manipulation: page.includes("touch-action: manipulation") })
-      .toEqual({ page: name, manipulation: true });
+test("the pages a child plays and draws on hand NO gesture to the browser", () => {
+  // This asserted `touch-action: manipulation` on every page, and that was the
+  // bug rather than the rule.
+  //
+  //   manipulation   turns off double-tap. LEAVES PINCH ALONE.
+  //   none           the page handles its own touches
+  //
+  // Reported as "the zooming problem has got pretty bad since we introduced
+  // the dpad, as the user is dragging their finger more and tapping the action
+  // button" -- both of those are gestures the browser recognises, and the pad
+  // turned the pinch from something that happened occasionally into something
+  // that happens all game.
+  //
+  // Everything else here -- the gesture events, the two-finger touchmove, the
+  // double-tap timer -- was already in place and still it zoomed, because this
+  // one value acts BEFORE any script runs.
+  for (const name of ["play", "make"] as const) {
+    expect({ page: name, none: html[name].includes("touch-action: none;") })
+      .toEqual({ page: name, none: true });
+    expect({ page: name, weak: /^\s*touch-action: manipulation;/m.test(html[name]) })
+      .toEqual({ page: name, weak: false });
   }
+  // The level editor has a size control of its own and holdStill() is told to
+  // leave its viewport alone, so it is deliberately not locked down the same
+  // way. Written here so that making them all match is a decision somebody
+  // takes on purpose rather than a tidy-up.
+  expect(html.level).toContain("touch-action: manipulation;");
+});
+
+test("every surface a thumb lands on says it for itself", () => {
+  // touch-action is NOT inherited. Two were left reading `auto` while
+  // everything around them was locked down, and they are exactly the two a
+  // stray tap finds: #keys is the GAP between the round buttons, and #grid is
+  // the whole board.
+  expect(html.play).toContain("#keys, #grid, canvas { touch-action: none; }");
+  for (const surface of ["#pad {", "#dpad {"]) {
+    const at = html.play.indexOf(surface);
+    expect({ surface, found: at > -1 }).toEqual({ surface, found: true });
+    expect(html.play.slice(at, at + 400)).toContain("touch-action: none");
+  }
+});
+
+test("what genuinely scrolls gets its drag back, and only its drag", () => {
+  // The panel after a win is taller than a short phone. pan-y is the drag and
+  // nothing else: no pinch, no double-tap.
+  expect(html.play).toContain("#over * { touch-action: pan-y; }");
 });
 
 // --- and nothing gets long-pressed either --------------------------------------

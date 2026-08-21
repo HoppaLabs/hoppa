@@ -79,6 +79,15 @@ const MUTATIONS: readonly Mutation[] = [
     replace: "      if (chebyshev(enemy.x, enemy.y, this.x, this.y) > BODY + BODY) continue;",
   },
   {
+    // The value that looks right and is not: `manipulation` turns off
+    // double-tap and leaves PINCH alone, which is the gesture two thumbs make
+    // by accident all game long.
+    breaks: "the play page hands pinch back to the browser",
+    file: "src/web/play/index.html",
+    find: "    touch-action: none;\n  }\n  /* The title stays centred",
+    replace: "    touch-action: manipulation;\n  }\n  /* The title stays centred",
+  },
+  {
     breaks: "drowning stops saying it is drowning",
     file: "src/web/play/breath.ts",
     find: 'return { text: "no air -- swim up!", said: AIR_OUT };',

@@ -53,7 +53,14 @@
        a 664px phone -- spent on air, taken off the level. */
     justify-content: center; gap: 10px; padding: max(10px, env(safe-area-inset-top)) 10px
              max(10px, env(safe-area-inset-bottom));
-    touch-action: manipulation;
+    /* NONE, not `manipulation`.
+       `manipulation` only turns off double-tap zoom. It leaves PINCH alone --
+       which is the gesture two thumbs make by accident all game long, and it
+       got worse the moment the pad became something you drag rather than tap.
+       `none` is the value that says "this page handles its own touches", and
+       it is the only one the browser applies before any script runs.
+       Anything that genuinely scrolls asks for it back below. */
+    touch-action: none;
   }
   /* The title stays centred on the page, so the sound icon is taken out of the
      flow and hung on the right rather than allowed to push it off centre. It
@@ -278,8 +285,21 @@
     flex-direction: column; align-items: center; justify-content: center; gap: 12px;
     background: rgba(13, 16, 20, .95); text-align: center;
     padding: 20px 12px; overflow-y: auto;
+    /* The one thing on this page that scrolls: the panel after a win, which on
+       a short phone is taller than the screen. pan-y gives back the drag it
+       needs and nothing else -- no pinch, no double-tap. */
+    touch-action: pan-y;
   }
   #over.show { display: flex; }
+  /* touch-action is NOT inherited, so every surface a thumb can land on has to
+     say it for itself. The two that were left were the ones a stray tap
+     actually finds: #keys is the GAP between the two round buttons, and #grid
+     is the whole board. Both read `auto` -- the browser's to interpret -- while
+     everything around them was locked down. */
+  #keys, #grid, canvas { touch-action: none; }
+  /* ...and inside the end panel the drag has to keep working all the way down,
+     not only on the panel's own background. */
+  #over * { touch-action: pan-y; }
   #shut {
     position: absolute; top: 10px; right: 10px;
     font: inherit; font-size: 18px; line-height: 1; color: var(--ink);

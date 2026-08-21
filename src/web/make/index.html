@@ -44,7 +44,10 @@
   body {
     display: flex; flex-direction: column; align-items: center; gap: 12px;
     padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
-    touch-action: manipulation;
+    /* NONE, not `manipulation`: see the note on the play page. `manipulation`
+       leaves PINCH alone, and drawing a character is a drag with a thumb --
+       the same gesture, made by accident. #paper already handles its own. */
+    touch-action: none;
   }
   h1 {
     margin: 0; font-size: 12px; font-weight: 400; letter-spacing: .14em;
