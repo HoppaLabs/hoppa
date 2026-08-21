@@ -967,10 +967,21 @@ export class SwimV2 implements Engine {
   where(): { x: number; y: number; facing: number } {
     return { x: this.x, y: this.y, facing: this.facing };
   }
-  enemyPositions(): Array<{ x: number; y: number; stunned: boolean; chasing: boolean }> {
+  /**
+   * `dir` rides along so the picture can face the way the thing is going.
+   *
+   * A shark that always faces right moonwalks half its patrol. It is state the
+   * engine already keeps and already hashes -- this only stops it being
+   * private, exactly as dash/7 did when its enemies started moving.
+   */
+  enemyPositions(): Array<{
+    x: number; y: number; stunned: boolean; chasing: boolean; dir: number;
+  }> {
     return this.enemies
       .filter((e) => e.down === 0)
-      .map((e) => ({ x: e.x, y: e.y, stunned: e.stun > 0, chasing: e.chasing !== 0 }));
+      .map((e) => ({
+        x: e.x, y: e.y, stunned: e.stun > 0, chasing: e.chasing !== 0, dir: e.dir | 0,
+      }));
   }
   /** Enemies still standing, for the HUD. Presentation only. */
   enemiesLeft(): number {
