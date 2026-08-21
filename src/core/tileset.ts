@@ -476,6 +476,38 @@ const BRIDGE: Pattern = [
   "2222222222222222",
 ];
 
+/**
+ * A bush, seen from above.
+ *
+ * The garden used EARTH for its hedges, which is the SIDE-ON ground drawing --
+ * a bank of soil with grass along its top edge. Ninety cells of it, and from
+ * above every one read as terrain rather than as planting, which is most of why
+ * the first garden looked like a field with things dropped on it.
+ *
+ * It has to TILE, because a hedge is many cells of it: so it fills the cell
+ * edge to edge and the TEXTURE does the work, not an outline. Leaf clumps, each
+ * lit on its top-left and shadowed on its bottom-right, which is the whole of
+ * how the era drew a mass of leaves.
+ */
+const BUSH: Pattern = [
+  "1112232223422322",
+  "1343321112333211",
+  "1333331233333332",
+  "3333333223333322",
+  "2333332323333321",
+  "3333334333232211",
+  "3323233333121133",
+  "3332333333323433",
+  "3423333333213323",
+  "3223333333233322",
+  "2333332323123323",
+  "3333321343333332",
+  "3333331333332332",
+  "2232333333333331",
+  "2123333323233333",
+  "1112333233323332",
+];
+
 const SPIKES: Pattern = [
   ".......56.......",
   ".......54.......",
@@ -592,13 +624,16 @@ export const REEF: Tileset = {
 export const GARDEN: Tileset = {
   id: 4,
   name: "garden",
-  // Warmer. The first garden was leaf-green over cold grey-green grass and it
-  // came out looking like a lawn in February -- asked for "warmer colours", and
-  // the fix is in the ramp, not in a new drawing: the same hedge lit from
-  // sunlight down through leaf into the warm earth underneath it.
-  sub: [29, 23, 22, 21, 20, 52, 51, 50],
-  wall: EARTH,
-  wallTop: EARTH_TOP,
+  // Four steps of leaf: the dark between the clumps, the mass, the lit dome,
+  // and one specular where the sun catches the top of a big one.
+  //
+  // Warmer than the first pass, which was leaf-green over cold grey-green and
+  // came out looking like a lawn in February. Asked for "warmer colours"; the
+  // fix is the ramp, not a new drawing.
+  sub: [18, 19, 21, 29, 20, 52, 51, 50],
+  wall: BUSH,
+  // No separate cap: a bush seen from above has no top edge, and giving it one
+  // is what made the first hedges read as a bank of soil.
   floor: AIR,
   // A bridge, not a ladder. In a garden the tile you walk ALONG is a plank
   // crossing over water, which is the one thing a top-down world never had a

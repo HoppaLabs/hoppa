@@ -7,7 +7,7 @@ import { GRID_H, GRID_W } from "../../core/grid.ts";
 import { colourFor } from "../../core/palette.ts";
 import { SPRITE_H, SPRITE_W, spriteIndex, type Sprite } from "../../core/sprite.ts";
 import { ONE } from "../../core/fixed.ts";
-import { ENEMIES } from "../../core/enemies.ts";
+import { CASTS, ENEMIES } from "../../core/enemies.ts";
 import {
   TILE_PX, flipPattern, inkOf, tilesetFor, turnPattern,
   type Pattern, type Ramp, type Tileset,
@@ -915,6 +915,8 @@ export class GridRenderer {
    * anti-aliased, cannot be scaled by a fraction, and cannot tween.
    */
   private enemyStamps: HTMLCanvasElement[][] = [];
+  /** Which world the stamps above were drawn for. */
+  private castStampedFor = "";
 
   /** One stamp per gem frame, per world. Rebuilt when the tile size changes. */
   private gemStamps: HTMLCanvasElement[] = [];
@@ -941,8 +943,13 @@ export class GridRenderer {
   }
 
   private stampEnemies(): void {
-    if (this.enemyStamps.length > 0) return;
-    this.enemyStamps = ENEMIES.map((one) =>
+    // Rebuilt when the WORLD changes, not just once. A bat has no business in a
+    // rock pool and a goblin has none on a lawn: each world picks its own cast,
+    // the same way it already picks its gem colours.
+    const cast = CASTS[this.tiles().name] ?? ENEMIES;
+    if (this.enemyStamps.length > 0 && this.castStampedFor === this.tiles().name) return;
+    this.castStampedFor = this.tiles().name;
+    this.enemyStamps = cast.map((one) =>
       one.frames.map((frame) => {
         const stamp = document.createElement("canvas");
         stamp.width = SPRITE_W;
