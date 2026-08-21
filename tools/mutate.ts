@@ -32,6 +32,20 @@ interface Mutation {
 
 const MUTATIONS: readonly Mutation[] = [
   {
+    // The other half of the same line, and the one that shipped: `none` on a
+    // body turns the page's own scrolling off with the pinch.
+    breaks: "the creature editor stops scrolling, because its body says none",
+    file: "src/web/make/index.html",
+    find: "    touch-action: pan-y;",
+    replace: "    touch-action: none;",
+  },
+  {
+    breaks: "freshening a draft drops its skin, so the beach opens as a garden",
+    file: "src/core/draft.ts",
+    find: "  tilesetId = draft.tilesetId,",
+    replace: "  tilesetId = 0,",
+  },
+  {
     breaks: "the city forgets it is a skin, so a city level renders as a cave",
     file: "src/core/tileset.ts",
     find: "const SKINS: Readonly<Record<number, Tileset>> = { 5: BEACH, 6: CITY };",
@@ -139,7 +153,7 @@ const MUTATIONS: readonly Mutation[] = [
     // by accident all game long.
     breaks: "the play page hands pinch back to the browser",
     file: "src/web/play/index.html",
-    find: "    touch-action: none;\n  }\n  /* The title stays centred",
+    find: "    touch-action: pan-y;\n  }\n  /* The title stays centred",
     replace: "    touch-action: manipulation;\n  }\n  /* The title stays centred",
   },
   {
