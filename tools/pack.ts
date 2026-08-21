@@ -429,7 +429,19 @@ export const PACK: readonly PackLevel[] = [
     text: theReef(),
   },
   {
-    file: "11-the-garden.lvl",
+    file: "11-the-tall-rocks.lvl",
+    name: "the tall rocks",
+    teaches: "weave between the stacks; a current across pushes you off",
+    text: theTallRocks(),
+  },
+  {
+    file: "12-the-wreck.lvl",
+    name: "the wreck",
+    teaches: "down into the hold, and strength is what gets you back out",
+    text: theWreck(),
+  },
+  {
+    file: "13-the-garden.lvl",
     name: "the garden",
     teaches: "pick the flowers, mind the bear, keep out of the ponds",
     text: theGarden(),
@@ -499,6 +511,120 @@ function theReef(): string {
 
   room.put(2, 1, "@").put(21, 11, ">");
   return room.text(swim("ssss"));
+}
+
+/**
+ * The tall rocks. The second room in the water, and the one that teaches what
+ * a SIDEWAYS current does.
+ *
+ * It was drafted as a kelp forest, and the name did not survive looking at it:
+ * a wall in the reef is drawn as rock with a green top, so the "kelp" came out
+ * as a row of stone stacks. Naming a room after something it does not look
+ * like is the same class of mistake as the palette that said goblin over a
+ * picture of a shark -- so the room is named after what is on the screen.
+ *
+ * "The users are asking for more underwater templates" -- one shipped room in
+ * a whole game is not a template shelf, it is an example. The reef teaches the
+ * rising current; this one teaches the other thing a current can be, which is
+ * a thing that pushes you off your line while you are trying to thread a gap.
+ *
+ * Kelp is drawn as rock, in columns from the seabed up with a gap over each
+ * one, so the room reads as a forest to weave through rather than a wall to
+ * find the door in. Every column has a way past both above and beside it: this
+ * is a room to feel your way through, not a maze to solve.
+ *
+ * No creature in it, for the reason the reef has none -- see theReef(). A room
+ * that ships has to survive a bot that never dodges, and that is the same bar
+ * as a child on their first go.
+ */
+function theTallRocks(): string {
+  const room = new Room().border();
+  for (let x = 0; x < GRID_W; x++) room.put(x, 0, OPEN);
+
+  // Four stacks, rooted on the seabed, none of them reaching the surface.
+  // Uneven heights, because a row of equal columns reads as a comb.
+  const stacks: readonly (readonly [number, number])[] = [[5, 5], [9, 7], [14, 4], [18, 6]];
+  for (const [x, top] of stacks) room.line(x, top, x, GRID_H - 2, WALL);
+
+  // The currents run ACROSS, in the open water above the stacks: swim through
+  // them and you arrive one stand along from where you aimed. A strong
+  // creature holds its line; a fast one gets there first anyway.
+  room.line(6, 2, 8, 2, "r");
+  room.line(15, 3, 17, 3, "l");
+
+  // Urchins at the foot of two stacks, so the seabed is somewhere to be
+  // careful rather than the easy way along.
+  room.line(10, 12, 11, 12, "^").put(16, 12, "^");
+
+  // Gems: one in the open above, two down among the stacks where the current
+  // cannot help you.
+  room.put(11, 1, "$").put(7, 9, "$").put(16, 8, "$").put(21, 11, "$");
+
+  room.put(2, 1, "@").put(21, 2, ">");
+  return room.text(swim("rock"));
+}
+
+/**
+ * The wreck. The third room in the water, and the longest.
+ *
+ * A hull on the seabed with two ways in, and the thing inside it is a DOWN
+ * current in the hold -- the first current in the pack that pushes you
+ * somewhere you did not mean to go rather than somewhere you did. Swim in
+ * over the deck, drop through the hatch, take the gem, and come out of the
+ * hole in the bow.
+ *
+ * The way out is above the wreck rather than inside it, so the room ends by
+ * asking you to climb back out of the thing you just climbed into.
+ */
+function theWreck(): string {
+  const room = new Room().border();
+  for (let x = 0; x < GRID_W; x++) room.put(x, 0, OPEN);
+
+  // The deck of the wreck, with a hatch amidships and a hole at the bow.
+  // TWO CELLS WIDE, both of them.
+  //
+  // A one-cell gap in a wall is something a router walks into rather than
+  // through: the fast creature spent two minutes bouncing left and right
+  // underneath a single-cell hatch with every gem already picked up. The reef
+  // has a three-cell gap in its shelf and nothing has ever caught on it.
+  room.line(4, 7, 19, 7, WALL);
+  room.line(5, 7, 6, 7, OPEN);     // the hole in the bow
+  room.line(10, 7, 11, 7, OPEN);   // the hatch amidships
+  // The hull sides, which stop short of the seabed so you can swim out under.
+  room.line(4, 8, 4, 10, WALL);
+  room.line(19, 8, 19, 10, WALL);
+
+  // A broken mast: a stub, not a pole.
+  //
+  // It was four cells tall and the fast creature spent the whole two minutes
+  // bouncing off the side of it -- a one-cell-wide wall standing in open water
+  // is something a router walks into rather than round, and what a router does
+  // there is what a child does there. Snapped off at the deck, it reads as a
+  // wreck and gets in nobody's way.
+  room.line(14, 5, 14, 6, WALL);
+
+  // The hold: a down current, and NOT under the hatch.
+  //
+  // It was under it, and it made the room unwinnable for the middle creature:
+  // the bot came back up for the gem on deck, met the current head on in the
+  // only opening it knew, and spent the rest of the two minutes being pushed
+  // back down. Strong got through and fast went round; middling did neither.
+  // A current across the only way out is not a challenge, it is a door.
+  //
+  // Beside the hatch, it is what it was meant to be: a ride DOWN to the gem
+  // in the bilge, with clear water either side of it to come back up through.
+  room.line(15, 8, 15, 10, "d");
+
+  // Urchins in the hold, off to one side of the current so the drop is safe
+  // and the wander round the bottom is not.
+  room.line(7, 12, 8, 12, "^");
+
+  // Gems: one on deck, one in the hold at the bottom of the current, one out
+  // past the stern where nothing helps you.
+  room.put(9, 5, "$").put(15, 11, "$").put(21, 10, "$").put(2, 11, "$");
+
+  room.put(2, 1, "@").put(21, 2, ">");
+  return room.text(swim("wrck"));
 }
 
 /**

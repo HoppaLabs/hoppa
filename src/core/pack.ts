@@ -74,6 +74,18 @@ export const PACK: readonly PackLevel[] = [
     code: "EUDEAFIDM______-fkGkOkOkOkOlBEukOkOkOkOkOlBoDQjpGaLimKk0k8lsKuZozpoDRmAC",
   },
   {
+    slug: "the-tall-rocks",
+    name: "the tall rocks",
+    teaches: "weave between the stacks; a current across pushes you off",
+    code: "EUDEAE7QEAAAAQAAAwAAAwAAAwAEAwgEAwgEQwiEQwiEQwiEQwiEQwiEQwiEQ____pDQIpEaaCb6jqlUlcmEMNkbo4SuFgLILA",
+  },
+  {
+    slug: "the-wreck",
+    name: "the wreck",
+    teaches: "down into the hold, and strength is what gets you back out",
+    code: "EUDEAF1J0______-fkGkOkOkOkOCDjgg4kAkLkJBogQkGiBCQaIEOkOlBoDQIpQKgqhSi6k8lEGz9z7_wA4",
+  },
+  {
     slug: "the-garden",
     name: "the garden",
     teaches: "pick the flowers, mind the bear, keep out of the ponds",

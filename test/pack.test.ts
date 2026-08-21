@@ -42,10 +42,10 @@ const places = rooms.filter((room) => {
 });
 const gardens = rooms.filter((room) => parseLevel(room.text).engine === "calm");
 
-test("eleven rooms ship, and the file on disk is the code in the bundle", () => {
+test("thirteen rooms ship, and the file on disk is the code in the bundle", () => {
   // Six taught the game; three more teach the hazard that does not move; the
   // tenth is not a challenge at all.
-  expect(PACK.length).toBe(11);
+  expect(PACK.length).toBe(13);
   // The pack ships no PLACE any more: the garden became a level in adr/0045.
   expect(places).toHaveLength(0);
   expect(gardens).toHaveLength(1);
@@ -210,7 +210,7 @@ test("the play page is for playing: neither list is on it any more", () => {
 test("but the shipped rooms are still known to be shipped", () => {
   // Which matters for one thing that is NOT a list: a room the game ships with
   // has nobody to send a score back to, so it shares as a level.
-  expect(PACK.length).toBe(11);
+  expect(PACK.length).toBe(13);
   expect(play.includes("const shipped = new Set(PACK.map((room) => room.code));")).toBe(true);
   expect(play.includes("const isShipped = shipped.has(levelCode);")).toBe(true);
 });
