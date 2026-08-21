@@ -409,6 +409,30 @@ export function mix(base: string, tint: string, amount: number): string {
   return `rgb(${r},${g},${b})`;
 }
 
+/**
+ * What to draw in a cell whose tile index is an ACTOR.
+ *
+ * In a moving frame the actors are drawn afterwards at their real positions,
+ * so their cell is painted as whatever they are standing ON. That used to be
+ * plain floor unconditionally, which erased the ladder rung, bridge plank or
+ * cell of current underneath for as long as anybody stood there -- reported as
+ * "when the player sprites moves over a bridge or ladder or current the prop
+ * sprites disappear".
+ *
+ * Pure, and here rather than inline in the loop, because the only other way to
+ * see it is to stand on a ladder on a phone.
+ */
+export function standingOn(
+  tile: number,
+  mapOnly: boolean,
+  under: ReadonlyMap<number, number> | null,
+  cell: number,
+): number {
+  const isActor = tile === TILE_ACTOR || tile === TILE_GUARD || tile === TILE_GUARD_REELING;
+  if (!mapOnly || !isActor) return tile;
+  return under?.get(cell) ?? TILE_FLOOR;
+}
+
 /** Outline, face, highlight -- for each world. */
 const GEM_INKS: Record<string, readonly string[]> = {
   // Rim, shadowed facet, body, lit facet, specular. A gem is not one blue and
@@ -1150,6 +1174,8 @@ export class GridRenderer {
    * all three kinds, deliberately: no engine may be told which is which (hard
    * rule 4), so the art has to arrive beside the tiles rather than in them.
    */
+  private under: ReadonlyMap<number, number> | null = null;
+
   setGuardArt(art: ReadonlyMap<number, number> | null): void {
     this.guardArt = art;
   }
@@ -1165,6 +1191,23 @@ export class GridRenderer {
    */
   setFlowArt(art: ReadonlyMap<number, number> | null): void {
     this.flowArt = art;
+  }
+
+  /**
+   * What is really in a cell, for the cells something can STAND on.
+   *
+   * An engine emits one tile per cell and the actor overwrites whatever it is
+   * standing on, so a moving frame draws plain floor there and puts the sprite
+   * on top. On a ladder rung, a plank of a bridge or a cell of current, that
+   * erases the thing underneath -- reported as "when the player sprites moves
+   * over a bridge or ladder or current the prop sprites disappear".
+   *
+   * Read off the LEVEL, the same way guardArt and flowArt are, because it is
+   * exactly the same kind of fact: real, fixed, and none of the engine's
+   * business (hard rules 4 and 5).
+   */
+  setUnder(under: ReadonlyMap<number, number> | null): void {
+    this.under = under;
   }
 
   setSprite(sprite: Sprite | null): void {
@@ -1481,9 +1524,7 @@ export class GridRenderer {
         if (tile === TILE_VOID) continue;
         // In a moving frame the actors are drawn afterwards at their real
         // positions, so their tiles are just floor here.
-        if (mapOnly && (tile === TILE_ACTOR || tile === TILE_GUARD || tile === TILE_GUARD_REELING)) {
-          tile = TILE_FLOOR;
-        }
+        tile = standingOn(tile, mapOnly, this.under, y * GRID_W + x);
 
         // Treasure is a diamond, not a square: shape carries the difference
         // from the actor even when the tiles are tiny or the screen is dim.

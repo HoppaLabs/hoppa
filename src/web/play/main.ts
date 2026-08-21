@@ -48,6 +48,7 @@ import { paintLogo } from "../logo.ts";
 import { AIR_QUIET, breathPips, breathWarning, type Breath } from "./breath.ts";
 import { keepsFresh, scoreFromTicks } from "./best.ts";
 import { PAD_MASK, heldFor } from "./dpad.ts";
+import { TILE_FLOW, TILE_LADDER } from "../../core/tiles.ts";
 
 
 /**
@@ -500,6 +501,29 @@ function flowArtMap(from: typeof level): Map<number, number> {
   return art;
 }
 
+/**
+ * What each cell really holds, for the ones a creature can stand on.
+ *
+ * The actor's own tile index overwrites the cell it occupies, so without this
+ * the frame draws floor under the sprite and the ladder rung, bridge plank or
+ * current it is standing on vanishes for as long as you are there.
+ *
+ * Ladders and currents only. A FIRE can be put out -- roam/8's bucket -- and
+ * the level does not know which ones are, so reading that from here would
+ * light a doused one back up whenever somebody stood on it.
+ */
+function underMap(from: typeof level): Map<number, number> {
+  const under = new Map<number, number>();
+  for (let cell = 0; cell < from.ladders.length; cell = (cell + 1) | 0) {
+    if (from.ladders[cell] === 1) under.set(cell, TILE_LADDER);
+  }
+  const flowing = from.currentCells ?? new Int16Array(0);
+  for (let i = 0; i < flowing.length; i = (i + 1) | 0) {
+    under.set(flowing[i] as number, TILE_FLOW);
+  }
+  return under;
+}
+
 
 let blockedUntil = 0;
 
@@ -884,6 +908,7 @@ function reset(): void {
   renderer.setSideOn(level.engine === "dash", level.engine);
   renderer.setGuardArt(guardArtMap(level));
 renderer.setFlowArt(flowArtMap(level));
+  renderer.setUnder(underMap(level));
   // Only the real-time engines redraw every frame. A turn-based level redraws
   // when you press something, so a spinning gem would freeze between moves.
   renderer.setSpinning(moving !== null);
@@ -1570,6 +1595,7 @@ renderer.setWeapon(chosen.weapon);
 renderer.setSideOn(level.engine === "dash", level.engine);
 renderer.setGuardArt(guardArtMap(level));
 renderer.setFlowArt(flowArtMap(level));
+renderer.setUnder(underMap(level));
 // Only the real-time engines redraw every frame. A turn-based level redraws
 // when you press something, so a spinning gem would freeze between moves.
 renderer.setSpinning(moving !== null);
