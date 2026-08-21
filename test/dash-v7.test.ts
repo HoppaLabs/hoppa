@@ -132,14 +132,17 @@ test("a walker on a narrow platform stays on it", () => {
   for (let i = 1; i < travelled.length; i++) expect(travelled[i] as number).toBeGreaterThan(1);
 });
 
-test("a new level is drawn under dash/7, and the shipped rooms are on it", () => {
-  expect(newestBuild("dash")).toBe(7);
-  // The reported room. A shipped room on old rules would ship the bug.
+test("a new level is drawn under the newest dash, and the shipped rooms are on it", () => {
+  // Was pinned to 7 and had to move for dash/8. The NUMBER was never the
+  // point: what this catches is a shipped room left behind on the rules that
+  // had the bug, whichever version fixed it.
+  const newest = newestBuild("dash");
+  expect(newest).toBeGreaterThanOrEqual(7);
   for (const room of PACK) {
     const level = decodeLevel(room.code);
     if (level.engine !== "dash") continue;
     expect({ room: room.name, behaviour: level.behaviourVersion })
-      .toEqual({ room: room.name, behaviour: 7 });
+      .toEqual({ room: room.name, behaviour: newest });
   }
 });
 

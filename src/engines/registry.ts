@@ -30,6 +30,7 @@ import { DashV4, DASH_V4_BEHAVIOUR } from "./dash/v4.ts";
 import { DashV5, DASH_V5_BEHAVIOUR } from "./dash/v5.ts";
 import { DashV6, DASH_V6_BEHAVIOUR } from "./dash/v6.ts";
 import { DashV7, DASH_V7_BEHAVIOUR } from "./dash/v7.ts";
+import { DashV8, DASH_V8_BEHAVIOUR } from "./dash/v8.ts";
 import type { Engine } from "./types.ts";
 
 export class UnknownBehaviourError extends Error {}
@@ -189,6 +190,14 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
     `swim/${SWIM_V3_BEHAVIOUR}`,
     (level, creature) =>
       creature === undefined ? new SwimV3(level) : new SwimV3(level, creature),
+  ],
+  // v8: an enemy in mid-air falls. Up to v7 it read both directions as a ledge
+  // and flipped its facing on the spot, thirty times a second, for ever --
+  // reported as "the enemies are not moving on the side app". See adr/0043.
+  [
+    `dash/${DASH_V8_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new DashV8(level) : new DashV8(level, creature),
   ],
 ]);
 

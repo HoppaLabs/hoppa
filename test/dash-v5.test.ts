@@ -138,7 +138,7 @@ test("v5 replays identically three times over", () => {
 
 test("every dash build routes, because retiring one breaks every link", () => {
   expect(knownBuilds().filter((b) => b.startsWith("dash/"))).toEqual([
-    "dash/1", "dash/2", "dash/3", "dash/4", "dash/5", "dash/6", "dash/7",
+    "dash/1", "dash/2", "dash/3", "dash/4", "dash/5", "dash/6", "dash/7", "dash/8",
   ]);
   const engine = engineFor(parseLevel(tower(5)), made);
   expect(engine.behaviourVersion).toBe(5);

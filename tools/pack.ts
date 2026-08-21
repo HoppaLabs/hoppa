@@ -132,7 +132,7 @@ export interface PackLevel {
 }
 
 const roam = (seed: string) => `hoppa/1 roam seed=${seed} tiles=1 behaviour=8`;
-const dash = (seed: string) => `hoppa/1 dash seed=${seed} tiles=1 behaviour=7`;
+const dash = (seed: string) => `hoppa/1 dash seed=${seed} tiles=1 behaviour=8`;
 const swim = (seed: string) => `hoppa/1 swim seed=${seed} tiles=1 behaviour=3`;
 const calm = (seed: string) => `hoppa/1 calm seed=${seed} tiles=1 behaviour=1`;
 
