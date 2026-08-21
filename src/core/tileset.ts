@@ -508,6 +508,37 @@ const BUSH: Pattern = [
   "1112333233323332",
 ];
 
+/**
+ * Grass, seen from above.
+ *
+ * The garden's floor was AIR -- a transparent tile showing one flat colour --
+ * which is the last reason a room that is a third full read as empty: there was
+ * literally nothing between the things in it.
+ *
+ * Tufts, scattered, wrapping so the tile repeats with no seam. Deliberately
+ * SPARSE and deliberately close in tone to the ground behind it: this is drawn
+ * under everything in the room, and anything busier turns the whole garden into
+ * noise. Eight tufts a cell is the most it will take.
+ */
+const GRASS: Pattern = [
+  ".........66.....",
+  "........555.....",
+  "..66............",
+  ".555............",
+  "................",
+  ".......66....66.",
+  "......555...555.",
+  "................",
+  ".....66.........",
+  "....555.........",
+  "................",
+  "...........66...",
+  ".66.......555...",
+  "555...........66",
+  ".............555",
+  "................",
+]
+
 const SPIKES: Pattern = [
   ".......56.......",
   ".......54.......",
@@ -630,11 +661,17 @@ export const GARDEN: Tileset = {
   // Warmer than the first pass, which was leaf-green over cold grey-green and
   // came out looking like a lawn in February. Asked for "warmer colours"; the
   // fix is the ramp, not a new drawing.
-  sub: [18, 19, 21, 29, 20, 52, 51, 50],
+  //
+  // 1-4 are the bush: the dark between its leaves, the mass, the lit dome and
+  // one specular. 5-6 are the grass tufts, and they sit ABOVE the lawn colour
+  // rather than below it -- with both drawn in the same mid green the hedges
+  // stopped reading as something you cannot walk through, which on a screen a
+  // child is steering across is not a cosmetic problem.
+  sub: [18, 19, 20, 29, 21, 23, 51, 50],
   wall: BUSH,
   // No separate cap: a bush seen from above has no top edge, and giving it one
   // is what made the first hedges read as a bank of soil.
-  floor: AIR,
+  floor: GRASS,
   // A bridge, not a ladder. In a garden the tile you walk ALONG is a plank
   // crossing over water, which is the one thing a top-down world never had a
   // use for -- see calm/1 and docs/adr/0040.
