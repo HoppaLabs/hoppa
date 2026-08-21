@@ -24,6 +24,8 @@
 // drawing somebody made: those are animated or personal, and flattening them
 // into static tiles would be a step backwards.
 
+import { GRID_H, GRID_W } from "./grid.ts";
+import { TILE_FIRE } from "./tiles.ts";
 import { PALETTE } from "./palette.ts";
 import { SPRITE_W } from "./sprite.ts";
 
@@ -229,6 +231,15 @@ export interface Tileset {
   readonly ladderSub: Ramp;
   /** The hazard that does not move: a flame below ground, spikes above it. */
   readonly fire: Pattern;
+  /**
+   * ...and, where the hazard is WATER, the drawing for a given set of open
+   * sides, so joined cells read as one pool.
+   *
+   * Only the garden sets it. A flame and a bank of urchins are things you
+   * count; a pond is a thing you see the shape of, and six cells of it drawn
+   * as six rimmed puddles is six puddles. See pondFor().
+   */
+  readonly fireFor?: (open: number) => Pattern;
   /**
    * A ramp for the hazard alone.
    *
@@ -438,6 +449,94 @@ export function turnPattern(pattern: Pattern): Pattern {
  *
  * Flat and quiet, which is the whole brief.
  */
+/**
+ * A pond, with a rim only where the water actually ends.
+ *
+ * POND below draws its own rim on all four sides, so two cells of water side
+ * by side showed two rims and a seam down the middle -- reported as "the ponds
+ * sprites should merge when joined to create a bigger pool rather than a
+ * several little pools". Six cells of pond read as six puddles.
+ *
+ * `open` is a bitmask of the sides with something OTHER than water beyond
+ * them, in the order north, east, south, west. The rim goes on those sides and
+ * the water runs to the edge on the rest, so any shape of pool comes out as
+ * one body with one shoreline.
+ *
+ * The same trick a tree already uses -- see Tileset.tree, where a wall with
+ * nothing beside it is drawn as a canopy. Read off the neighbours rather than
+ * out of the level, so it costs the wire format nothing.
+ */
+export const POND_N = 1;
+export const POND_E = 2;
+export const POND_S = 4;
+export const POND_W = 8;
+
+/**
+ * Which sides of this cell have something other than water beyond them.
+ *
+ * North, east, south, west -- and the edge of the grid counts as open, because
+ * a pond against the wall of the world still has a bank there.
+ *
+ * Lives here rather than in the renderer so it can be read without a browser.
+ * The decision is "where does the shoreline go", and a decision you cannot run
+ * a test against is a decision nobody is checking.
+ */
+export function openSides(tiles: Uint8Array, x: number, y: number): number {
+  const water = (cx: number, cy: number): boolean =>
+    cx >= 0 && cx < GRID_W && cy >= 0 && cy < GRID_H
+    && (tiles[cy * GRID_W + cx] as number) === TILE_FIRE;
+  return (water(x, y - 1) ? 0 : POND_N)
+    | (water(x + 1, y) ? 0 : POND_E)
+    | (water(x, y + 1) ? 0 : POND_S)
+    | (water(x - 1, y) ? 0 : POND_W);
+}
+
+const POND_CACHE = new Map<number, Pattern>();
+
+export function pondFor(open: number): Pattern {
+  const had = POND_CACHE.get(open);
+  if (had !== undefined) return had;
+
+  const W = 16;
+  const rows: string[][] = [];
+  for (let y = 0; y < W; y++) rows.push(new Array<string>(W).fill("1"));
+
+  // The far bank, where the water stops. Two rows of the lightest ink at the
+  // top -- the light on the far side of a pool -- and one row of the darker
+  // rim everywhere else.
+  const shore = (x: number, y: number, ink: string): void => {
+    (rows[y] as string[])[x] = ink;
+  };
+  for (let x = 0; x < W; x++) {
+    if ((open & POND_N) !== 0) {
+      shore(x, 0, "4"); shore(x, 1, "4"); shore(x, 2, "3");
+    }
+    if ((open & POND_S) !== 0) { shore(x, W - 2, "3"); shore(x, W - 1, "3"); }
+  }
+  for (let y = 0; y < W; y++) {
+    if ((open & POND_W) !== 0) shore(0, y, "3");
+    if ((open & POND_E) !== 0) shore(W - 1, y, "3");
+  }
+  // Where two open sides meet, round the corner off by a pixel so a lone
+  // puddle keeps the soft shape POND had.
+  const corner = (a: number, b: number, x: number, y: number): void => {
+    if ((open & a) !== 0 && (open & b) !== 0) shore(x, y, "3");
+  };
+  corner(POND_N, POND_W, 1, 3); corner(POND_N, POND_E, W - 2, 3);
+  corner(POND_S, POND_W, 1, W - 3); corner(POND_S, POND_E, W - 2, W - 3);
+
+  // One glint, and only on water with open air to the north -- the top of a
+  // pool, where the light would be. Every cell having one made a big pond look
+  // spotty rather than wet.
+  if ((open & POND_N) !== 0) {
+    shore(4, 6, "5"); shore(5, 6, "5"); shore(3, 7, "5"); shore(4, 7, "5");
+  }
+
+  const made = rows.map((row) => row.join("")) as unknown as Pattern;
+  POND_CACHE.set(open, made);
+  return made;
+}
+
 const POND: Pattern = [
   "4444444444444444",
   "4444444444444444",
@@ -726,6 +825,7 @@ export const GARDEN: Tileset = {
   // water, and the reef's chevrons were worse -- a chevron is an arrow, and a
   // pond is the one thing that is definitely not going anywhere.
   fire: POND,
+  fireFor: pondFor,
   // Deep in the middle, lighter at the rim, one glint. Nothing about it says
   // "this will hurt", because it will not: it is a shape you walk round.
   fireSub: [8, 9, 10, 11, 5],

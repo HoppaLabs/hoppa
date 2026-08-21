@@ -11,6 +11,7 @@ import { CASTS, ENEMIES } from "../../core/enemies.ts";
 import {
   TILE_PX, flipPattern, inkOf, tilesetFor, turnPattern,
   type Pattern, type Ramp, type Tileset,
+  openSides,
 } from "../../core/tileset.ts";
 import {
   TILE_ACTOR,
@@ -766,6 +767,8 @@ export class GridRenderer {
 
   /** One stamp per flame frame, in order. Empty until the stamps are built. */
   private flames: HTMLCanvasElement[] = [];
+  /** One pond per set of open sides, where the world's hazard is water. */
+  private readonly ponds = new Map<number, HTMLCanvasElement>();
 
   /**
    * Put the clouds up, behind everything.
@@ -913,6 +916,23 @@ export class GridRenderer {
       flames.push(canvas);
     }
     this.flames = flames;
+
+    // A pond, once per set of open sides. Sixteen little canvases, built the
+    // same way and at the same time as everything else, so the paint loop only
+    // ever looks one up. See Tileset.fireFor.
+    this.ponds.clear();
+    if (set.fireFor !== undefined) {
+      for (let open = 0; open < 16; open = (open + 1) | 0) {
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(t * dpr));
+        canvas.height = Math.max(1, Math.round(t * dpr));
+        const ctx = canvas.getContext("2d");
+        if (ctx === null) continue;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        paintPattern(ctx, set.fireFor(open), set.fireSub, set, t);
+        this.ponds.set(open, canvas);
+      }
+    }
 
     this.stamps = made;
     this.stampedAt = t;
@@ -1623,6 +1643,21 @@ export class GridRenderer {
         // behind it reads as a hole rather than as a thing in the room.
         if (tile === TILE_FIRE) {
           const floor = this.stamps?.get(TILE_FLOOR);
+          // Water joins up. A pond's rim goes only where the water actually
+          // ends, so any shape of pool is one body with one shoreline --
+          // reported as "the ponds sprites should merge when joined to create
+          // a bigger pool rather than a several little pools".
+          //
+          // Read off the NEIGHBOURING TILES, the same way a lone wall becomes
+          // a tree, so it costs the wire format nothing.
+          if (this.ponds.size > 0) {
+            const pool = this.ponds.get(openSides(tiles, x, y));
+            if (floor !== undefined) ctx.drawImage(floor, x * t, y * t, t, t);
+            if (pool !== undefined) {
+              ctx.drawImage(pool, x * t, y * t, t, t);
+              continue;
+            }
+          }
           // Six frames a second, and each fire starts at its own point in the
           // cycle from its cell number -- so a row of them crackles instead of
           // blinking in unison, the same trick the spinning gems use.

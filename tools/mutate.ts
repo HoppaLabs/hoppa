@@ -32,6 +32,18 @@ interface Mutation {
 
 const MUTATIONS: readonly Mutation[] = [
   {
+    breaks: "ponds go back to a rim on every side, so a big pool reads as puddles",
+    file: "src/core/tileset.ts",
+    find: "export function pondFor(open: number): Pattern {",
+    replace: "export function pondFor(open: number): Pattern {\n  open = POND_N | POND_E | POND_S | POND_W;",
+  },
+  {
+    breaks: "a pond stops looking at its neighbours, so nothing ever joins up",
+    file: "src/core/tileset.ts",
+    find: "  return (water(x, y - 1) ? 0 : POND_N)",
+    replace: "  return (false ? 0 : POND_N)",
+  },
+  {
     breaks: "enemies in the side-on game stop falling (the day-18 bug)",
     file: "src/engines/dash/v8.ts",
     find: "  private dropWalker(walker: Walker): void {",
