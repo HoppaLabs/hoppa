@@ -44,6 +44,20 @@ import { goOffline } from "../offline.ts";
 import { holdStill } from "../nozoom.ts";
 import { paintLogo } from "../logo.ts";
 
+// The wordmark, drawn rather than typed. See src/web/logo.ts.
+//
+// Two on a phone and three from a tablet up. Whole scales only -- a fractional
+// one blurs pixel art, and blurred pixel art reads as a mistake.
+//
+// PAINTED HERE, BEFORE ANYTHING MEASURES THE PAGE. An unsized <canvas> is
+// 300x150 by definition, so a logo that has not been drawn yet is a 150px-tall
+// header -- and the level is fitted to whatever the header leaves. Reported as
+// "the game canvas has shrunk", and measured: 140px of a 210px level, a third
+// of it, given to a header that was never that tall.
+const logoCanvas = document.getElementById("logo") as HTMLCanvasElement | null;
+if (logoCanvas !== null) paintLogo(logoCanvas, window.innerWidth >= 560 ? 3 : 2);
+
+
 // --- what you can draw with ---------------------------------------------------
 //
 // Plain words only. "Tile", "entity", "spawn point" and "patrol" are all things
@@ -952,12 +966,3 @@ window.addEventListener("orientationchange", refit);
 holdStill(viewport);
 
 goOffline("../");
-
-// The wordmark, drawn rather than typed. See src/web/logo.ts.
-//
-// Two on a phone and three from a tablet up: at two it is 36px tall, which is
-// about what the row it sits in was already, so it costs the level almost
-// nothing. Whole scales only -- a fractional one blurs pixel art, and blurred
-// pixel art reads as a mistake rather than a choice.
-const logoCanvas = document.getElementById("logo") as HTMLCanvasElement | null;
-if (logoCanvas !== null) paintLogo(logoCanvas, window.innerWidth >= 560 ? 3 : 2);

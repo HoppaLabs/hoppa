@@ -106,3 +106,37 @@ test("every page draws it, and none of them types it", async () => {
       .toEqual({ page, bare: true });
   }
 });
+
+// --- the first fit has to be the right fit -----------------------------------
+//
+// Reported the day the wordmark shipped: "the game canvas has shrunk". It had.
+// An unsized <canvas> is 300x150 by definition, so between the page loading and
+// paintLogo() running, the title row was a 150px-tall element -- and the play
+// page fits the level into whatever the rest of the page leaves over. Measured
+// on a 390x660 phone: 140px of level where there should have been 210. A third
+// of the game, given to a header that was never that tall.
+//
+// Two guards, because either one alone would have prevented it and both are
+// cheap: the element carries its real size as ATTRIBUTES so it is never 300x150
+// even for a frame, and the paint happens before any code measures the page.
+
+test("the logo canvas is never the default 300x150, not even for a frame", async () => {
+  for (const page of ["play", "make", "level"]) {
+    const html = await Bun.file(`src/web/${page}/index.html`).text();
+    expect({ page, sized: html.includes('<canvas id="logo" width="120" height="36"') })
+      .toEqual({ page, sized: true });
+  }
+});
+
+test("...and it is painted before anything measures the page", async () => {
+  const play = await Bun.file("src/web/play/main.ts").text();
+  const paintedAt = play.indexOf("paintLogo(logoCanvas,");
+  const firstFit = play.lastIndexOf("\nresize();");
+  const fitDefined = play.indexOf("function resize(): void {");
+  expect(paintedAt).toBeGreaterThan(0);
+  expect(firstFit).toBeGreaterThan(0);
+  // Painted before the level is fitted, and before resize() is even written --
+  // which keeps it above every other piece of layout arithmetic too.
+  expect(paintedAt).toBeLessThan(firstFit);
+  expect(paintedAt).toBeLessThan(fitDefined);
+});

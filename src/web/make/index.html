@@ -55,6 +55,10 @@
      src/web/logo.ts. It carries the name visually; `.said` carries it for a
      screen reader, which cannot read a canvas. No border: the rule below is
      for the drawing canvases, and a frame round a logo is not a logo. */
+  /* The width and height ATTRIBUTES on the element matter as much as this
+     rule: an unsized canvas is 300x150, and for the frame before the script
+     runs that is a header four times taller than the real one -- which is what
+     the level gets fitted around. */
   #logo { display: block; image-rendering: pixelated; border: 0; border-radius: 0; }
   .said {
     position: absolute; width: 1px; height: 1px; overflow: hidden;
@@ -221,7 +225,7 @@
 </head>
 <body>
 
-<h1><canvas id="logo" aria-hidden="true"></canvas><span class="said">hoppa</span> &middot; <b>your character</b></h1>
+<h1><canvas id="logo" width="120" height="36" aria-hidden="true"></canvas><span class="said">hoppa</span> &middot; <b>your character</b></h1>
 
 <!-- At the top, because a child arriving with a code in their hand has come
      here to use it, and anything below the fold is a thing they will not find.

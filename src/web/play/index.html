@@ -72,6 +72,10 @@
      screen reader, which cannot read a canvas. */
   /* No border: the rule further down is for the game canvases, and a frame
      round a logo is not a logo. */
+  /* The width and height ATTRIBUTES on the element matter as much as this
+     rule: an unsized canvas is 300x150, and for the frame before the script
+     runs that is a header four times taller than the real one -- which is what
+     the level gets fitted around. */
   #logo { display: block; image-rendering: pixelated; border: 0; border-radius: 0; }
   .said {
     position: absolute; width: 1px; height: 1px; overflow: hidden;
@@ -339,7 +343,7 @@
         <path d="M20 3v5h-5"/>
       </svg>
     </button>
-    <h1><canvas id="logo" aria-hidden="true"></canvas><span class="said">hoppa</span> &middot; <span id="levelname">delve</span></h1>
+    <h1><canvas id="logo" width="120" height="36" aria-hidden="true"></canvas><span class="said">hoppa</span> &middot; <span id="levelname">delve</span></h1>
     <!-- Off until asked for: a link gets opened on a bus. See src/web/play/sound.ts.
          An icon rather than the words "sound off", because it is a setting you
          touch once and then never again, and it was taking a place in the row

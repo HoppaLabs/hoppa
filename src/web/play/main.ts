@@ -307,6 +307,20 @@ const levelCode = encodeLevel(level);
  *
  * They arrive as `#p/` links like any other level, which is the point -- but
  * it means the page cannot tell "somebody sent me this" from "I tapped it in
+
+// The wordmark, drawn rather than typed. See src/web/logo.ts.
+//
+// Two on a phone and three from a tablet up. Whole scales only -- a fractional
+// one blurs pixel art, and blurred pixel art reads as a mistake.
+//
+// PAINTED HERE, BEFORE ANYTHING MEASURES THE PAGE. An unsized <canvas> is
+// 300x150 by definition, so a logo that has not been drawn yet is a 150px-tall
+// header -- and the level is fitted to whatever the header leaves. Reported as
+// "the game canvas has shrunk", and measured: 140px of a 210px level, a third
+// of it, given to a header that was never that tall.
+const logoCanvas = document.getElementById("logo") as HTMLCanvasElement | null;
+if (logoCanvas !== null) paintLogo(logoCanvas, window.innerWidth >= 560 ? 3 : 2);
+
  * the list" by the URL alone. It matters, because a room the game ships with
  * has nobody to send a score back TO.
  */
@@ -1394,12 +1408,3 @@ if (moving !== null) {
 holdStill();
 
 goOffline("./");
-
-// The wordmark, drawn rather than typed. See src/web/logo.ts.
-//
-// Two on a phone and three from a tablet up: at two it is 36px tall, which is
-// about what the row it sits in was already, so it costs the level almost
-// nothing. Whole scales only -- a fractional one blurs pixel art, and blurred
-// pixel art reads as a mistake rather than a choice.
-const logoCanvas = document.getElementById("logo") as HTMLCanvasElement | null;
-if (logoCanvas !== null) paintLogo(logoCanvas, window.innerWidth >= 560 ? 3 : 2);
