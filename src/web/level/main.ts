@@ -82,7 +82,7 @@ const TOOLS: readonly Tool[] = [
   // years old is most of what an enemy IS.
   { glyph: GLYPH_GUARD, label: "goblin", limit: 10 },
   { glyph: GLYPH_BAT, label: "bat", limit: 10 },
-  { glyph: GLYPH_DRAGON, label: "dragon", limit: 10 },
+  { glyph: GLYPH_DRAGON, label: "lizard", limit: 10 },
   { glyph: GLYPH_LADDER, label: "ladder", engines: ["dash"] },
   // One tool, two names. It is the same entity either way -- what changes is
   // what the world draws, because a flame standing on grass looks like a

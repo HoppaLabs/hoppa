@@ -57,43 +57,42 @@ export const ENEMIES: readonly Enemy[] = [
   {
     name: "goblin",
     glyph: "G",
-    // Skin, a darker skin for the underside, eye white, and the outline.
-    inks: ["#6fd968", "#ffffff", "#1a212b"],
+    inks: ["#61d161", "#c6e3b5", "#ffffff", "#15322a"],
     frames: [
       [
         "................",
-        "..3..........3..",
-        "..33........33..",
-        "..3133....3313..",
-        "..311333333113..",
-        "..31111111111131",
-        "..3112211221113.",
-        "..3112211221113.",
-        "..3111111111113.",
-        "..3113333333113.",
-        "..3111111111113.",
-        "...3111111113...",
-        "...3311111133...",
-        "....31133113....",
-        "....33....33....",
+        "..44........44..",
+        ".4224......4224.",
+        ".422122..221224.",
+        ".42211111111224.",
+        ".42211111111224.",
+        ".42211311311224.",
+        ".42211311311224.",
+        ".42211111111224.",
+        ".42214444441224.",
+        ".42211111111224.",
+        "..422111111224..",
+        "...4221111224...",
+        "....42111124....",
+        "....44....44....",
         "................",
       ],
       [
         "................",
-        "..3..........3..",
-        "..33........33..",
-        "..3133....3313..",
-        "..311333333113..",
-        "..31111111111131",
-        "..3112211221113.",
-        "..3112211221113.",
-        "..3111111111113.",
-        "..3113333333113.",
-        "..3111111111113.",
-        "...3111111113...",
-        "...3311111133...",
-        "...311......113.",
-        "...33........33.",
+        "..44........44..",
+        ".4224......4224.",
+        ".422122..221224.",
+        ".42211111111224.",
+        ".42211111111224.",
+        ".42211311311224.",
+        ".42211311311224.",
+        ".42211111111224.",
+        ".42214444441224.",
+        ".42211111111224.",
+        "..422111111224..",
+        "...4221111224...",
+        ".4211......1124.",
+        ".44..........44.",
         "................",
       ],
     ],
@@ -101,39 +100,39 @@ export const ENEMIES: readonly Enemy[] = [
   {
     name: "bat",
     glyph: "B",
-    inks: ["#9a3ad5", "#ffffff", "#1a212b"],
+    inks: ["#b561d1", "#4f2b82", "#ffffff", "#181532"],
     frames: [
       [
         "................",
-        "..3..........3..",
-        ".313........313.",
-        ".3113......3113.",
-        ".31113....31113.",
-        "..31113..31113..",
-        "...3111331113...",
-        "....31211213....",
-        "....32211223....",
-        "....31111113....",
-        ".....311113.....",
-        "......3113......",
-        "................",
-        "................",
+        "......4444......",
+        ".....411114.....",
+        "4....411114....4",
+        "24...411114...42",
+        "224.44111144.422",
+        "2244411111144422",
+        "2224113113114222",
+        "2224114114114222",
+        ".22411111111422.",
+        "..241111111142..",
+        "...4111111114...",
+        "....41111114....",
+        ".....411114.....",
         "................",
         "................",
       ],
       [
         "................",
         "................",
-        "................",
-        "...3111331113...",
-        "....31211213....",
-        "....32211223....",
-        "....31111113....",
-        "...3111111113...",
-        "..31113..31113..",
-        ".31113....31113.",
-        "3113........3113",
-        "................",
+        "......4444......",
+        ".....411114.....",
+        "4....411114....4",
+        "24..44111144..42",
+        "224.41111114.422",
+        "2244113113114422",
+        "2244114114114422",
+        "2241111..1111422",
+        "241111....111142",
+        "41111......11114",
         "................",
         "................",
         "................",
@@ -142,49 +141,139 @@ export const ENEMIES: readonly Enemy[] = [
     ],
   },
   {
-    name: "dragon",
+    name: "lizard",
     glyph: "D",
-    inks: ["#ff5f4d", "#ffb3a8", "#1a212b"],
+    inks: ["#61c78e", "#badecb", "#ffffff", "#193226", "#ff9f3d", "#ffe9a3"],
     frames: [
       [
-        "...3............",
-        "..323...........",
-        "..3223..........",
-        "..32223.........",
-        "..322223....33..",
-        "..3222223..3113.",
-        "..32222213.3123.",
-        "..32222231131113",
-        ".33111111111113.",
-        "33311111111113..",
-        "3.31111111113...",
-        "...3111111113...",
-        "...3113..3113...",
-        "...33.....33....",
         "................",
+        "................",
+        ".......4.4.4....",
+        "......424242....",
+        "...44424242444..",
+        "..4211111111144.",
+        ".421111111134114",
+        "4211111111114441",
+        "4211111111111114",
+        "4211111111112224",
+        ".421111111122244",
+        "..4211111112244.",
+        "...421..421144..",
+        "...421..421.....",
+        "...44...44......",
         "................",
       ],
       [
         "................",
-        "...3............",
-        "..323...........",
-        "..3223..........",
-        "..32223.....33..",
-        "..322223...3113.",
-        "..3222213..3123.",
-        "..3222231131113.",
-        ".33111111111113.",
-        "33311111111113..",
-        "3.31111111113...",
-        "...3111111113...",
-        "...311....113...",
-        "...33......33...",
         "................",
+        ".......4.4.4....",
+        "......424242....",
+        "...44424242444..",
+        "..4211111111144.",
+        ".421111111134114",
+        "4211111111114445",
+        "4211111111114556",
+        "4211111111112445",
+        ".42111111112224.",
+        "..4211111112244.",
+        "...4211.4211.4..",
+        "..4211..421.....",
+        "..44....44......",
         "................",
       ],
     ],
   },
 ];
+
+/**
+ * Measurable properties of a sprite, so "does this look right" has an answer
+ * that is not an opinion.
+ *
+ * Suggested as an adversarial check against reference artwork. The references
+ * turned out to be unusable -- one was a JPEG, and JPEG destroys the flat
+ * regions and hard edges that pixel art IS, measuring 74 colours and 87 orphan
+ * pixels where a real sprite has a handful. But the measurements are worth
+ * having anyway, because they caught three things in OUR art that the eye did
+ * not: the bat had 18 orphan pixels and the dragon 15, against the goblin's 1.
+ *
+ * An orphan is an inked pixel with no neighbour of its own colour. The craft
+ * writing is unanimous that these read as dirt rather than as detail, and that
+ * they are the first thing lost when a sprite moves over a busy background.
+ * One or two, placed deliberately, are how an eye is drawn; fifteen is noise.
+ */
+export interface Measured {
+  readonly inks: number;
+  readonly fill: number;
+  readonly orphans: number;
+  readonly symmetry: number;
+  readonly headShare: number;
+}
+
+export function measure(rows: readonly string[]): Measured {
+  const h = rows.length;
+  const w = (rows[0] as string).length;
+  const at = (x: number, y: number): string | null => {
+    if (x < 0 || y < 0 || x >= w || y >= h) return null;
+    const ch = (rows[y] as string)[x] as string;
+    return ch === "." ? null : ch;
+  };
+
+  const seen = new Set<string>();
+  let inked = 0;
+  let orphans = 0;
+  let top = h;
+  let bottom = -1;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const ch = at(x, y);
+      if (ch === null) continue;
+      inked = (inked + 1) | 0;
+      seen.add(ch);
+      if (y < top) top = y;
+      if (y > bottom) bottom = y;
+      // EIGHT-way, not four. A one-pixel diagonal is how every slope in pixel
+      // art is drawn, and a four-way test calls every pixel of one an orphan --
+      // so this metric spent a while reporting 16 orphans on a bat whose only
+      // crime was having wings with sloping edges. A real orphan touches
+      // nothing of its own colour in any direction.
+      let touching = false;
+      for (let dy = -1; dy <= 1 && !touching; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          if (at(x + dx, y + dy) === ch) { touching = true; break; }
+        }
+      }
+      if (!touching) orphans = (orphans + 1) | 0;
+    }
+  }
+
+  let mirrored = 0;
+  let both = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const a = at(x, y);
+      const b = at(w - 1 - x, y);
+      if (a === null && b === null) continue;
+      both = (both + 1) | 0;
+      if (a === b) mirrored = (mirrored + 1) | 0;
+    }
+  }
+
+  const tall = bottom - top + 1;
+  const headTo = top + Math.floor(tall * 0.45);
+  let head = 0;
+  for (let y = top; y <= headTo; y++) {
+    for (let x = 0; x < w; x++) if (at(x, y) !== null) head = (head + 1) | 0;
+  }
+
+  return {
+    inks: seen.size,
+    fill: inked / (w * h),
+    orphans,
+    symmetry: both === 0 ? 0 : mirrored / both,
+    headShare: inked === 0 ? 0 : head / inked,
+  };
+}
 
 /** The generator's own gate, before anything ships. */
 export function check(): string[] {
@@ -228,9 +317,32 @@ export function check(): string[] {
     // it does not redraw the animal, and a large change in inked mass reads as
     // the sprite inflating rather than stepping.
     const mass = one.frames.map((rows) => rows.join("").replace(/\./g, "").length);
+    // A walk beat moves the legs and nothing else, so the mass barely shifts.
+    // A WING beat legitimately moves a lot of it -- that is the animation. So
+    // the check is a share of the smaller frame rather than a flat count: a
+    // third is a bat flapping, and half is a sprite inflating.
     const drift = Math.abs((mass[0] as number) - (mass[1] as number));
-    if (drift > 12) wrong.push(`${one.name}: frames differ by ${drift} pixels, too much`);
+    const share = drift / Math.min(mass[0] as number, mass[1] as number);
+    if (share > 0.33) {
+      wrong.push(`${one.name}: frames differ by ${(share * 100) | 0}% of the smaller, too much`);
+    }
     if ((mass[0] as number) < 40) wrong.push(`${one.name}: only ${mass[0]} pixels, too small`);
+
+    for (let f = 0; f < one.frames.length; f++) {
+      const seen = measure(one.frames[f] as readonly string[]);
+      // Deliberate single pixels are how an eye gets drawn. A scatter of them
+      // is noise, and the first thing a busy background eats.
+      // Eight of them is about four eye pixels plus a few deliberate points.
+      // Beyond that it is scatter.
+      if (seen.orphans > 8) {
+        wrong.push(`${one.name} f${f}: ${seen.orphans} orphan pixels, reads as dirt`);
+      }
+      // The head carries every identity signal at this size, so it gets a
+      // third to a half of the drawing. Less and the face has no room.
+      if (seen.headShare < 0.3) {
+        wrong.push(`${one.name} f${f}: head is ${(seen.headShare * 100) | 0}% of it, too small`);
+      }
+    }
   }
   return wrong;
 }

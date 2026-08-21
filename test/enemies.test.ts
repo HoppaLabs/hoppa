@@ -77,7 +77,11 @@ test("what ships is what was drawn", () => {
 test("a letter picks the art and nothing else", () => {
   expect(enemyByGlyph(GLYPH_GUARD)?.name).toBe("goblin");
   expect(enemyByGlyph(GLYPH_BAT)?.name).toBe("bat");
-  expect(enemyByGlyph(GLYPH_DRAGON)?.name).toBe("dragon");
+  // The third enemy is a big lizard, not a dragon. A dragon needs five things
+  // to read -- horns, snout, wings, legs, eyes -- and a 16x16 frame has room
+  // for about two once the outline is paid for. Every version robbed one
+  // feature to pay another. Dropping the wings is what made it drawable.
+  expect(enemyByGlyph(GLYPH_DRAGON)?.name).toBe("lizard");
   expect(enemyByGlyph("Z")).toBeUndefined();
 });
 
@@ -143,7 +147,7 @@ test("enemies are drawn from stamps, which is what fixes the look", () => {
 });
 
 test("the level editor offers all three, and counts them together", () => {
-  for (const label of ['label: "goblin"', 'label: "bat"', 'label: "dragon"']) {
+  for (const label of ['label: "goblin"', 'label: "bat"', 'label: "lizard"']) {
     expect({ label, there: levelMain.includes(label) }).toEqual({ label, there: true });
   }
   // The cap is on enemies, not on each kind: the engine holds so many walking
