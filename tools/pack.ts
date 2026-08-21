@@ -208,15 +208,34 @@ function fourCorners(): string {
   return room.text(roam("3cc3"));
 }
 
-/** 4. The first side-on room: one ladder, and everything else is walking. */
+/**
+ * 4. The first side-on room: a ladder, and the first thing you jump.
+ *
+ * It was a ladder and then walking, in a game with a jump button -- three
+ * side-on rooms and not one of them asked you to leave the ground. That was
+ * not a design choice, it was the verifier: the bot could not clear a gap, so
+ * a room that needed one could not be proved beatable and therefore could not
+ * ship. The bot can jump now (tools/bot.ts), so the rooms can ask.
+ *
+ * A staircase first, because a step you walk into and hop over is the gentlest
+ * possible way to be told the button exists.
+ */
 function upAndOver(): string {
   // Ground and sky, no frame: see Room.ground().
   const room = new Room().ground();
   // Two floors. The gap in the upper floor is where the ladder comes through.
-  room.deck(8, [4]);
-  room.ladder(4, 8, 12);
-  room.put(8, 7, "$").put(15, 7, "$");
-  room.put(2, 12, "@").put(20, 7, ">");
+  room.deck(8, [8]);
+  room.ladder(8, 8, 12);
+  // One block, ON THE WAY, with a gem on top of it.
+  //
+  // The first draft put a staircase past the ladder, which meant climbing to
+  // the deck, seeing the gem below, and coming back down for it -- a detour,
+  // and it made the gentlest room in the game the longest. Between the start
+  // and the ladder it is not a detour at all: you walk into it, you stop, you
+  // hop, and the gem is right there. That is the whole lesson.
+  room.put(5, 12, "#").put(5, 11, "$");
+  room.put(12, 7, "$").put(17, 7, "$");
+  room.put(2, 12, "@").put(21, 7, ">");
   return room.text(dash("4dd4"));
 }
 
@@ -313,25 +332,36 @@ function theNarrowWay(): string {
  */
 function mindTheSpikes(): string {
   const room = new Room().ground();
-  // Nothing here asks for a stunt, and it took two drafts to get there.
+  // The hole in the deck is back, and this time it is fair.
   //
-  // The first made you jump a bed of spikes on the ground: a jump clears two
-  // cells and lands short of a third, so every creature timed out on a
-  // precision no child would enjoy discovering. The second put a hole in the
-  // deck with spikes under it, which reads well and kills the bot outright --
-  // it does not jump gaps, so it fell in every time.
+  // Three drafts got here. The first made you jump a bed of spikes on the
+  // ground: a jump clears two cells and lands short of a third, so every
+  // creature timed out on a precision no child would enjoy discovering. The
+  // second put a hole in the deck with spikes under it, which reads well and
+  // killed the BOT outright -- it did not jump gaps, so it fell in every time,
+  // and a room the verifier cannot finish cannot ship. So the third draft was
+  // spikes standing in the way on a flat deck: honest, and dull.
   //
-  // What is left is the honest version: spikes IN the way, two cells of them,
-  // walk through for a heart or go round. Which is what a hazard that does not
-  // move is for.
-  room.deck(8, [4]);
+  // The bot jumps gaps now. So: a two-cell hole with spikes at the bottom of
+  // it, which is the shape this room was always meant to be. Fall in and it
+  // costs a heart and a climb, not the level -- the ladder is still there.
+  // Two holes, not one: the last side-on room should be the longest of the
+  // three and it was the shortest, which is the wrong way round for the room a
+  // child reaches last. The wide one has the spikes under it and is the one
+  // that costs something to get wrong; the narrow one is just a step over.
+  // Two holes: a wide one with the spikes under it, and a narrow one further
+  // along that is just a step over. The last side-on room came out the
+  // SHORTEST of the three, which is the wrong way round for the room a child
+  // reaches last.
+  room.deck(8, [4, 12, 13, 18]);
   room.ladder(4, 8, 12);
-  // On the deck, in the way, and only two cells of it. You can walk through
-  // for a heart or you can go back down and round -- which is the same
-  // question the top-down rooms ask, asked with gravity in the room.
-  room.line(12, 7, 13, 7, "^");
-  room.put(7, 7, "$").put(18, 7, "$").put(8, 12, "$");
-  room.put(2, 12, "@").put(21, 7, ">");
+  room.line(12, 12, 13, 12, "^");
+  // One gem on the ground at the far end, past the spikes: the last room asks
+  // you to go down, come back along underneath, and climb out again. It was
+  // the SHORTEST of the three side-on rooms, which is the wrong way round for
+  // the one a child reaches last.
+  room.put(7, 7, "$").put(16, 7, "$").put(21, 7, "$").put(8, 12, "$");
+  room.put(2, 12, "@").put(22, 7, ">");
   return room.text(dash("9ii9"));
 }
 

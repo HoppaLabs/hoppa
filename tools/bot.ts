@@ -19,6 +19,8 @@ import { cellCentre } from "../src/core/fixed.ts";
 import { parseLevel } from "../src/core/level.ts";
 import { engineFor } from "../src/engines/registry.ts";
 import type { Creature } from "../src/core/creature.ts";
+import { capsToBuild, clampPip } from "../src/core/creature.ts";
+import { stepTableFor } from "../src/core/playable.ts";
 import {
   TILE_EXIT_LOCKED,
   TILE_EXIT_OPEN,
@@ -296,11 +298,163 @@ function ladderFromHere(
   return best;
 }
 
-function playFromTheSide(engine: Playable, level: LevelBits, cap: number): number[] {
+
+/**
+ * Is there something to stand on in this cell?
+ *
+ * The floor of the world counts: you cannot fall off the bottom row.
+ */
+function footing(bits: LevelBits, x: number, y: number): boolean {
+  if (x < 0 || x >= GRID_W || y < 0) return false;
+  if (y + 1 >= GRID_H) return true;
+  const under = idx(x, (y + 1) | 0);
+  return bits.walls[under] === 1 || bits.ladders[under] === 1;
+}
+
+/**
+ * A gap in the floor ahead, and somewhere to land on the other side.
+ *
+ * THIS IS THE ONE THE BOT DID NOT HAVE. A hole in a deck reads well and plays
+ * well, and the bot walked into every one of them and fell -- which meant no
+ * side-on room could ever ask for a jump, because a room the bot cannot finish
+ * cannot ship. It is written down in tools/pack.ts as the reason room 9 lost
+ * its hole: "it does not jump gaps, so it fell in every time."
+ *
+ * A jump carries two cells and lands short of a third, measured, so the far
+ * side is looked for at two and at three -- three because a jump that starts a
+ * little early still gets there, and a bot that will not try a gap it might
+ * clear is a bot that fails rooms a child finishes.
+ *
+ * Returns false when there is nothing to land on, because then the hole is not
+ * a gap to jump, it is a way DOWN, and jumping into it is worse than falling.
+ */
+const JUMP_REACH = 3;
+
+function gapAhead(bits: LevelBits, x: number, y: number, facing: number): boolean {
+  const first = (x + facing) | 0;
+  if (first < 0 || first >= GRID_W) return false;
+  // A wall in the way is a step, not a gap -- that is a different jump.
+  if (bits.walls[idx(first, y)] === 1) return false;
+  if (footing(bits, first, y)) return false;
+  for (let d = 2; d <= JUMP_REACH; d = (d + 1) | 0) {
+    const far = (x + facing * d) | 0;
+    if (far < 0 || far >= GRID_W) break;
+    if (bits.walls[idx(far, y)] === 1) break;
+    if (footing(bits, far, y)) return true;
+  }
+  return false;
+}
+
+/**
+ * A step up ahead that a jump would clear.
+ *
+ * The bot used to find these by walking into them and waiting eight ticks for
+ * the stall counter, which works and wastes a second of a two-minute clock
+ * every time. Seeing it coming is both quicker and what a child does.
+ */
+function stepAhead(bits: LevelBits, x: number, y: number, facing: number, stepUp: number): boolean {
+  const first = (x + facing) | 0;
+  if (first < 0 || first >= GRID_W) return false;
+  if (bits.walls[idx(first, y)] !== 1) return false;
+  for (let k = 1; k <= stepUp; k = (k + 1) | 0) {
+    const ny = (y - k) | 0;
+    if (ny < 0) return false;
+    // The column above our own head has to be clear, or the jump hits a ceiling.
+    if (bits.walls[idx(x, ny)] === 1) return false;
+    if (bits.walls[idx(first, ny)] !== 1) return true;
+  }
+  return false;
+}
+
+
+/**
+ * A route through a room WITH GRAVITY in it.
+ *
+ * routeFrom() floods four ways over open cells, which is the right question
+ * from above and the wrong one from the side: it will happily route straight
+ * up through thin air. That is why the side-on bot never had a route at all --
+ * it answered "am I on the right row" instead, and a room whose answer was
+ * "jump onto that ledge" could not be expressed, so no room was allowed to ask.
+ *
+ * The moves here are the ones the game actually has, and deliberately the SAME
+ * ones src/core/playable.ts uses for the editor's "you cannot get up there"
+ * warning -- so the bot and the warning agree about what is possible, which
+ * they did not before:
+ *
+ *   fall     always, into open air below
+ *   walk     sideways, along the ground or steering in the air
+ *   climb    up a ladder
+ *   jump     up to `stepUp` cells from standing, through a clear column
+ *
+ * Returns the cells to visit, nearest first, or nothing if there is no way.
+ */
+function routeWithGravity(
+  bits: LevelBits,
+  from: number,
+  to: number,
+  stepUp: number,
+): number[] {
+  const clear = (x: number, y: number): boolean =>
+    x >= 0 && y >= 0 && x < GRID_W && y < GRID_H && bits.walls[idx(x, y)] !== 1;
+
+  const seen = new Int32Array(GRID_W * GRID_H).fill(-1);
+  const queue: number[] = [from];
+  seen[from] = from;
+
+  for (let at = 0; at < queue.length; at++) {
+    const cell = queue[at] as number;
+    if (cell === to) break;
+    const x = (cell % GRID_W) | 0;
+    const y = ((cell / GRID_W) | 0) | 0;
+    const push = (nx: number, ny: number): void => {
+      if (!clear(nx, ny)) return;
+      const next = idx(nx, ny);
+      if (seen[next] !== -1) return;
+      seen[next] = cell;
+      queue.push(next);
+    };
+
+    push(x, (y + 1) | 0);                       // gravity is not optional
+    push((x - 1) | 0, y);
+    push((x + 1) | 0, y);
+    if (bits.ladders[cell] === 1) push(x, (y - 1) | 0);
+
+    if (footing(bits, x, y) || bits.ladders[cell] === 1) {
+      for (let k = 1; k <= stepUp; k = (k + 1) | 0) {
+        const ny = (y - k) | 0;
+        if (!clear(x, ny)) break;               // no jumping through a floor
+        push(x, ny);
+      }
+    }
+  }
+
+  if (seen[to] === -1) return [];
+  const path: number[] = [];
+  for (let cell = to; cell !== from; cell = seen[cell] as number) path.push(cell);
+  return path.reverse();
+}
+
+function playFromTheSide(
+  engine: Playable,
+  level: LevelBits,
+  cap: number,
+  stepUp: number,
+): number[] {
   const log: number[] = [];
   let lastX = -1;
   let lastY = -1;
   let stalled = 0;
+  // Once you have pushed off, you are committed.
+  //
+  // The route is worked out afresh every tick, which is right on the ground
+  // and wrong in the air: a body a third of the way across a gap gets a route
+  // that says go back, and a tick later one that says go on, and the two
+  // answers alternate. Traced on room 9 -- it hung between two columns four
+  // cells up, holding left, right, left, right, until the clock ran out.
+  //
+  // So a jump holds its direction for as long as a jump lasts. Which is what a
+  // person does: you do not change your mind halfway over a hole.
+  let flightWay = 0;
 
   for (let tick = 0; tick < cap; tick++) {
     if (engine.currentStatus() !== STATUS_PLAYING) break;
@@ -317,6 +471,7 @@ function playFromTheSide(engine: Playable, level: LevelBits, cap: number): numbe
     // still creeping upwards a few subcells at a time.
     if (spot.x === lastX && spot.y === lastY) stalled++;
     else stalled = 0;
+    const rising = lastY >= 0 && spot.y < lastY;
     lastX = spot.x;
     lastY = spot.y;
 
@@ -331,33 +486,81 @@ function playFromTheSide(engine: Playable, level: LevelBits, cap: number): numbe
       // Climb until climbing stops helping, then step off sideways.
       if (stalled > 4 || wy === here.y) {
         held |= wx > here.x ? HELD_RIGHT : wx < here.x ? HELD_LEFT : 0;
-        // Stepping off the top of a ladder onto the floor it serves needs the
-        // body CLEAR of that floor, not merely in the row above it: a body is
-        // three quarters of a cell and the climb stops as soon as the cell
-        // changes. Keep climbing while the step sideways is going nowhere.
-        if (stalled > 10) held |= HELD_UP;
+        // Stepping off a ladder onto the floor it serves needs the body CLEAR
+        // of that floor, not merely in the row beside it: a body is three
+        // quarters of a cell and the climb stops as soon as the cell changes.
+        // Keep going while the step sideways is going nowhere -- and keep
+        // going THE WAY YOU WERE HEADED. Always pressing up meant a bot
+        // climbing DOWN to a step beside the ladder rose back through the deck
+        // it had just come through, fell to the rung below, and did that until
+        // the clock ran out. Traced, on room 4, for two minutes.
+        if (stalled > 10) {
+          // Which way clears it depends on WHAT IS IN THE WAY. A body is three
+          // quarters of a cell, so standing on the rung level with a deck it
+          // still overlaps the row above: stepping off is blocked by the deck
+          // at head height, and the way out is DOWN. Coming up the other side,
+          // the block is at foot height and the way out is up. Always pressing
+          // up meant a bot climbing down to a step beside the ladder rose back
+          // through the deck it had just come through, fell to the rung below,
+          // and did that until the clock ran out. Traced, on room 4.
+          const way = wx > here.x ? 1 : wx < here.x ? -1 : 0;
+          const overhead = way !== 0 && here.y > 0
+            && level.walls[idx(here.x + way, here.y - 1)] === 1;
+          held |= overhead ? HELD_DOWN : HELD_UP;
+        }
       } else {
         held |= wy < here.y ? HELD_UP : HELD_DOWN;
       }
-    } else if (wy !== here.y) {
-      const column = ladderFromHere(level.ladders, level.walls, here.y, wy, here.x);
-      if (column < 0) {
+    } else {
+      // The route decides, not the ladders.
+      //
+      // This used to ask "is there a ladder on my row that leads the way I
+      // want to go" and take it, which is right in a room where every gem sits
+      // on a floor a ladder serves and wrong the moment one does not: with a
+      // gem on a step beside the ladder, the bot rode up, saw the gem below,
+      // rode down, saw it above, and did that until the clock ran out. The
+      // ladder was always the answer to "how do I change floors" and never to
+      // "how do I get THERE".
+      //
+      // routeWithGravity knows about ladders, jumps and falling together, so
+      // asking it is asking the right question. The ladder handling below is
+      // still here -- it is how you get ON one -- but it only runs when the
+      // route says a ladder is the next move.
+      const path = routeWithGravity(level, idx(here.x, here.y), want, stepUp);
+      const step = path[0];
+      if (step === undefined) {
         held |= wx > here.x ? HELD_RIGHT : wx < here.x ? HELD_LEFT : 0;
-      } else if (here.x !== column) {
-        held |= column > here.x ? HELD_RIGHT : HELD_LEFT;
       } else {
-        // Line up with the ladder before climbing it. A ladder through a hole
-        // in a floor is a one-cell gap, and a body three quarters of a cell
-        // wide only fits within 32 subcells of the centre -- off-centre, the
-        // climb just stops at the floor and holds up forever.
-        const dx = cellCentre(column) - spot.x;
-        if (Math.abs(dx) > 30) held |= dx > 0 ? HELD_RIGHT : HELD_LEFT;
-        else held |= wy < here.y ? HELD_UP : HELD_DOWN;
+        const sx = (step % GRID_W) | 0;
+        const sy = ((step / GRID_W) | 0) | 0;
+        const onLadderTile = level.ladders[idx(here.x, here.y)] === 1;
+        const intoLadder = level.ladders[step] === 1;
+
+        if (sy !== here.y && (onLadderTile || intoLadder) && sx === here.x) {
+          // Line up with the ladder before climbing it. A ladder through a
+          // hole in a floor is a one-cell gap, and a body three quarters of a
+          // cell wide only fits within 32 subcells of the centre -- off-centre
+          // the climb just stops at the floor and holds up forever.
+          const dx = cellCentre(here.x) - spot.x;
+          if (Math.abs(dx) > 30) held |= dx > 0 ? HELD_RIGHT : HELD_LEFT;
+          else held |= sy < here.y ? HELD_UP : HELD_DOWN;
+        } else {
+          // Which way, from the first step that CHANGES COLUMN -- not from the
+          // first step. A route out of mid-air begins by falling, and reading
+          // only the first step meant the bot let go of left and right the
+          // instant its feet left the ground: it jumped straight up, landed
+          // where it took off, and did it again for two minutes. Traced.
+          let way = 0;
+          for (const cell of path) {
+            const cx = (cell % GRID_W) | 0;
+            if (cx !== here.x) { way = cx > here.x ? 1 : -1; break; }
+          }
+          if (way !== 0) held |= way > 0 ? HELD_RIGHT : HELD_LEFT;
+          // Up, and not on a ladder, means push off the ground. The sideways
+          // hold stays on: the arc carries you across as well as up.
+          if (sy < here.y) held |= HELD_ACT;
+        }
       }
-    } else if (wx > here.x) {
-      held |= HELD_RIGHT;
-    } else if (wx < here.x) {
-      held |= HELD_LEFT;
     }
 
     // Swing at anything close. From the side the weapon is its own button --
@@ -366,6 +569,17 @@ function playFromTheSide(engine: Playable, level: LevelBits, cap: number): numbe
       if (Math.abs(enemy.x - here.x) <= 1 && Math.abs(enemy.y - here.y) <= 1) {
         held |= HELD_SWING;
         break;
+      }
+    }
+
+    // A hole in the deck ahead, with the far side within a jump: go over it.
+    // Without this the bot walked into every gap and fell, which is why no
+    // side-on room was allowed to have one.
+    {
+      const way = (held & HELD_RIGHT) !== 0 ? 1 : (held & HELD_LEFT) !== 0 ? -1 : 0;
+      if (way !== 0 && !holding) {
+        if (gapAhead(level, here.x, here.y, way)) held |= HELD_ACT;
+        else if (stepAhead(level, here.x, here.y, way, stepUp)) held |= HELD_ACT;
       }
     }
 
@@ -400,8 +614,14 @@ export function botPlays(text: string, creature: Creature, cap = 3600): Attempt 
   const engine = engineFor(level, creature) as unknown as Playable;
   const sideOn = level.engine === "dash";
 
+  // How high THIS creature can get from standing. Judged by the rules the
+  // level pins, not the newest ones -- an old link keeps the jump it had.
+  const pips = capsToBuild(creature.caps).FORCE;
+  const table = stepTableFor(level.behaviourVersion);
+  const stepUp = (table[clampPip(pips)] ?? (table[0] as number)) | 0;
+
   const log = sideOn
-    ? playFromTheSide(engine, level, cap)
+    ? playFromTheSide(engine, level, cap, stepUp)
     : playFromAbove(engine, level, cap);
 
   const status = engine.currentStatus();

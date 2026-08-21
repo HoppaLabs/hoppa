@@ -6,6 +6,8 @@ import { parseLevel } from "../src/core/level.ts";
 import { verifyLevelText } from "../src/core/verify.ts";
 import { botPlays, replayWins } from "../tools/bot.ts";
 import { newestBuild } from "../src/core/builds.ts";
+import { blankDraft, draftFromLevel, paint } from "../src/core/draft.ts";
+import { GRID_H, GRID_W, idx } from "../src/core/grid.ts";
 
 /** The pack as level text, which is what the checks and the bot both want. */
 const rooms = await Promise.all(
@@ -227,4 +229,28 @@ test("a room that ships is a level to share, but it is not YOUR level", () => {
   expect(play.includes('qrHint.innerHTML = mine')).toBe(true);
   expect(play.includes('`Play this level: ${levelName}`')).toBe(true);
   expect(play.includes('`Play my level: ${levelName}`')).toBe(true);
+});
+
+test("the editor would let a child draw the rooms we ship", () => {
+  // A rule the shipped levels break is a rule nobody really believes in, and a
+  // level the editor refuses to draw is a level a child is being shown and
+  // then stopped from copying. Rebuild each side-on room on a blank draft,
+  // through paint(), and see what comes back refused.
+  for (const room of rooms) {
+    const level = parseLevel(room.text);
+    if (level.engine !== "dash") continue;
+    const wanted = draftFromLevel(level);
+    let building = blankDraft("dash", level.behaviourVersion);
+    const refused: string[] = [];
+    for (let y = 0; y < GRID_H; y = (y + 1) | 0) {
+      for (let x = 0; x < GRID_W; x = (x + 1) | 0) {
+        const glyph = wanted.cells[idx(x, y)] as string;
+        if (glyph === ".") continue;
+        const out = paint(building, x, y, glyph as never);
+        building = out.draft;
+        if (!out.changed && out.reason !== "") refused.push(`(${x},${y}) ${glyph}: ${out.reason}`);
+      }
+    }
+    expect({ room: room.name, refused }).toEqual({ room: room.name, refused: [] });
+  }
 });

@@ -35,7 +35,7 @@ export const PACK: readonly PackLevel[] = [
     slug: "up-and-over",
     name: "up and over",
     teaches: "from the side: ladders go up, and gravity does the rest",
-    code: "ETGEAAxyo______-f-RhRfY-RJEF4Vglut6QcQcQcQcQcQUoRQ",
+    code: "ETGEAAxyo______-f-Thw5IhJeRZEF6Volyoav6QcQcQcQcQcQcg6w",
   },
   {
     slug: "the-tall-room",
@@ -65,6 +65,6 @@ export const PACK: readonly PackLevel[] = [
     slug: "mind-the-spikes",
     name: "mind the spikes",
     teaches: "walk through for a heart, or go round the long way",
-    code: "ETGEABsXx______-f-RhRfY-R5EF6Vel0pQlpFrN6QcQcQcQcQcQUoBV",
+    code: "ETGEABsXx______-f-RgwmCfY-SJEF8Velwl6pQpZJbN6QcQcQcQcQcQUoCV",
   },
 ];
