@@ -28,7 +28,7 @@ test("every build ships: retiring one would break every link that pinned it", ()
     // version order: roam/7 sits next to roam/6 because that is where it was
     // added. What matters is that nothing ever LEAVES.
     "roam/6", "roam/7", "dash/6", "dash/7", "roam/8", "swim/1", "swim/2", "calm/1",
-    "swim/3", "dash/8",
+    "swim/3", "dash/8", "calm/2",
   ]);
 });
 

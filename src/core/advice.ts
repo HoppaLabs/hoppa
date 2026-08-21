@@ -72,7 +72,7 @@ export function adviceFor(text: string): Advice {
    * not play their own garden, and the door it told them to add is not in the
    * palette to add. Three checks have to sit this one out.
    */
-  const place = aPlace(result.level.engine);
+  const place = aPlace(result.level.engine, result.level.behaviourVersion);
 
   const l2 = byId.get("L2");
   if (!place && l2 !== undefined && l2.ok === false) {

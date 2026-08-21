@@ -23,6 +23,7 @@ import { SwimV1, SWIM_V1_BEHAVIOUR } from "./swim/v1.ts";
 import { SwimV2, SWIM_V2_BEHAVIOUR } from "./swim/v2.ts";
 import { SwimV3, SWIM_V3_BEHAVIOUR } from "./swim/v3.ts";
 import { CalmV1, CALM_V1_BEHAVIOUR } from "./calm/v1.ts";
+import { CalmV2, CALM_V2_BEHAVIOUR } from "./calm/v2.ts";
 import { DashV1, DASH_V1_BEHAVIOUR } from "./dash/v1.ts";
 import { DashV2, DASH_V2_BEHAVIOUR } from "./dash/v2.ts";
 import { DashV3, DASH_V3_BEHAVIOUR } from "./dash/v3.ts";
@@ -198,6 +199,14 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
     `dash/${DASH_V8_BEHAVIOUR}`,
     (level, creature) =>
       creature === undefined ? new DashV8(level) : new DashV8(level, creature),
+  ],
+  // calm/2: the garden stops being a place and becomes a level. An exit, a
+  // bear that hunts you, a sword to answer it -- and bunnies and squirrels
+  // that do neither. calm/1 is still a place and always will be. adr/0045.
+  [
+    `calm/${CALM_V2_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new CalmV2(level) : new CalmV2(level, creature),
   ],
 ]);
 

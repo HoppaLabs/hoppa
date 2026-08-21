@@ -52,8 +52,8 @@ const MUTATIONS: readonly Mutation[] = [
   {
     breaks: "the underwater palette says goblin over a picture of a shark",
     file: "src/web/level/palette.ts",
-    find: 'names: { swim: "shark", calm: "bunny" }',
-    replace: 'names: { swim: "goblin", calm: "bunny" }',
+    find: 'names: { swim: "shark", calm: "bear" }',
+    replace: 'names: { swim: "goblin", calm: "bear" }',
   },
   {
     breaks: "the reef's cast is listed out of glyph order, so a shark draws as a crab",
@@ -71,6 +71,14 @@ const MUTATIONS: readonly Mutation[] = [
     replace: "      next[j] = (next[j] as number) ^ gfMul(poly[j] as number, EXP[i] as number);\n      next[j + 1] = (next[j + 1] as number) ^ (poly[j] as number);",
   },
   {
+    // The one place in the project where WHICH creature it is changes what it
+    // does. If this ever stops holding, a garden fills with things that hunt.
+    breaks: "bunnies and squirrels start hunting you like the bear (calm/2)",
+    file: "src/engines/calm/v2.ts",
+    find: "      if (enemy.art !== BEAR) continue;\n      if (chebyshev(enemy.x, enemy.y, this.x, this.y) > BODY + BODY) continue;",
+    replace: "      if (chebyshev(enemy.x, enemy.y, this.x, this.y) > BODY + BODY) continue;",
+  },
+  {
     breaks: "drowning stops saying it is drowning",
     file: "src/web/play/breath.ts",
     find: 'return { text: "no air -- swim up!", said: AIR_OUT };',
@@ -79,13 +87,13 @@ const MUTATIONS: readonly Mutation[] = [
   {
     breaks: "the garden is reported as a level somebody failed to finish",
     file: "src/core/bot.ts",
-    find: "  const place = aPlace(level.engine);",
+    find: "  const place = aPlace(level.engine, level.behaviourVersion);",
     replace: "  const place = false;",
   },
   {
     breaks: "the garden demands a door the palette will not sell you",
     file: "src/core/advice.ts",
-    find: "  const place = aPlace(result.level.engine);",
+    find: "  const place = aPlace(result.level.engine, result.level.behaviourVersion);",
     replace: "  const place = false;",
   },
   {

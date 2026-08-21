@@ -154,25 +154,54 @@ export const ENEMIES: readonly Enemy[] = [
   },
 ];
 
-
-/**
- * The garden's cast: the same three kinds, drawn as what lives in a garden.
- *
- * Asked for twice, and for two different worlds -- "no bats, bunnies and
- * birds" of the garden, and "the underwater level shouldn't have bats or
- * lizards, needs sharks and octopuses" of the reef. Both are the same
- * complaint: enemy art was GLOBAL, so a bat turned up in a rock pool and a
- * goblin turned up on a lawn.
- *
- * So a world picks its cast, exactly as it already picks its gem colours. The
- * three kinds keep their behaviour and their wire value -- a level says kind 1
- * and gets a bat underground and a bird in a garden. Hard rule 4: no engine is
- * ever told, and a run replays identically whichever cast it wore.
- */
+/** The garden's three. A bear that means it, and two that do not. */
 export const GARDEN_CAST: readonly Enemy[] = [
   {
-    name: "bunny",
+    name: "bear",
     glyph: "G",
+    inks: ["#3a2410", "#6b4423", "#8f5f30", "#c9a273", "#ffffff", "#1a1008"],
+    frames: [
+      [
+        "..666......666..",
+        "..616......616..",
+        "..612666666216..",
+        "..622222222226..",
+        "...6252222526...",
+        "...6262222626...",
+        "...6224664226...",
+        "...6244444426...",
+        "....62444426....",
+        "..662224422266..",
+        ".61113333331116.",
+        ".61113333331116.",
+        "..612333333216..",
+        "...6233333326...",
+        "....61133116....",
+        "....66666666....",
+      ],
+      [
+        "..666......666..",
+        "..616......616..",
+        "..612666666216..",
+        "..622222222226..",
+        "...6252222526...",
+        "...6262222626...",
+        "...6224664226...",
+        "...6244444426...",
+        "....62444426....",
+        "..662224422266..",
+        ".61113333331116.",
+        ".61113333331116.",
+        "..612333333216..",
+        "...6233333326...",
+        "...6111331116...",
+        "...6666666666...",
+      ],
+    ],
+  },
+  {
+    name: "bunny",
+    glyph: "B",
     inks: ["#4a2f16", "#9a6b38", "#c49461", "#e6c9a0", "#ffffff", "#2a1a0d"],
     frames: [
       [
@@ -209,49 +238,6 @@ export const GARDEN_CAST: readonly Enemy[] = [
         ".611116666661113",
         ".611166....66111",
         ".66666......6666",
-        "................",
-      ],
-    ],
-  },
-  {
-    name: "bird",
-    glyph: "B",
-    inks: ["#12306b", "#1f4fa8", "#6fb2f0", "#ff9f3d", "#ffffff", "#0b1a3a"],
-    frames: [
-      [
-        "................",
-        "................",
-        ".....666666.....",
-        "....66333366....",
-        "...6633333366...",
-        ".6663333333366..",
-        "663333222233366.",
-        "632235222523236.",
-        "612222222222244.",
-        "661122111122166.",
-        ".6662111111266..",
-        "...6611661166...",
-        "...6116666116...",
-        "...6666..6666...",
-        "................",
-        "................",
-      ],
-      [
-        "................",
-        ".666.......666..",
-        ".63666666666366.",
-        ".63366333366336.",
-        ".63333333336336.",
-        ".66233333333666.",
-        "662223222233266.",
-        "632225222522216.",
-        "611122222222144.",
-        "661112111121166.",
-        ".6661111111166..",
-        "...6611661166...",
-        "....61666616....",
-        "....666..666....",
-        "................",
         "................",
       ],
     ],
@@ -301,16 +287,7 @@ export const GARDEN_CAST: readonly Enemy[] = [
   },
 ];
 
-
-/**
- * The reef's cast: what actually lives in the water.
- *
- * Reported plainly -- "the underwater level shouldn't have bats or lizards,
- * needs sharks and octopuses". It had them because enemy art was global.
- *
- * Same three kinds, same behaviour, same wire value: a level says kind 0 and
- * gets a goblin in a cave, a bunny in a garden and a shark on a reef.
- */
+/** The reef's three. */
 export const REEF_CAST: readonly Enemy[] = [
   {
     name: "shark",
@@ -452,9 +429,7 @@ export const CASTS: Readonly<Record<string, readonly Enemy[]>> = {
 /** The enemy a level glyph means, or undefined. */
 export function enemyByGlyph(glyph: string, world?: string): Enemy | undefined {
   // Which world matters, or the LEVEL EDITOR shows a lizard on a button that
-  // paints a shark. Reported exactly that way: "I still see lizard sprite
-  // underwater". The play page had been fixed and the editor's palette had not,
-  // because they fetch the art from two different places.
+  // paints a shark. Reported exactly that way.
   const cast = (world !== undefined ? CASTS[world] : undefined) ?? ENEMIES;
   return cast.find((one) => one.glyph === glyph);
 }

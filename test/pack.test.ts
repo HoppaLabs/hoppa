@@ -6,7 +6,7 @@ import { parseLevel } from "../src/core/level.ts";
 import { verifyLevelText } from "../src/core/verify.ts";
 import { botPlays, replayWins } from "../tools/bot.ts";
 import { newestBuild } from "../src/core/builds.ts";
-import { blankDraft, draftFromLevel, paint } from "../src/core/draft.ts";
+import { aPlace, blankDraft, draftFromLevel, paint } from "../src/core/draft.ts";
 import { GRID_H, GRID_W, idx } from "../src/core/grid.ts";
 
 /** The pack as level text, which is what the checks and the bot both want. */
@@ -26,16 +26,29 @@ const rooms = await Promise.all(
  * A place is not a level with the difficulty turned down; it is a different
  * kind of thing, and most of what this file checks -- an exit, a route to it, a
  * bot that can get out -- is meaningless applied to somewhere you go to sit.
- * Listed by what it IS rather than by name, so the next place is covered too.
+ *
+ * Asked by aPlace() rather than by engine name, because the garden changed
+ * sides: calm/1 was a place and calm/2 is a level wearing one, so "is it a
+ * calm level" stopped being the question. The pack ships no place at all now,
+ * and the row below says so rather than pretending otherwise. See adr/0045.
  */
-const challenges = rooms.filter((room) => parseLevel(room.text).engine !== "calm");
-const places = rooms.filter((room) => parseLevel(room.text).engine === "calm");
+const challenges = rooms.filter((room) => {
+  const level = parseLevel(room.text);
+  return !aPlace(level.engine, level.behaviourVersion);
+});
+const places = rooms.filter((room) => {
+  const level = parseLevel(room.text);
+  return aPlace(level.engine, level.behaviourVersion);
+});
+const gardens = rooms.filter((room) => parseLevel(room.text).engine === "calm");
 
 test("eleven rooms ship, and the file on disk is the code in the bundle", () => {
   // Six taught the game; three more teach the hazard that does not move; the
   // tenth is not a challenge at all.
   expect(PACK.length).toBe(11);
-  expect(places).toHaveLength(1);
+  // The pack ships no PLACE any more: the garden became a level in adr/0045.
+  expect(places).toHaveLength(0);
+  expect(gardens).toHaveLength(1);
   for (const room of rooms) {
     // The .lvl file is the source; the code is generated from it. If they drift,
     // the level somebody plays is not the level anybody checked.
@@ -270,22 +283,31 @@ test("the editor would let a child draw the rooms we ship", () => {
 });
 
 
-test("the garden is a place, and the tests know the difference", () => {
-  // Not a level with the difficulty turned down. Everything that makes a
-  // challenge a challenge is deliberately absent, and this says so out loud so
-  // that nobody later "fixes" it by adding a door.
-  const garden = places[0];
+test("the garden is a level now, and it still reads as a garden", () => {
+  // It was a place, and adr/0040 argued for that. Then it was asked for with a
+  // way out, a bear and a weapon, which is a level -- adr/0045. What must NOT
+  // have happened is the garden quietly turning into an ordinary room with
+  // green walls, so this checks both halves.
+  const garden = gardens[0];
   expect(garden).toBeDefined();
   const level = parseLevel((garden as { text: string }).text);
   expect(level.engine).toBe("calm");
-  expect(level.exitX).toBe(-1);              // nowhere you are trying to get to
+  expect(level.behaviourVersion).toBe(2);
+  expect(level.exitX).toBeGreaterThanOrEqual(0);           // somewhere to get to
   expect(level.treasureCells.length).toBeGreaterThan(4);   // flowers to pick
-  expect(level.guardCells.length).toBeGreaterThan(2);      // bunnies to find
   expect(level.fireCells.length).toBeGreaterThan(0);       // ponds to walk round
+
+  // ONE bear among the harmless. If the bunnies ever outnumber-flip and the
+  // room fills with bears it stops being a garden and becomes a dungeon that
+  // happens to be green.
+  const bears = [...level.guardArt].filter((art) => art === 0).length;
+  expect(bears).toBe(1);
+  expect(level.guardCells.length).toBeGreaterThan(3);
   console.log(
     `\n  ${(garden as { name: string }).name}: ` +
-    `${level.treasureCells.length} flowers, ${level.guardCells.length} bunnies, ` +
-    `${level.fireCells.length} cells of pond, and no way out`,
+    `${level.treasureCells.length} flowers, ${bears} bear, ` +
+    `${level.guardCells.length - bears} harmless, ` +
+    `${level.fireCells.length} cells of pond, and a gate`,
   );
 });
 
@@ -294,7 +316,7 @@ test("a tree is a wall with nothing beside it, and costs the link nothing", asyn
   // zero bytes in the encoding -- applied to a drawing. A lone wall cell is a
   // tree and a run of them is a hedge, so the level never has to say which, and
   // it matches how a child paints anyway: tap for a tree, drag for a hedge.
-  const garden = places[0] as { text: string; code: string };
+  const garden = gardens[0] as { text: string; code: string };
   const level = parseLevel(garden.text);
   let lone = 0;
   let hedged = 0;

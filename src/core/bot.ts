@@ -52,6 +52,15 @@ interface LevelBits {
   readonly walls: Uint8Array;
   readonly ladders: Uint8Array;
   readonly fires: Uint8Array;
+  /**
+   * Where the door is, so the bot does not have to LOOK for it.
+   *
+   * An actor's tile index overwrites the cell it stands on, so anything
+   * standing on the gate hid it from the render -- and the bot stopped dead
+   * with every gem in hand. See goal().
+   */
+  readonly exitX: number;
+  readonly exitY: number;
 }
 
 /** What the engine has to tell us for the bot to steer at all. */
@@ -113,13 +122,28 @@ export interface Attempt {
  * seconds. Straight-line distance is enough: the route is worked out separately
  * and this only has to choose between gems.
  */
-function goal(tiles: Uint8Array, fromX: number, fromY: number): number {
-  let exit = -1;
+/** Where the door is, off the level. -1 when the level has none. */
+function exitCell(level: { exitX: number; exitY: number }): number {
+  return level.exitX >= 0 ? idx(level.exitX, level.exitY) : -1;
+}
+
+function goal(tiles: Uint8Array, fromX: number, fromY: number, exitAt = -1): number {
+  // The exit is taken from the LEVEL, not looked for in the render.
+  //
+  // An actor's tile index overwrites the cell it stands on, so anything
+  // standing on the gate hides it -- and then this returned -1 and the bot
+  // simply stopped, with every gem collected and nowhere to go. Found in the
+  // garden, where a bunny wandered onto the exit: Bash and Pell walked out in
+  // 17s and 11s and Nim "ran out of ticks" holding all eight flowers.
+  //
+  // It could have happened in any room, to any build, at any time. A guard
+  // pausing on the door for one tick was all it needed.
+  let exit = exitAt;
   let gem = -1;
   let best = Number.MAX_SAFE_INTEGER;
   for (let cell = 0; cell < tiles.length; cell++) {
     const tile = tiles[cell] as number;
-    if (tile === TILE_EXIT_OPEN || tile === TILE_EXIT_LOCKED) exit = cell;
+    if (exitAt < 0 && (tile === TILE_EXIT_OPEN || tile === TILE_EXIT_LOCKED)) exit = cell;
     if (tile !== TILE_TREASURE) continue;
     const away = Math.abs((cell % GRID_W) - fromX) + Math.abs(((cell / GRID_W) | 0) - fromY);
     if (away < best) {
@@ -243,7 +267,7 @@ function playFromAbove(engine: Playable, level: LevelBits, cap: number): number[
     const tiles = engine.render();
     const here = engine.position();
     const at = idx(here.x, here.y);
-    const want = breathingRoom(engine) ?? goal(tiles, here.x, here.y);
+    const want = breathingRoom(engine) ?? goal(tiles, here.x, here.y, exitCell(level));
     if (want < 0) break;
 
     const path = routeAvoidingFire(level, at, want);
@@ -513,7 +537,7 @@ function playFromTheSide(
     const tiles = engine.render();
     const here = engine.position();
     const spot = engine.where?.() ?? { x: cellCentre(here.x), y: cellCentre(here.y), facing: 0 };
-    const want = goal(tiles, here.x, here.y);
+    const want = goal(tiles, here.x, here.y, exitCell(level));
     if (want < 0) break;
     const wx = want % GRID_W;
     const wy = (want / GRID_W) | 0;
@@ -697,7 +721,7 @@ export function botPlaysLevel(level: Level, creature: Creature, cap = 3600): Att
   // dying and running out is the wrong vocabulary for one. It stops when there
   // is nothing left it wants to walk to, which in a garden means the flowers
   // are picked -- and that is the visit going WELL.
-  const place = aPlace(level.engine);
+  const place = aPlace(level.engine, level.behaviourVersion);
   return {
     won,
     place,

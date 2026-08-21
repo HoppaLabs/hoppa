@@ -277,12 +277,315 @@ export function measure(rows: readonly string[]): Measured {
 }
 
 /** The generator's own gate, before anything ships. */
+/**
+ * The garden's three, and the reef's three.
+ *
+ * THEY USED TO LIVE IN THE GENERATED FILE, hand-edited in after it was
+ * written -- which meant the file said "GENERATED, do not edit" and would have
+ * thrown both casts away, 460 lines down to 160, the moment anybody ran the
+ * generator it names. Found by running it.
+ *
+ * A world absent from CASTS gets the dungeon three.
+ */
+export const GARDEN_CAST: readonly Enemy[] = [
+  {
+    // The one thing in the garden that means you harm, and the reason calm/2 has
+    // a weapon in it at all.
+    // 
+    // It takes the GUARD slot. "G" is the one that hurts you in every other world
+    // too -- a goblin below ground, a shark in the water -- so no new entity kind
+    // was spent on it, and kind 7 stays free. The cost is the bird: three slots,
+    // three creatures, and the bear wanted one.
+    name: "bear",
+    glyph: "G",
+    inks: ["#3a2410", "#6b4423", "#8f5f30", "#c9a273", "#ffffff", "#1a1008"],
+    frames: [
+      [
+        "..666......666..",
+        "..616......616..",
+        "..612666666216..",
+        "..622222222226..",
+        "...6252222526...",
+        "...6262222626...",
+        "...6224664226...",
+        "...6244444426...",
+        "....62444426....",
+        "..662224422266..",
+        ".61113333331116.",
+        ".61113333331116.",
+        "..612333333216..",
+        "...6233333326...",
+        "....61133116....",
+        "....66666666....",
+      ],
+      [
+        "..666......666..",
+        "..616......616..",
+        "..612666666216..",
+        "..622222222226..",
+        "...6252222526...",
+        "...6262222626...",
+        "...6224664226...",
+        "...6244444426...",
+        "....62444426....",
+        "..662224422266..",
+        ".61113333331116.",
+        ".61113333331116.",
+        "..612333333216..",
+        "...6233333326...",
+        "...6111331116...",
+        "...6666666666...",
+      ],
+    ],
+  },
+  {
+    name: "bunny",
+    glyph: "B",
+    inks: ["#4a2f16", "#9a6b38", "#c49461", "#e6c9a0", "#ffffff", "#2a1a0d"],
+    frames: [
+      [
+        "...666....666...",
+        "..6636....6366..",
+        "..6336....6336..",
+        "..6336....6336..",
+        "..633666666236..",
+        "..6623366332666.",
+        "..66233333322366",
+        "..62232332222336",
+        "..62225222522336",
+        "..62222222212226",
+        "..61121161111226",
+        "..66111111111266",
+        "..61116666661116",
+        "..61166....66116",
+        "..6666......6666",
+        "................",
+      ],
+      [
+        "..666......666..",
+        ".6636......6366.",
+        ".6336......6336.",
+        ".63366....66336.",
+        ".66336666663366.",
+        "..6633366333666.",
+        "..66333333332266",
+        "..62232332222236",
+        "..62225222522236",
+        "..62222222221226",
+        "..61221161111126",
+        ".666111111111166",
+        ".611116666661113",
+        ".611166....66111",
+        ".66666......6666",
+        "................",
+      ],
+    ],
+  },
+  {
+    name: "squirrel",
+    glyph: "D",
+    inks: ["#6b350c", "#a35314", "#d87a1f", "#ffd0a3", "#ffffff", "#3d1d06"],
+    frames: [
+      [
+        ".........66666..",
+        "........6633366.",
+        "...666.663333366",
+        "..66366633366336",
+        "..63336333666226",
+        ".663333632666116",
+        ".633233326661166",
+        ".63252352261166.",
+        ".6322222211666..",
+        ".62612222166....",
+        ".6211122216.....",
+        ".6211111166.....",
+        ".611661116......",
+        ".616666116......",
+        ".666..6666......",
+        "................",
+      ],
+      [
+        "........666666..",
+        ".......66333366.",
+        "...666.633333366",
+        "..66366633666236",
+        "..63336333666216",
+        ".663333632661166",
+        ".63323332661166.",
+        ".6325225226166..",
+        ".632222222166...",
+        ".62612222266....",
+        ".6211111116.....",
+        "66211111166.....",
+        "63116661116.....",
+        "61166.66116.....",
+        "6666...6666.....",
+        "................",
+      ],
+    ],
+  },
+];
+
+export const REEF_CAST: readonly Enemy[] = [
+  {
+    name: "shark",
+    glyph: "G",
+    inks: ["#39485c", "#7c8899", "#cdd6e0", "#b6dcff", "#ffffff", "#0d1014"],
+    frames: [
+      [
+        "................",
+        "......6666......",
+        ".....663366.....",
+        "66..66333366....",
+        "366.6333333666..",
+        "3366633333333666",
+        "3336332222233336",
+        "2223222222225323",
+        "2221222222222221",
+        "2116444444444416",
+        "1166644444444466",
+        "166.64444664466.",
+        "66..6664446666..",
+        "......66666.....",
+        "................",
+        "................",
+      ],
+      [
+        "................",
+        "......6666......",
+        ".....663366.....",
+        "....66333366....",
+        "66..6333333666..",
+        "3666633333333666",
+        "3366332222233336",
+        "2233222222225323",
+        "2211222222222221",
+        "2166444444444416",
+        "1666644444444466",
+        "16..64444666446.",
+        "66..66644466666.",
+        "......66666.....",
+        "................",
+        "................",
+      ],
+    ],
+  },
+  {
+    name: "octopus",
+    glyph: "B",
+    inks: ["#6b1420", "#a31d2e", "#d82f42", "#ffb3a8", "#ffffff", "#3a0d12"],
+    frames: [
+      [
+        "....66666666....",
+        "..666333333666..",
+        ".66333333333366.",
+        "6633333333333366",
+        "6333333223333336",
+        "6332352222532336",
+        "6322262222622236",
+        "6622222222222266",
+        ".66122211222166.",
+        "6611261111621166",
+        "6116661111666116",
+        "6166611661166616",
+        "6666116666116666",
+        "...6166..6616...",
+        "...666....666...",
+        "................",
+      ],
+      [
+        "....66666666....",
+        "..666333333666..",
+        ".66333333333366.",
+        "6633333333333366",
+        "6333323333233336",
+        "6333352222533336",
+        "6222262222622226",
+        "6622212222122266",
+        ".66221222212266.",
+        "6612216116122166",
+        "6111666116661116",
+        "6611661111661166",
+        ".66116166161166.",
+        "..616616616616..",
+        "..666666666666..",
+        "................",
+      ],
+    ],
+  },
+  {
+    name: "crab",
+    glyph: "D",
+    inks: ["#6b350c", "#a35314", "#ff9f3d", "#ffd0a3", "#ffffff", "#3d1d06"],
+    frames: [
+      [
+        ".6666......6666.",
+        "663366....663366",
+        "633336....633336",
+        "6333366666633336",
+        "6623663333663266",
+        ".66263333336266.",
+        ".66623333332666.",
+        "6622222222222266",
+        "6212225225222126",
+        "6211222222221126",
+        "6611111111111166",
+        "6161111111111616",
+        "3166166116616613",
+        "6666666666666666",
+        "................",
+        "................",
+      ],
+      [
+        "................",
+        ".6666......6666.",
+        "663366....663366",
+        "6333366666633336",
+        "6333366333363333",
+        "6632663333336633",
+        ".666233333326666",
+        "6622232222222266",
+        "6222225225222226",
+        "6221222222221226",
+        "6611111111111166",
+        "3661111111111661",
+        "6116166116616116",
+        "6666666666666666",
+        "................",
+        "................",
+      ],
+    ],
+  },
+];
+
+export const CASTS: Readonly<Record<string, readonly Enemy[]>> = {
+  garden: GARDEN_CAST,
+  reef: REEF_CAST,
+};
+
+/** Every drawing this file holds, for the checks below. */
+export const ALL: readonly Enemy[] = [...ENEMIES, ...GARDEN_CAST, ...REEF_CAST];
+
 export function check(): string[] {
   const wrong: string[] = [];
+  // Per CAST, not globally: every cast uses the same three glyphs, because a
+  // level stores an enemy as an index and the worlds are alternative art for
+  // the same three slots.
+  for (const [world, cast] of [["dungeon", ENEMIES], ["garden", GARDEN_CAST], ["reef", REEF_CAST]] as const) {
+    if (cast.length !== ENEMIES.length) {
+      wrong.push(`${world}: ${cast.length} creatures, want ${ENEMIES.length}`);
+    }
+    cast.forEach((one, at) => {
+      const want = (ENEMIES[at] as Enemy).glyph;
+      if (one.glyph !== want) wrong.push(`${world}: ${one.name} is "${one.glyph}", want "${want}"`);
+    });
+  }
   const seen = new Set<string>();
-  for (const one of ENEMIES) {
-    if (seen.has(one.glyph)) wrong.push(`${one.name}: glyph ${one.glyph} is already taken`);
-    seen.add(one.glyph);
+  for (const one of ALL) {
+    if (seen.has(`${one.glyph}`) && ENEMIES.includes(one)) {
+      wrong.push(`${one.name}: glyph ${one.glyph} is already taken`);
+    }
+    if (ENEMIES.includes(one)) seen.add(one.glyph);
     if (!/^[A-Z]$/.test(one.glyph)) wrong.push(`${one.name}: glyph must be one capital letter`);
     if (one.frames.length !== 2) wrong.push(`${one.name}: ${one.frames.length} frames, want 2`);
     for (let f = 0; f < one.frames.length; f++) {
@@ -308,14 +611,22 @@ export function check(): string[] {
     for (const ink of one.inks) {
       if (!/^#[0-9a-f]{6}$/.test(ink)) wrong.push(`${one.name}: "${ink}" is not a colour`);
     }
-    // Every ink has to be USED, or it is a colour somebody meant to draw with
-    // and forgot -- and an unused ink in a four-colour budget is a wasted
-    // quarter of the character.
+    // A TRAILING unused ink is waste -- a colour somebody meant to draw with
+    // and forgot. A gap in the middle is not: the casts share a role layout,
+    // 1 shadow, 2 mid, 3 lit, 4 a second material, 5 white, 6 outline, and a
+    // creature with no second material leaves slot 4 empty so that every other
+    // slot still means the same thing in every drawing.
+    //
+    // This check only ever ran over the dungeon three, so when it was widened
+    // to the garden and the reef it flagged four creatures at once -- a bunny
+    // and a squirrel and two sea things with no second material. None of them
+    // was a mistake, which is what told me the check was too strong rather
+    // than the drawings too sloppy.
     const used = new Set(one.frames.flatMap((rows) => rows.join("").split("")));
-    for (let at = 0; at < one.inks.length; at++) {
-      if (!used.has(String.fromCharCode(49 + at))) {
-        wrong.push(`${one.name}: ink ${at + 1} (${one.inks[at]}) is never drawn with`);
-      }
+    let last = one.inks.length - 1;
+    while (last >= 0 && !used.has(String.fromCharCode(49 + last))) {
+      wrong.push(`${one.name}: ink ${last + 1} (${one.inks[last]}) is on the end and never drawn with`);
+      last--;
     }
     // The two frames have to be the same creature. A walk beat moves the legs;
     // it does not redraw the animal, and a large change in inked mass reads as
@@ -379,25 +690,45 @@ function enemiesModule(): string {
     "",
     "export const ENEMIES: readonly Enemy[] = [",
   ];
-  for (const one of ENEMIES) {
-    lines.push("  {");
-    lines.push(`    name: ${JSON.stringify(one.name)},`);
-    lines.push(`    glyph: ${JSON.stringify(one.glyph)},`);
-    lines.push(`    inks: [${one.inks.map((i) => JSON.stringify(i)).join(", ")}],`);
-    lines.push("    frames: [");
-    for (const rows of one.frames) {
-      lines.push("      [");
-      for (const row of rows) lines.push(`        ${JSON.stringify(row)},`);
-      lines.push("      ],");
+  const write = (cast: readonly Enemy[]): void => {
+    for (const one of cast) {
+      lines.push("  {");
+      lines.push(`    name: ${JSON.stringify(one.name)},`);
+      lines.push(`    glyph: ${JSON.stringify(one.glyph)},`);
+      lines.push(`    inks: [${one.inks.map((i) => JSON.stringify(i)).join(", ")}],`);
+      lines.push("    frames: [");
+      for (const rows of one.frames) {
+        lines.push("      [");
+        for (const row of rows) lines.push(`        ${JSON.stringify(row)},`);
+        lines.push("      ],");
+      }
+      lines.push("    ],");
+      lines.push("  },");
     }
-    lines.push("    ],");
-    lines.push("  },");
-  }
-  lines.push("];");
+    lines.push("];");
+    lines.push("");
+  };
+
+  write(ENEMIES);
+  lines.push("/** The garden's three. A bear that means it, and two that do not. */");
+  lines.push("export const GARDEN_CAST: readonly Enemy[] = [");
+  write(GARDEN_CAST);
+  lines.push("/** The reef's three. */");
+  lines.push("export const REEF_CAST: readonly Enemy[] = [");
+  write(REEF_CAST);
+
+  lines.push("/** Which cast a world uses. Anything not named here uses the dungeon three. */");
+  lines.push("export const CASTS: Readonly<Record<string, readonly Enemy[]>> = {");
+  lines.push("  garden: GARDEN_CAST,");
+  lines.push("  reef: REEF_CAST,");
+  lines.push("};");
   lines.push("");
   lines.push("/** The enemy a level glyph means, or undefined. */");
-  lines.push("export function enemyByGlyph(glyph: string): Enemy | undefined {");
-  lines.push("  return ENEMIES.find((one) => one.glyph === glyph);");
+  lines.push("export function enemyByGlyph(glyph: string, world?: string): Enemy | undefined {");
+  lines.push("  // Which world matters, or the LEVEL EDITOR shows a lizard on a button that");
+  lines.push("  // paints a shark. Reported exactly that way.");
+  lines.push("  const cast = (world !== undefined ? CASTS[world] : undefined) ?? ENEMIES;");
+  lines.push("  return cast.find((one) => one.glyph === glyph);");
   lines.push("}");
   lines.push("");
   return lines.join("\n");
@@ -410,5 +741,5 @@ if (import.meta.main) {
     process.exit(1);
   }
   await Bun.write("src/core/enemies.ts", enemiesModule());
-  console.log(`  src/core/enemies.ts — ${ENEMIES.length} enemies, ${ENEMIES.length * 2} frames`);
+  console.log(`  src/core/enemies.ts — ${ALL.length} creatures across 3 casts, ${ALL.length * 2} frames`);
 }

@@ -24,7 +24,7 @@ const EXPECTED: Readonly<Record<string, readonly string[]>> = {
   dash: ["clear", "wall", "start", "door / exit", "treasure", "goblin", "bat", "lizard", "ladder", "spikes"],
   swim: ["clear", "rock", "start", "door / exit", "treasure", "shark", "octopus", "crab", "current", "urchins"],
   // No door: see the exit tool in palette.ts. A garden is not a level.
-  calm: ["clear", "hedge", "start", "flowers", "bunny", "bird", "squirrel", "bridge", "pond"],
+  calm: ["clear", "hedge", "start", "door / exit", "flowers", "bear", "bunny", "squirrel", "bridge", "pond"],
 };
 
 test("every game's palette reads the way it should", () => {

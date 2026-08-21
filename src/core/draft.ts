@@ -133,8 +133,15 @@ export function sideOn(engine: string): boolean {
  * The editor asks this to decide whether to insist on a way out. Everywhere
  * else a level with no exit is a mistake; here it is the point.
  */
-export function aPlace(engine: string): boolean {
-  return engine === "calm";
+export function aPlace(engine: string, version = 1): boolean {
+  // calm/1 ONLY. It shipped as somewhere to be rather than a level to beat --
+  // no exit, no win, no loss, no clock -- and hard rule 3 means it stays that
+  // way for every link that pinned it.
+  //
+  // calm/2 was asked for with an exit, a bear that hunts you and a weapon to
+  // answer it, which is a LEVEL wearing a garden. So it gets hearts, a clock,
+  // a win, a loss and the share gate, like every other level. See adr/0045.
+  return engine === "calm" && version <= 1;
 }
 
 /**
@@ -219,10 +226,11 @@ export function blankDraft(engine: string, behaviourVersion: number): Draft {
   for (let i = 0; i < GRID_AREA; i = (i + 1) | 0) cells[i] = GLYPH_FLOOR;
   frame(cells, engine);
 
-  if (aPlace(engine)) {
-    // No exit, and that is the whole point. A garden is not somewhere you are
-    // trying to get out of, and a door standing in one is the single thing
-    // that would tell a child this is another level with another way to fail.
+  if (aPlace(engine, behaviourVersion)) {
+    // calm/1 has no exit, and that was the whole point of it. A garden was not
+    // somewhere you were trying to get out of, and a door standing in one was
+    // the one thing that would have said "another level, another way to fail".
+    // calm/2 was asked for with a way out, so it takes the branch below.
     cells[idx(2, 2)] = GLYPH_START;
   } else if (underwater(engine)) {
     // Just under the surface, top left: where the air is, which is where a

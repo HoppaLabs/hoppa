@@ -30,13 +30,25 @@ function armsReach(engine: string, build: number, sideOn: boolean): string {
   return [`hoppa/1 ${engine} seed=0 tiles=1 behaviour=${build}`, ...rows].join("\n");
 }
 
+/**
+ * Each game at its newest build, and what that build is FOR.
+ *
+ * The garden changed sides. calm/1 was a place -- nothing to win, nothing to
+ * lose, nothing you could hurt -- and calm/2 was asked for with an exit, a
+ * bear and a weapon, which makes it a level wearing a garden. Both are still
+ * shipped, so both are checked, and the version is part of the row rather than
+ * something the reader has to know. See adr/0045.
+ */
 const GAMES = [
-  { engine: "roam", sideOn: false, world: "underground", killable: true, ends: true },
-  { engine: "dash", sideOn: true, world: "outside", killable: true, ends: true },
-  { engine: "swim", sideOn: true, world: "reef", killable: true, ends: true },
-  // The one that is a place rather than a level.
-  { engine: "calm", sideOn: false, world: "garden", killable: false, ends: false },
+  { engine: "roam", version: newestBuild("roam"), sideOn: false, world: "underground", killable: true, ends: true },
+  { engine: "dash", version: newestBuild("dash"), sideOn: true, world: "outside", killable: true, ends: true },
+  { engine: "swim", version: newestBuild("swim"), sideOn: true, world: "reef", killable: true, ends: true },
+  { engine: "calm", version: 1, sideOn: false, world: "garden", killable: false, ends: false },
+  { engine: "calm", version: 2, sideOn: false, world: "garden", killable: true, ends: true },
 ] as const;
+
+/** How a row names itself when a test prints or asserts on it. */
+const nameOf = (game: (typeof GAMES)[number]) => `${game.engine}/${game.version}`;
 
 test("each game gets its own world, and its own cast living in it", () => {
   const rows: string[] = [];
@@ -58,30 +70,30 @@ test("each game gets its own world, and its own cast living in it", () => {
 test("only the games that are ABOUT fighting let you hurt anything", () => {
   const rows: string[] = [];
   for (const game of GAMES) {
-    const level = parseLevel(armsReach(game.engine, newestBuild(game.engine), game.sideOn));
+    const level = parseLevel(armsReach(game.engine, game.version, game.sideOn));
     const engine = engineFor(level, who) as unknown as {
       step(held: number): number; enemyPositions(): unknown[];
     };
     const before = engine.enemyPositions().length;
     for (let tick = 0; tick < 600; tick++) engine.step(HELD_RIGHT | HELD_ACT | HELD_SWING);
     const after = engine.enemyPositions().length;
-    rows.push(`  ${game.engine.padEnd(5)} ${before} -> ${after}  ${after < before ? "killable" : "unharmed"}`);
-    expect({ engine: game.engine, killable: after < before })
-      .toEqual({ engine: game.engine, killable: game.killable });
+    rows.push(`  ${nameOf(game).padEnd(7)} ${before} -> ${after}  ${after < before ? "killable" : "unharmed"}`);
+    expect({ game: nameOf(game), killable: after < before })
+      .toEqual({ game: nameOf(game), killable: game.killable });
   }
   console.log(`\n  twenty seconds of walking into it and swinging:\n${rows.join("\n")}`);
 });
 
-test("a garden never ends, and the others always do", () => {
+test("calm/1 never ends; every other build does", () => {
   for (const game of GAMES) {
-    const level = parseLevel(armsReach(game.engine, newestBuild(game.engine), game.sideOn));
+    const level = parseLevel(armsReach(game.engine, game.version, game.sideOn));
     const engine = engineFor(level, who) as unknown as {
       step(held: number): number; currentStatus(): number;
     };
     let status: number = STATUS_PLAYING;
     for (let tick = 0; tick < 4000 && status === STATUS_PLAYING; tick++) status = engine.step(0);
-    expect({ engine: game.engine, ends: status !== STATUS_PLAYING })
-      .toEqual({ engine: game.engine, ends: game.ends });
+    expect({ game: nameOf(game), ends: status !== STATUS_PLAYING })
+      .toEqual({ game: nameOf(game), ends: game.ends });
   }
 });
 
@@ -106,7 +118,10 @@ test("every game is reachable, named, and routed", () => {
   // file, and would have gone on passing if the picker had been deleted from
   // one file and left in the other.
   const named = ["adventure", "platformer", "underwater", "garden"];
-  expect(PICKER.map((game) => game.engine)).toEqual(GAMES.map((game) => game.engine));
+  // GAMES lists BUILDS and carries calm twice, so compare against the engines
+  // it names rather than its rows.
+  const engines = [...new Set(GAMES.map((game) => game.engine))];
+  expect(PICKER.map((game) => game.engine)).toEqual(engines);
   expect(PICKER.map((game) => game.label as string)).toEqual(named);
   for (const game of PICKER) {
     expect(ENGINE_IDS).toContain(game.engine);

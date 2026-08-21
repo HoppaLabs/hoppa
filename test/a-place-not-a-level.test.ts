@@ -24,11 +24,50 @@ const rooms = PACK.map((room) => {
   const text = levelToText(decodeLevel(room.code));
   return { name: room.name, text, engine: parseLevel(text).engine };
 });
-const places = rooms.filter((room) => aPlace(room.engine));
-const levels = rooms.filter((room) => !aPlace(room.engine));
+const levels = rooms.filter((room) => {
+  const level = parseLevel(room.text);
+  return !aPlace(level.engine, level.behaviourVersion);
+});
 
-test("a place ships, or there is nothing here to check", () => {
-  expect(places.length).toBeGreaterThan(0);
+/**
+ * A calm/1 room, built here rather than taken from the pack.
+ *
+ * The pack used to ship one and no longer does: the garden became a level in
+ * adr/0045, with a gate and a bear and a sword. calm/1 is still routed and
+ * still a place -- hard rule 3 -- so everything below still has to hold, and
+ * it now holds against a room this file owns instead of one that moved.
+ */
+const PLACE = [
+  "hoppa/1 calm seed=0 tiles=1 behaviour=1",
+  "########################",
+  "#.@....................#",
+  "#...$......$....$......#",
+  "#......................#",
+  "#..G.........B.........#",
+  "#......................#",
+  "#.......$..............#",
+  "#..............D.......#",
+  "#......................#",
+  "#....$.................#",
+  "#......................#",
+  "#..........$...........#",
+  "#......................#",
+  "########################",
+].join("\n");
+const places = [{ name: "a place", text: PLACE, engine: "calm" }];
+
+test("calm/1 is still routed, and still a place", () => {
+  // The whole file rests on this. If calm/1 ever stops being a place, every
+  // test below is asking a question about nothing.
+  const level = parseLevel(PLACE);
+  expect(level.behaviourVersion).toBe(1);
+  expect(aPlace(level.engine, level.behaviourVersion)).toBe(true);
+  // ...and the pack no longer ships one, which is the change that brought this
+  // room into the file.
+  expect(rooms.filter((room) => {
+    const one = parseLevel(room.text);
+    return aPlace(one.engine, one.behaviourVersion);
+  })).toHaveLength(0);
 });
 
 test("the bot marks a place as a place, and never as a run that ran out", () => {

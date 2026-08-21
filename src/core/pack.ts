@@ -76,7 +76,7 @@ export const PACK: readonly PackLevel[] = [
   {
     slug: "the-garden",
     name: "the garden",
-    teaches: "pick flowers, play with the bunnies, keep out of the ponds",
-    code: "EVBEACMl8wekPCBgAyQEMiFCOkMEAgA6Q6Q0ISIgciZCBgHCOlB0GQIaLKOiWSiqjKjSjiOeTtfLkbkzSkSsS0YkYsY01pJ9kA8",
+    teaches: "pick the flowers, mind the bear, keep out of the ponds",
+    code: "EVCEACMl8wekPCBgAyQEMiFCOkMEAgA6Q6Q0ISIgciZCBgHCOlB1GQmpIaLKOiWSiqjKjSjiOeTtaLkdk2SkSsS0YkYsY01pJ9kACw",
   },
 ];

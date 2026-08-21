@@ -21,7 +21,7 @@ import {
 import { paintQrOnto } from "../qrpaint.ts";
 import { loadCharacter, loadDraft, setSoundOn, soundOn } from "../stash.ts";
 import { Sounds, soundsFor, type Moment } from "./sound.ts";
-import { draftToText } from "../../core/draft.ts";
+import { aPlace as isAPlace, draftToText } from "../../core/draft.ts";
 import { parseLevel } from "../../core/level.ts";
 import { colourFor } from "../../core/palette.ts";
 import { SPRITE_H, SPRITE_W, spriteIndex } from "../../core/sprite.ts";
@@ -120,7 +120,9 @@ let provedThisRun = false;
  * because there is nothing to win, nothing to lose and nothing to prove.
  */
 function aPlace(): boolean {
-  return level.engine === "calm";
+  // The version matters: calm/1 is somewhere to be, calm/2 is a level wearing
+  // a garden. See src/core/draft.ts and adr/0045.
+  return isAPlace(level.engine, level.behaviourVersion);
 }
 
 function hasBeatenThis(): boolean {

@@ -54,17 +54,17 @@ export const TOOLS: readonly Tool[] = [
   { glyph: GLYPH_FLOOR, label: "clear", rubber: true },
   { glyph: GLYPH_WALL, label: "wall", names: { swim: "rock", calm: "hedge" } },
   { glyph: GLYPH_START, label: "start" },
-  // Every game but the garden. A garden has nowhere you are trying to get to,
-  // so a door standing in one is a button that does nothing -- calm/1 draws it
-  // and then never opens it, because there is no win to gate. A new garden is
-  // laid out without one (see blankDraft); this stops a child putting one back.
-  { glyph: GLYPH_EXIT, label: "door / exit", engines: ["roam", "dash", "swim"] },
+  // Every game, again. It was withheld from the garden while calm/1 was the
+  // only one there was: that build has no win, so it drew a door and never
+  // opened it, and the tool was a button that did nothing. calm/2 was asked for
+  // WITH a way out, and a new garden is drawn under calm/2. See adr/0045.
+  { glyph: GLYPH_EXIT, label: "door / exit" },
   { glyph: GLYPH_TREASURE, label: "treasure", names: { calm: "flowers" }, limit: 8 },
   // Three enemies, one tool each. They walk, chase and die exactly alike --
   // what changes is what a child sees walking towards them, which at nine
   // years old is most of what an enemy IS.
-  { glyph: GLYPH_GUARD, label: "goblin", names: { swim: "shark", calm: "bunny" }, limit: 10 },
-  { glyph: GLYPH_BAT, label: "bat", names: { swim: "octopus", calm: "bird" }, limit: 10 },
+  { glyph: GLYPH_GUARD, label: "goblin", names: { swim: "shark", calm: "bear" }, limit: 10 },
+  { glyph: GLYPH_BAT, label: "bat", names: { swim: "octopus", calm: "bunny" }, limit: 10 },
   { glyph: GLYPH_DRAGON, label: "lizard", names: { swim: "crab", calm: "squirrel" }, limit: 10 },
   { glyph: GLYPH_LADDER, label: "ladder", names: { calm: "bridge" }, engines: ["dash", "calm"] },
   // One tool, four directions. Drag it and the water goes the way you dragged.

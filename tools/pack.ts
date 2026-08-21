@@ -134,7 +134,7 @@ export interface PackLevel {
 const roam = (seed: string) => `hoppa/1 roam seed=${seed} tiles=1 behaviour=8`;
 const dash = (seed: string) => `hoppa/1 dash seed=${seed} tiles=1 behaviour=8`;
 const swim = (seed: string) => `hoppa/1 swim seed=${seed} tiles=1 behaviour=3`;
-const calm = (seed: string) => `hoppa/1 calm seed=${seed} tiles=1 behaviour=1`;
+const calm = (seed: string) => `hoppa/1 calm seed=${seed} tiles=1 behaviour=2`;
 
 /* -------------------------------------------------------------------------- */
 
@@ -431,7 +431,7 @@ export const PACK: readonly PackLevel[] = [
   {
     file: "11-the-garden.lvl",
     name: "the garden",
-    teaches: "pick flowers, play with the bunnies, keep out of the ponds",
+    teaches: "pick the flowers, mind the bear, keep out of the ponds",
     text: theGarden(),
   },
 ];
@@ -559,18 +559,28 @@ function theGarden(): string {
   // Two more trees loose on the lawn, so the middle is not bare.
   room.put(11, 4, WALL).put(12, 9, WALL);
 
-  // The creatures gather where the cover is, the way animals do: a pair by the
-  // thicket, one in the orchard, one crossing the open.
-  room.put(3, 12, "G").put(6, 12, "G");
+  // The creatures gather where the cover is, the way animals do. On calm/2 the
+  // glyph decides what a thing DOES, so this line is the level design and not
+  // the dressing: "B" and "D" are a bunny and a squirrel and neither of them
+  // will ever come after you.
+  room.put(3, 12, "B").put(6, 12, "D");
   room.put(19, 4, "D");
   room.put(13, 6, "B");
-  room.put(9, 10, "G");
+
+  // ONE bear, and it is a long way from where you start. It hunts, so a child
+  // meets it having already learned the pad on a lawn full of things that do
+  // not -- and it stands between the south-east flower bed and the gate, which
+  // is what makes the sword worth having.
+  room.put(17, 8, "G");
 
   // Two flowers out on the lawn, so there is a reason to cross it.
   room.put(10, 7, "$").put(13, 11, "$");
 
-  // You, by the gate. And no door: there is nowhere you are trying to get to.
+  // You in the north-west, the gate in the south-east, and the whole garden in
+  // between. calm/1 had no door because there was nowhere to get to; calm/2
+  // was asked for with one. See adr/0045.
   room.put(2, 2, "@");
+  room.put(21, 12, ">");
   return room.text(calm("cccc"));
 }
 
