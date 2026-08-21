@@ -21,6 +21,7 @@ import { engineFor } from "../engines/registry.ts";
 import type { Creature } from "./creature.ts";
 import { capsToBuild, clampPip } from "./creature.ts";
 import { stepTableFor } from "./playable.ts";
+import { aPlace } from "./draft.ts";
 import {
   TILE_EXIT_LOCKED,
   TILE_EXIT_OPEN,
@@ -83,6 +84,17 @@ export { engineFor } from "../engines/registry.ts";
 
 export interface Attempt {
   readonly won: boolean;
+  /**
+   * True when there was nothing to win, because this is a PLACE.
+   *
+   * A garden has no exit and no ending -- see adr/0040 -- so `won` is false in
+   * one for the same reason it is false in a room nobody escaped, and the two
+   * are not the same thing at all. Without this the editor read a visit where
+   * every flower was picked as "could not finish it -- ran out of ticks",
+   * which is three wrong statements in one line: there was nothing to finish,
+   * it did not run out, and it went perfectly.
+   */
+  readonly place: boolean;
   readonly ticks: number;
   readonly seconds: number;
   readonly treasure: string;
@@ -681,20 +693,28 @@ export function botPlaysLevel(level: Level, creature: Creature, cap = 3600): Att
   const status = engine.currentStatus();
   const health = engine.health?.() ?? { hp: 0, max: 0 };
   const won = status === STATUS_WON;
+  // A place never wins and never loses, so every word below about finishing,
+  // dying and running out is the wrong vocabulary for one. It stops when there
+  // is nothing left it wants to walk to, which in a garden means the flowers
+  // are picked -- and that is the visit going WELL.
+  const place = aPlace(level.engine);
   return {
     won,
+    place,
     ticks: log.length,
     seconds: (log.length / 30) | 0,
     treasure: `${engine.collectedCount()}/${engine.treasureTotal()}`,
     hearts: health.max === 0 ? "n/a" : `${health.hp}/${health.max}`,
     log,
-    why: won
-      ? "out"
-      : status === STATUS_PLAYING
-        ? "ran out of ticks"
-        : health.hp <= 0
-          ? "died"
-          : "lost",
+    why: place
+      ? "nothing to finish -- it is a place"
+      : won
+        ? "out"
+        : status === STATUS_PLAYING
+          ? "ran out of ticks"
+          : health.hp <= 0
+            ? "died"
+            : "lost",
   };
 }
 

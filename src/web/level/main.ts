@@ -875,10 +875,17 @@ watchButton.addEventListener("click", () => {
         at = (at + 1) | 0;
         paintWatched(engine, level);
         if (at >= attempt.log.length) {
-          says.textContent = attempt.won
-            ? `beaten in ${attempt.seconds}s, ${attempt.treasure} treasure, ${attempt.hearts} hearts left`
-            : `could not finish it -- ${attempt.why}`;
-          says.className = attempt.won ? "good" : "bad";
+          // Three sentences, because there are three kinds of outcome and only
+          // two used to have words. A garden has nothing to beat, so reporting
+          // it in the vocabulary of beating told a child their garden was
+          // BROKEN -- "could not finish it -- ran out of ticks" over a visit
+          // where every flower had been picked. See adr/0040 and bot.Attempt.
+          says.textContent = attempt.place
+            ? `had a wander -- picked ${attempt.treasure} flowers in ${attempt.seconds}s`
+            : attempt.won
+              ? `beaten in ${attempt.seconds}s, ${attempt.treasure} treasure, ${attempt.hearts} hearts left`
+              : `could not finish it -- ${attempt.why}`;
+          says.className = attempt.won || attempt.place ? "good" : "bad";
           stopWatching();
         }
       }, realtime ? 33 : 110);

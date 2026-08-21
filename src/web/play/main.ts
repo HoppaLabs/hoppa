@@ -45,6 +45,7 @@ import { GridRenderer } from "./renderer.ts";
 import { goOffline } from "../offline.ts";
 import { holdStill } from "../nozoom.ts";
 import { paintLogo } from "../logo.ts";
+import { AIR_QUIET, breathPips, breathWarning, type Breath } from "./breath.ts";
 
 
 /**
@@ -724,21 +725,53 @@ function paintPourState(): void {
  * It goes orange and then red near the end. A meter that only changes length
  * is a meter nobody looks at while they are busy swimming; a colour arrives in
  * the corner of the eye, which is the whole point of a warning.
+ *
+ * AND IT SAYS THE WORD. Six dots next to six hearts is a second row of
+ * something, and a child who has not been told what it is has no reason to
+ * read it -- so when the air ran out and a heart went every DROWN_TICKS, what
+ * they saw was damage arriving from nowhere. Reported exactly that way: "the
+ * player character seems to randomly get hurt after passing a bubble". It was
+ * not the bubble; the bubbles are decoration and no engine has ever read one.
+ * It was drowning, silently.
  */
-function breathBar(game: Moving): string {
-  const breath = (game as unknown as { breath?: () => { left: number; full: number } }).breath?.();
-  if (breath === undefined) return "";
-  const pips = 6;
-  const lit = Math.ceil((breath.left / breath.full) * pips);
-  const state = lit <= 1 ? "air-0" : lit <= 2 ? "air-1" : "air";
-  return `<span class="${state}" aria-label="air"><b>` +
-    "\u25cf".repeat(Math.max(0, lit)) + "\u25cb".repeat(Math.max(0, pips - lit)) +
-    "</b></span>";
+/** The lungful this engine has, if it is the kind of engine that breathes. */
+function breathOf(game: Moving): Breath | undefined {
+  return (game as unknown as { breath?: () => Breath }).breath?.();
 }
+
+function breathBar(game: Moving): string {
+  const breath = breathOf(game);
+  if (breath === undefined) return "";
+  // Out is its own state, not the bottom of the meter. An empty row of circles
+  // says "this is nearly used up"; it does not say "you are drowning RIGHT NOW
+  // and that is where the hearts are going".
+  if (breath.left <= 0) {
+    return `<span class="air-0" aria-label="out of air"><b>no air!</b></span>`;
+  }
+  const pips = 6;
+  const { lit, state } = breathPips(breath, pips);
+  return `<span class="${state}"><b>` +
+    "\u25cf".repeat(Math.max(0, lit)) + "\u25cb".repeat(Math.max(0, pips - lit)) +
+    "</b> air</span>";
+}
+
+let airSaid = AIR_QUIET;
 
 function paintMovingHud(): void {
   const game = moving as Moving;
-  if (!finished()) flashMessage(loop === null ? null : loop.takeMessage());
+  // Two voices, one strip of screen, and the CAUSE wins over the symptom.
+  //
+  // Drowning speaks through the engine as "That hurt." -- the same words as an
+  // urchin, on a tick where nothing is nearby -- and it speaks again every
+  // DROWN_TICKS, so left to itself it would crowd out the one line that says
+  // what to do about it. Out of air, the air warning goes first; the rest of
+  // the time the engine does, because then it really is about being hit.
+  if (!finished()) {
+    const said = loop === null ? null : loop.takeMessage();
+    const heard = breathWarning(breathOf(game), airSaid);
+    airSaid = heard.said;
+    flashMessage(heard.text !== null ? heard.text : said);
+  }
   const health = game.health();
   const hearts = "\u2665".repeat(health.hp) + "\u2661".repeat(Math.max(0, health.max - health.hp));
   const got = game.collectedCount();
@@ -774,6 +807,8 @@ function paintMovingHud(): void {
 
 function reset(): void {
   if (loop !== null) loop.stop();
+  // A fresh run starts with a lungful and with both warnings unspent.
+  airSaid = AIR_QUIET;
   // The code is for this level, so it survives a replay -- but the panel is
   // hidden again until the next win.
   qrCanvas.hidden = true;

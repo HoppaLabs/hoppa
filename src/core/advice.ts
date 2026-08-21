@@ -18,7 +18,7 @@ import { parseLevel, type Level } from "./level.ts";
 import { verifyLevelText } from "./verify.ts";
 import { reachableFrom } from "./reach.ts";
 import { bestStepUp, landingFrom, reachableWithGravity, typicalStepUp } from "./playable.ts";
-import { sideOn } from "./draft.ts";
+import { aPlace, sideOn } from "./draft.ts";
 
 /** Above this a link starts getting awkward in a group chat. Spec S13's L7. */
 export const CODE_WARN = 150;
@@ -63,13 +63,24 @@ export function adviceFor(text: string): Advice {
   const byId = new Map<string, (typeof result.checks)[number]>();
   for (const check of result.checks) byId.set(check.id, check);
 
+  /**
+   * A place, not a level. Every note below about the DOOR is wrong in one.
+   *
+   * A garden has no exit by design -- adr/0040 -- so L2 fails on every garden
+   * ever drawn, and the advice read "there is no way out -- put a door
+   * somewhere". Fatal, so it also switched off the play button: a child could
+   * not play their own garden, and the door it told them to add is not in the
+   * palette to add. Three checks have to sit this one out.
+   */
+  const place = aPlace(result.level.engine);
+
   const l2 = byId.get("L2");
-  if (l2 !== undefined && l2.ok === false) {
+  if (!place && l2 !== undefined && l2.ok === false) {
     notes.push({ fatal: true, text: "there is no way out -- put a door somewhere" });
   }
 
   const l3 = byId.get("L3");
-  if (l3 !== undefined && l3.ok === false) {
+  if (!place && l3 !== undefined && l3.ok === false) {
     notes.push({ fatal: true, text: "you cannot get from the start to the door -- there is a wall in the way" });
   }
 
@@ -78,7 +89,7 @@ export function adviceFor(text: string): Advice {
   // only way through is on fire" is worth saying out loud, because it is the
   // difference between a level that is hard and one that a creature with two
   // hearts cannot finish.
-  if (result.level.fireCells.length > 0 && l3 !== undefined && l3.ok) {
+  if (!place && result.level.fireCells.length > 0 && l3 !== undefined && l3.ok) {
     const dry = reachableFrom(result.level, result.level.startX, result.level.startY, true);
     const exitCell = idx(result.level.exitX, result.level.exitY);
     const trappedExit = result.level.exitX >= 0 && dry[exitCell] !== 1;
@@ -107,10 +118,16 @@ export function adviceFor(text: string): Advice {
     // Fatal, not a warning: the door only opens once every treasure is picked
     // up, so one unreachable gem means nobody finishes -- including whoever
     // drew it, which the share gate would eventually tell them anyway.
+    //
+    // In a place it is worth saying and NOT fatal, because nothing waits on
+    // picking them all. A flower behind a hedge is a shame, not a dead end.
     notes.push({
-      fatal: true,
-      text:
-        walled === 1
+      fatal: !place,
+      text: place
+        ? walled === 1
+          ? `one flower is behind a hedge (${at(result.strandedTreasure[0] as number)}) -- nobody can reach it`
+          : `${walled} flowers are behind hedges -- nobody can reach them`
+        : walled === 1
           ? `one treasure is walled off (${at(result.strandedTreasure[0] as number)}), so the door can never open`
           : `${walled} treasures are walled off, so the door can never open`,
     });
