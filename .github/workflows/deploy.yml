@@ -40,6 +40,14 @@ jobs:
         with:
           bun-version: "1.3.11"
 
+      # Dev-only: typescript and @types/bun, for the typecheck below. Nothing
+      # here reaches the bundle -- the runtime is still zero dependencies, and
+      # the artifact this job uploads is built from src/ alone. See adr/0041.
+      #
+      # --frozen-lockfile so the toolchain cannot drift underneath a build, for
+      # the same reason the bun version above is pinned rather than "latest".
+      - run: bun install --frozen-lockfile
+
       # Never ship a build that fails the determinism check.
       - run: bun run check:determinism
       - run: bun run check:types
