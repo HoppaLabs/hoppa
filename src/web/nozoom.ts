@@ -48,6 +48,22 @@ export function holdStill(keeps: Element | null = null): void {
     event.preventDefault();
   }, { passive: false });
 
+  // A long press on a held button. Reported live: holding a direction long
+  // enough -- which is how you walk anywhere -- brings up Safari's text
+  // selection controls over the game. The CSS `-webkit-touch-callout: none` on
+  // each page is the main fix; this catches the browsers that start a selection
+  // without the callout. Form fields are left alone: a name you cannot put a
+  // caret into is worse than a menu you did not want.
+  const typing = (target: EventTarget | null): boolean =>
+    target instanceof Element && (target.closest("input, textarea") !== null);
+
+  for (const name of ["contextmenu", "selectstart"]) {
+    document.addEventListener(name, (event: Event) => {
+      if (typing(event.target)) return;
+      event.preventDefault();
+    }, { passive: false });
+  }
+
   // Double-tap, for the browsers that do it anyway. Two taps inside 300ms in
   // the same place is a zoom; two taps that far apart, or that slow, are two
   // taps and are left alone.

@@ -6,10 +6,12 @@ const main = await Bun.file("src/web/make/main.ts").text();
 /** Every line of instructions on the page, as a reader sees it. */
 function hints(): string[] {
   const out: string[] = [];
-  const pattern = /<div class="hint">([\s\S]*?)<\/div>/g;
+  // Any tag, not just a div: a line of prose in a span is still a line of
+  // prose, and matching only divs makes the cap something a tag name dodges.
+  const pattern = /<(div|span|p) class="hint">([\s\S]*?)<\/(?:div|span|p)>/g;
   for (const found of html.matchAll(pattern)) {
     out.push(
-      (found[1] as string)
+      (found[2] as string)
         .replace(/<[^>]+>/g, "")
         .replace(/&mdash;/g, "—")
         .replace(/\s+/g, " ")
@@ -95,4 +97,65 @@ test("a section whose own words say what it is does not also need a heading", ()
   // purpose, and fails when one drifts in.
   expect(headings.length).toBeLessThanOrEqual(5);
   expect(headings).toContain("or start from one of these");
+});
+
+// --- the character is kept without being told to -----------------------------
+//
+// Reported live: "the character saving is not clear either, often the user is
+// pressing the back button on the browser and the changes are not carrying
+// over". It was true. saveCharacter() was called from exactly one place -- the
+// "play as this" button -- so a child who drew a creature and then hit Back had
+// drawn it for nothing. The level editor had kept its draft since day 9.
+//
+// Nothing about it is now the child's job.
+
+test("every change to the character is written, not just the one that plays it", () => {
+  // The code IS the character (spec S5b), so the function that repaints the
+  // code is the one place that knows something changed. Every mutating handler
+  // on the page already calls it. Hooking the save anywhere smaller is how one
+  // gets missed.
+  const body = main.slice(main.indexOf("function paintCode(): void {"));
+  const end = body.indexOf("\n}\n");
+  expect(body.slice(0, end)).toContain("keep();");
+
+  // And every one of those handlers really does call it. If a new one lands
+  // that changes the creature without repainting the code, it is both showing a
+  // stale code and silently not saving.
+  const mutators = [
+    "sprite = withPixel(",           // a stroke
+    "sub[ink - 1] = index;",         // recolouring a pen
+    "sprite = { pixels: chosen",     // taking a gallery character
+    "build[spend.key] = Math.max(",  // spending a pip down
+    "build[spend.key] = Math.min(",  // ...and up
+    "sprite = { pixels: emptySprite", // clear
+    "weapon = choice;",              // sword or wand
+    "sprite = back.creature.sprite;", // pasting a code
+    "sprite = fresh.creature.sprite;", // starting over
+  ];
+  for (const line of mutators) {
+    const at = main.indexOf(line);
+    expect({ line, present: at >= 0 }).toEqual({ line, present: true });
+    // The repaint follows within the same handler. 900 characters is generous
+    // enough for the longest of them and far short of the next handler.
+    const after = main.slice(at, at + 900);
+    expect({ line, repaints: after.includes("paintCode()") }).toEqual({ line, repaints: true });
+  }
+});
+
+test("the last change survives the page going away", () => {
+  // A phone does not promise to run anything on the way out -- iOS can drop a
+  // backgrounded tab without ever firing unload -- so the pending write has to
+  // happen the moment the page stops being looked at.
+  expect(main).toContain('window.addEventListener("pagehide", flush);');
+  expect(main).toContain('document.addEventListener("visibilitychange"');
+  expect(main).toContain('document.visibilityState === "hidden"');
+
+  // Written on a timer, because a stroke is a pointermove every few
+  // milliseconds and stringifying a creature into localStorage that often is
+  // work for nothing. The timer must be cleared by the flush or the write
+  // lands twice.
+  const keep = main.slice(main.indexOf("function keep(): void {"));
+  expect(keep.slice(0, keep.indexOf("\n}\n"))).toContain("window.setTimeout(flush,");
+  const flush = main.slice(main.indexOf("function flush(): void {"));
+  expect(flush.slice(0, flush.indexOf("\n}\n"))).toContain("window.clearTimeout(pending);");
 });

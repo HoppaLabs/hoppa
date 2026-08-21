@@ -37,7 +37,7 @@ test("...by the only thing that actually works on a phone", () => {
   // preventDefault on a passive listener is ignored silently, which would make
   // all of this look right and do nothing.
   expect(guard).not.toContain("passive: true");
-  expect([...guard.matchAll(/\{ passive: false \}/g)]).toHaveLength(3);
+  expect([...guard.matchAll(/\{ passive: false \}/g)]).toHaveLength(4);
 });
 
 test("a single finger is never interfered with", () => {
@@ -63,4 +63,36 @@ test("double-tap is still handled by CSS, where it is cheapest", () => {
     expect({ page: name, manipulation: page.includes("touch-action: manipulation") })
       .toEqual({ page: name, manipulation: true });
   }
+});
+
+// --- and nothing gets long-pressed either --------------------------------------
+//
+// Reported live: "sometimes holding the button down brings up the iOS Safari
+// text selection control". Holding a direction is how you walk, so this fired
+// constantly, over the game, mid-run.
+//
+// `-webkit-user-select: none` was already on all three pages and does not stop
+// it. Neither does preventDefault on pointerdown: on iOS the pointer events are
+// synthesised from touch, and cancelling the synthetic one cancels nothing
+// underneath. `-webkit-touch-callout` is the property that governs the
+// long-press menu, and it was on no page at all.
+
+test("holding a button down does not offer to select it", () => {
+  for (const [name, page] of Object.entries(html)) {
+    expect({ page: name, callout: page.includes("-webkit-touch-callout: none") })
+      .toEqual({ page: name, callout: true });
+  }
+  // Belt and braces for the browsers that start a selection without a callout.
+  expect(guard).toContain('"contextmenu"');
+  expect(guard).toContain('"selectstart"');
+});
+
+test("...but you can still type your name", () => {
+  // A name field you cannot put a caret into is worse than a menu you did not
+  // want, so the block is lifted everywhere typing happens.
+  for (const [name, page] of Object.entries(html)) {
+    expect({ page: name, typable: page.includes("-webkit-touch-callout: default") })
+      .toEqual({ page: name, typable: true });
+  }
+  expect(guard).toContain('target.closest("input, textarea")');
 });

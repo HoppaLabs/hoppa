@@ -25,11 +25,24 @@
     --open: #6fe08a;
   }
   * { box-sizing: border-box; }
+  /* ...except where you are meant to be typing. */
+  input, textarea {
+    -webkit-touch-callout: default;
+    -webkit-user-select: text; user-select: text;
+  }
   html, body {
     margin: 0; height: 100%;
     background: var(--bg); color: var(--ink);
     font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
     -webkit-user-select: none; user-select: none;
+    /* Reported live: "sometimes holding the button down brings up the iOS
+       Safari text selection control". Holding a direction is how you walk, so
+       this fires constantly. `user-select: none` alone does not stop it and
+       neither does preventDefault on pointerdown -- on iOS the pointer events
+       are synthesised from touch and cancelling them cancels nothing
+       underneath. `-webkit-touch-callout` is the property that governs the
+       long-press menu, and it was never set on any page. */
+    -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
   }

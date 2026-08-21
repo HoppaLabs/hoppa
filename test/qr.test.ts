@@ -8,6 +8,7 @@ import {
   versionBits,
   versionFor,
 } from "../src/core/qr.ts";
+import { MIN_SCALE, QUIET, roomFor } from "../src/web/qrpaint.ts";
 
 // --- an independent reader ------------------------------------------------------
 //
@@ -254,10 +255,76 @@ test("the play page still shows the square, and shows the right one", async () =
   // The square carries the LEVEL link, never the score link -- somebody next to
   // you wants to play it, not read about your time.
   expect(main.includes("const url = linkFor(level, levelName, base);")).toBe(true);
-  // Four modules of white all round, or no camera locks on.
-  expect(main.includes("const quiet = 4;")).toBe(true);
   // Painted once per win, and shown only after a win.
   expect(main.includes("if (won) paintQr();")).toBe(true);
+  // Drawn through the shared painter, which is where the size rules live.
+  expect(main).toContain("paintQrOnto(");
+  expect(main).not.toContain("encodeQr(");
+
+  // There is exactly one QR code on the site, and it is this one. The character
+  // page used to draw its code as a square too, and watching somebody use that
+  // page, nobody could say what they were meant to do with it: it is not a
+  // link, so a camera scans it and offers you a string of letters. The code is
+  // for pasting back in, and it says so next to the box you paste it into.
+  const make = await Bun.file("src/web/make/main.ts").text();
+  expect(make).not.toContain("paintQrOnto(");
+  const makeHtml = await Bun.file("src/web/make/index.html").text();
+  expect(makeHtml).not.toContain("codeqr");
+});
+
+// --- big enough to scan ---------------------------------------------------------
+//
+// Reported live: "the QR code is not working, meaning the iPhone camera app is
+// not detecting it". The code was fine -- every one of them reads back above --
+// it was drawn at 200px, and a level link is 41 to 49 modules across plus eight
+// of quiet zone, so about 3 CSS px a module. An iPhone is roughly 390 CSS px
+// across a 64mm screen: 0.49mm per module, off glass, at arm's length. Cameras
+// want about 1mm. This is the arithmetic that says so, kept as a test because
+// it is invisible on a laptop, where any size at all scans first time.
+
+/** Millimetres per CSS pixel on a phone about 390 points across a 64mm screen. */
+const MM_PER_PX = 64 / 390;
+
+test("a level link is drawn big enough for a camera to lock on", async () => {
+  const rows: string[] = [];
+  let worst = Infinity;
+  for (const text of SAMPLES) {
+    const size = encodeQr(text).size;
+    const modules = size + QUIET * 2;
+    const scale = Math.max(MIN_SCALE, Math.floor(roomFor(390, 844) / modules));
+    const mm = scale * MM_PER_PX;
+    worst = Math.min(worst, mm);
+    rows.push(
+      `  ${String(text.length).padStart(3)} chars -> ${size}x${size}` +
+      `, ${String(scale).padStart(2)}px a module = ${mm.toFixed(2)}mm` +
+      `, square ${modules * scale}px`,
+    );
+  }
+  console.log(`
+on a 390x844 phone:
+${rows.join("\n")}`);
+  // 0.8mm is the bottom of what a phone camera manages off a screen. It used to
+  // be 0.49mm, which is why this test exists.
+  expect(worst).toBeGreaterThan(0.8);
+});
+
+test("...and still fits on the smallest phone anybody still has", () => {
+  // An iPhone SE is 320x568. The panel it sits in scrolls, so overflowing is
+  // survivable and being unreadable is not -- but it should not need to scroll.
+  for (const text of SAMPLES) {
+    const modules = encodeQr(text).size + QUIET * 2;
+    const scale = Math.max(MIN_SCALE, Math.floor(roomFor(320, 568) / modules));
+    expect(modules * scale).toBeLessThanOrEqual(320);
+    expect(scale * (64 / 320)).toBeGreaterThan(0.7);
+  }
+});
+
+test("the square never collapses, whatever shape the screen is", () => {
+  // Landscape leaves almost no height. A floor keeps it scannable and lets the
+  // panel scroll, rather than quietly drawing something nobody can read.
+  for (const [w, h] of [[844, 390], [280, 653], [1024, 300]] as const) {
+    expect(roomFor(w, h)).toBeGreaterThanOrEqual(220);
+  }
 });
 
 test("the panel can be waved away, and stays away", async () => {

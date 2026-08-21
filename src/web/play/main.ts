@@ -18,7 +18,7 @@ import {
   challengeFromHash, challengeLinkFor, levelFromHash, linkFor, resultFromHash, resultLinkFor,
   slugify,
 } from "./link.ts";
-import { encodeQr, QrError } from "../../core/qr.ts";
+import { paintQrOnto } from "../qrpaint.ts";
 import { loadCharacter, loadDraft, setSoundOn, soundOn } from "../stash.ts";
 import { Sounds, soundsFor, type Moment } from "./sound.ts";
 import { draftToText } from "../../core/draft.ts";
@@ -440,40 +440,9 @@ function paintQr(): void {
   const base = `${window.location.origin}${window.location.pathname}`;
   const url = linkFor(level, levelName, base);
 
-  let code;
-  try {
-    code = encodeQr(url);
-  } catch (err) {
-    // A link too long for a QR is still a link. Say nothing and show the button.
-    if (!(err instanceof QrError)) throw err;
-    return;
-  }
+  // A link too long for a QR is still a link. Say nothing and show the button.
+  if (!paintQrOnto(qrCanvas, url)) return;
 
-  // Four modules of white all the way round, or no camera will lock on.
-  const quiet = 4;
-  const modules = code.size + quiet * 2;
-  const scale = Math.max(2, Math.floor(Math.min(200, window.innerWidth - 80) / modules));
-  const side = modules * scale;
-
-  qrCanvas.width = side;
-  qrCanvas.height = side;
-  qrCanvas.style.width = `${side}px`;
-  qrCanvas.style.height = `${side}px`;
-
-  const ctx = qrCanvas.getContext("2d");
-  if (ctx === null) return;
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, side, side);
-  ctx.fillStyle = "#000000";
-  for (let y = 0; y < code.size; y++) {
-    for (let x = 0; x < code.size; x++) {
-      if (code.modules[y * code.size + x] === 1) {
-        ctx.fillRect((x + quiet) * scale, (y + quiet) * scale, scale, scale);
-      }
-    }
-  }
-
-  qrCanvas.hidden = false;
   // The square always carries the LEVEL, even on a run where the button sends
   // a score back -- somebody sitting next to you wants to play it, not read
   // about your time. But it is only "your level" when it actually is yours.

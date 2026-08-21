@@ -29,7 +29,6 @@ import {
 } from "../../core/creature.ts";
 import { forgetCharacter, loadCharacter, saveCharacter, startingCharacter } from "../stash.ts";
 import { ChrError, decodeCharacter, encodeCharacter } from "../../core/chr.ts";
-import { encodeQr, QrError } from "../../core/qr.ts";
 import { goOffline } from "../offline.ts";
 import { holdStill } from "../nozoom.ts";
 import { GALLERY } from "../../core/gallery.ts";
@@ -46,10 +45,8 @@ const stats = document.getElementById("stats") as HTMLElement;
 const pointsLeft = document.getElementById("left") as HTMLElement;
 const points = document.getElementById("points") as HTMLElement;
 const codeBox = document.getElementById("code") as HTMLElement;
-const codeQr = document.getElementById("codeqr") as HTMLCanvasElement;
 const pasteBox = document.getElementById("paste") as HTMLInputElement;
 const loaded = document.getElementById("loaded") as HTMLElement;
-const qrWhat = document.getElementById("qrwhat") as HTMLElement;
 const weaponsBox = document.getElementById("weapons") as HTMLElement;
 const galleryBox = document.getElementById("gallery") as HTMLElement;
 const took = document.getElementById("took") as HTMLElement;
@@ -349,6 +346,62 @@ function paintStats(): void {
  * `#back/<slug>/<code>`, which is `#p/<slug>/<code>` with a different first
  * word, so the play page reads it with the code it already has.
  */
+
+/**
+ * Keep what is on the page, continuously.
+ *
+ * It used to be saved in ONE place: the "play as this" button. Everything else
+ * -- every stroke, every colour, every pip, the name, the weapon -- lived in a
+ * variable and nowhere else, so a child who drew for ten minutes and then
+ * pressed the browser's back button lost all of it. Reported exactly that way:
+ * "often the user is pressing the back button and the changes are not carrying
+ * over".
+ *
+ * The level editor has always done this for a half-drawn room. A drawing is
+ * worth at least as much, and losing one is the thing that makes a child stop.
+ *
+ * Written on a timer rather than per pixel: a stroke is a pointermove every
+ * few milliseconds and stringifying a creature into localStorage that often is
+ * work for nothing. A third of a second is far below noticing and far above
+ * the cost.
+ */
+let pending = 0;
+
+/**
+ * Nothing is written until something is actually changed.
+ *
+ * The page repaints the code once on load, and that repaint is not a change: it
+ * would write a starter character for anybody who merely opened this page and
+ * went straight back. The play page reads "is there a saved character" as "did
+ * you make one" -- it is what puts YOURS at the front of the row of creatures --
+ * so a first visit has to leave storage exactly as it found it.
+ */
+let started = false;
+
+function flush(): void {
+  if (pending !== 0) {
+    window.clearTimeout(pending);
+    pending = 0;
+  }
+  const name = nameField.value.trim().slice(0, 12) || "Me";
+  saveCharacter(name, build as Build, creatureFromBuild("yours", name, "@", build as Build, sprite, weapon));
+}
+
+function keep(): void {
+  if (!started) return;
+  if (pending !== 0) window.clearTimeout(pending);
+  pending = window.setTimeout(flush, 300);
+}
+
+// A phone does not promise to run anything when a page goes away -- iOS in
+// particular can drop a backgrounded tab without ever firing unload -- so the
+// last write has to happen the moment the page stops being looked at, not on
+// the way out.
+window.addEventListener("pagehide", flush);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") flush();
+});
+
 const playAgainAt = ((): string => {
   const hash = window.location.hash;
   if (!hash.startsWith("#back/")) return "../";
@@ -428,38 +481,12 @@ function currentCode(): string {
 function paintCode(): void {
   const code = currentCode();
   codeBox.textContent = code;
-
-  try {
-    const qr = encodeQr(code);
-    const quiet = 4;
-    const modules = qr.size + quiet * 2;
-    const scale = Math.max(2, Math.floor(Math.min(180, window.innerWidth - 90) / modules));
-    const side = modules * scale;
-    codeQr.width = side;
-    codeQr.height = side;
-    codeQr.style.width = `${side}px`;
-    codeQr.style.height = `${side}px`;
-    const ctx = codeQr.getContext("2d");
-    if (ctx !== null) {
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, side, side);
-      ctx.fillStyle = "#000000";
-      for (let y = 0; y < qr.size; y++) {
-        for (let x = 0; x < qr.size; x++) {
-          if (qr.modules[y * qr.size + x] === 1) {
-            ctx.fillRect((x + quiet) * scale, (y + quiet) * scale, scale, scale);
-          }
-        }
-      }
-      codeQr.hidden = false;
-      qrWhat.hidden = false;
-    }
-  } catch (err) {
-    // A character too big for a QR still has a code to type.
-    if (!(err instanceof QrError)) throw err;
-    codeQr.hidden = true;
-    qrWhat.hidden = true;
-  }
+  // Every change to the character -- a pixel, a pip, a colour, the name, the
+  // weapon -- repaints the code, because the code IS the character. So this is
+  // the one place that knows something changed, and the only place the save
+  // needs hooking to. Hanging it off any smaller set of handlers is how you end
+  // up with the one that got missed.
+  keep();
 }
 
 (document.getElementById("copy") as HTMLButtonElement).addEventListener("click", async () => {
@@ -499,7 +526,9 @@ function paintCode(): void {
   }
 });
 
-nameField.addEventListener("input", paintCode);
+nameField.addEventListener("input", () => {
+  paintCode();
+});
 
 paintInks();
 paintSwatches();
@@ -508,6 +537,9 @@ paintStats();
 paintWeapons();
 paintCode();
 paint();
+
+// Everything from here on is somebody changing something, and is kept.
+started = true;
 
 // --- starting over ----------------------------------------------------------
 //

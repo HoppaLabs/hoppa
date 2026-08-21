@@ -20,11 +20,24 @@
     --gold: #ffc23d; --open: #6fe08a;
   }
   * { box-sizing: border-box; }
+  /* ...except where you are meant to be typing. */
+  input, textarea {
+    -webkit-touch-callout: default;
+    -webkit-user-select: text; user-select: text;
+  }
   html, body {
     margin: 0; min-height: 100%;
     background: var(--bg); color: var(--ink);
     font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
     -webkit-user-select: none; user-select: none;
+    /* Reported live: "sometimes holding the button down brings up the iOS
+       Safari text selection control". Holding a direction is how you walk, so
+       this fires constantly. `user-select: none` alone does not stop it and
+       neither does preventDefault on pointerdown -- on iOS the pointer events
+       are synthesised from touch and cancelling them cancels nothing
+       underneath. `-webkit-touch-callout` is the property that governs the
+       long-press menu, and it was never set on any page. */
+    -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
   }
@@ -134,18 +147,18 @@
   /* The code itself. Monospace, generously spaced, and wrapping on the dashes,
      because somebody is going to read this aloud to somebody else. */
   #code {
-    font-size: 12px; color: var(--ink-bright); background: var(--key);
-    border: 1px solid var(--edge); border-radius: 8px; padding: 10px 12px;
-    width: min(340px, 100%); word-break: break-all; line-height: 1.6;
-    letter-spacing: .06em; text-align: center;
+    font-size: 11px; color: var(--ink-bright); background: var(--key);
+    border: 1px solid var(--edge); border-radius: 8px; padding: 8px 10px;
+    width: min(340px, 100%); word-break: break-all; line-height: 1.45;
+    text-align: center;
   }
-  #codeqr { background: #fff; border-radius: 4px; image-rendering: pixelated; }
-  #codeqr[hidden] { display: none; }
+  /* The button and the reason for it on one line. Stacked, this block put a
+     whole extra 46px between the canvas and the pens, on a page where the pens
+     are the next thing a child reaches for. */
+  #codebar { align-items: center; max-width: min(340px, 100%); }
+  #codebar .hint { text-align: left; flex: 1; }
   #paste { width: min(220px, 60vw); text-align: left; font-size: 12px; }
   #loaded { min-height: 1.2em; font-size: 12px; text-align: center; max-width: 34ch; }
-  #qrwhat { font-size: 11px; color: var(--ink); text-align: center; max-width: 32ch; }
-  #qrwhat[hidden] { display: none; }
-  #qrwhat b { color: var(--ink-bright); }
   .hint { font-size: 11px; color: var(--ink); text-align: center; max-width: 34ch; }
   /* This line changes as you switch pens, and a line that changes HEIGHT moves
      everything under it -- which is the mis-tap the palette was kept in place
@@ -200,7 +213,29 @@
 
 <h1>hoppa &middot; <b>your character</b></h1>
 
+<!-- At the top, because a child arriving with a code in their hand has come
+     here to use it, and anything below the fold is a thing they will not find.
+     It was at the very bottom, under the drawing, the gallery, the weapons, the
+     points and the name. -->
+<div class="row">
+  <span class="field">
+    <label for="paste">already have a character?</label>
+    <input id="paste" placeholder="enter an existing character code here">
+  </span>
+  <button id="load">use it</button>
+</div>
+<div id="loaded"></div>
+
 <canvas id="paper" width="320" height="320"></canvas>
+
+<!-- The code belongs to the drawing, so it lives with the drawing. It used to
+     be four sections down under a heading saying "keep it safe", which is the
+     kind of place a save file goes to be forgotten about. -->
+<div id="code"></div>
+<div class="row" id="codebar">
+  <button id="copy">copy the code</button>
+  <span class="hint">copy this somewhere safe &mdash; paste it back in above to get it back</span>
+</div>
 
 <div class="row" id="inks"></div>
 <!-- One selection, not two. The palette below always belongs to whichever pen
@@ -239,25 +274,6 @@
   <button id="go">play as this</button>
 </div>
 <div id="note"></div>
-
-<h2>keep it safe</h2>
-<div class="hint">this code <b>is</b> your character &mdash; send it to yourself, it is the only copy</div>
-<div id="code"></div>
-<div class="row">
-  <button id="copy">copy the code</button>
-</div>
-<canvas id="codeqr" hidden aria-label="your character as a square you can scan"></canvas>
-<div id="qrwhat" hidden>a friend can scan this</div>
-
-<h2>bring one back</h2>
-<div class="row">
-  <span class="field">
-    <label for="paste">paste a code</label>
-    <input id="paste" placeholder="HOPPA-...">
-  </span>
-  <button id="load">use it</button>
-</div>
-<div id="loaded"></div>
 
 <h2>start over</h2>
 <div class="hint">no undo &mdash; <b>copy the code first</b> if you might want it back</div>
