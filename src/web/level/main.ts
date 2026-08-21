@@ -819,7 +819,7 @@ let watching: number | null = null;
 function stopWatching(): void {
   if (watching !== null) window.clearInterval(watching);
   watching = null;
-  watchButton.textContent = "watch it played";
+  watchButton.textContent = "auto play";
   repaint();
 }
 
@@ -855,7 +855,7 @@ watchButton.addEventListener("click", () => {
       renderer.setGuardArt(guards);
       renderer.setSprite(creature.sprite);
       renderer.setSpinning(true);
-      watchButton.textContent = "stop watching";
+      watchButton.textContent = "stop";
 
       // A tick is 33ms in the real-time games; a move is a move in the
       // turn-based ones and wants longer to be followed by eye.

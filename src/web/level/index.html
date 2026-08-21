@@ -225,7 +225,15 @@
         <button id="pandown" aria-label="look down">&#9660;</button>
         <button id="panright" aria-label="look right">&#9654;</button>
       </span>
+      <!-- Under the level, because it happens IN the level. It was at the
+           bottom of the page under nine thumbnails, which is a long way from
+           the thing it plays. -->
+      <button id="watch">auto play</button>
     </div>
+    <!-- ...and what the checks make of it, in the same breath. This was the
+         last thing on the page: "there is no way out" is about the picture,
+         and it belongs beside the picture. -->
+    <div id="says"></div>
   </div>
 
   <div id="side">
@@ -239,11 +247,6 @@
       where you want it, then let go. pinch to zoom, or tap <b>bigger</b>.
     </div>
 
-    <h2>or start from one of these</h2>
-    <div class="hint">tap a level and change it</div>
-    <div id="examples"></div>
-    <div id="took"></div>
-
     <div class="row">
       <span class="field">
         <label for="name">what it is called</label>
@@ -251,13 +254,20 @@
       </span>
     </div>
 
-    <div id="says"></div>
-
     <div class="row">
       <button id="play">play it</button>
-      <button id="watch">watch it played</button>
       <button id="clear">start over</button>
     </div>
+
+    <!-- Last, and on purpose. Nine thumbnails is the tallest thing on this
+         page and it is the one thing you use ONCE, before you have drawn
+         anything -- it was sitting between the tools and the buttons, so
+         finishing a level meant scrolling past every level you were not
+         making. -->
+    <h2>or start from one of these</h2>
+    <div class="hint">tap a level and change it</div>
+    <div id="examples"></div>
+    <div id="took"></div>
 
     <div class="row"><a href="../">back to the game</a></div>
   </div>

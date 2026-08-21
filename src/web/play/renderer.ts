@@ -359,7 +359,9 @@ export function tileChip(
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   const pattern: Pattern | null =
-    tile === TILE_WALL ? set.wall
+    // The capped drawing, on a button: a chip is a picture of the thing, and
+    // the thing has grass on top of it. Bare soil is what it looks like BURIED.
+    tile === TILE_WALL ? (set.wallTop ?? set.wall)
     : tile === TILE_FLOOR ? set.floor
     : tile === TILE_LADDER ? set.ladder
     : tile === TILE_FIRE ? set.fire

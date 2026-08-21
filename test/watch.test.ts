@@ -10,9 +10,38 @@ test("the editor can play the level back to you", () => {
   // The checks say whether a room CAN be finished; watching somebody get out
   // is proof. The difference matters most to the person least able to read a
   // green tick -- a child who has drawn a room and does not know if it works.
-  expect(html).toContain('<button id="watch">watch it played</button>');
+  expect(html).toContain('<button id="watch">auto play</button>');
   expect(editor).toContain('watchButton.addEventListener("click", () => {');
   expect(editor).toContain("stopWatching();");
+});
+
+test("the page reads in the order you use it", () => {
+  // Under the level: the things that act ON the level -- how big it is drawn,
+  // playing it, and what the checks make of it. Then the tools, then the name
+  // and the buttons that finish it. The nine thumbnails go LAST: they are the
+  // tallest thing here and the one thing you use once, before you have drawn
+  // anything, and they were sitting between the tools and the buttons, so
+  // finishing a level meant scrolling past every level you were not making.
+  const order = [
+    'id="viewport"',
+    'id="zoom"',
+    'id="watch"',
+    'id="says"',
+    'id="games"',
+    'id="tools"',
+    'id="name"',
+    'id="play"',
+    'id="examples"',
+    'href="../"',
+  ];
+  const at = order.map((mark) => ({ mark, at: html.indexOf(mark, html.indexOf("<body>")) }));
+  expect(at.filter((one) => one.at < 0)).toEqual([]);
+  for (let i = 1; i < at.length; i = (i + 1) | 0) {
+    const before = at[i - 1] as (typeof at)[number];
+    const here = at[i] as (typeof at)[number];
+    expect({ before: before.mark, then: here.mark, ordered: before.at < here.at })
+      .toEqual({ before: before.mark, then: here.mark, ordered: true });
+  }
 });
 
 test("...and only the editor: watching is a thing you do while MAKING", () => {
