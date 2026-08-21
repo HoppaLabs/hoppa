@@ -44,10 +44,20 @@
   body {
     display: flex; flex-direction: column; align-items: center; gap: 12px;
     padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
-    /* NONE, not `manipulation`: see the note on the play page. `manipulation`
-       leaves PINCH alone, and drawing a character is a drag with a thumb --
-       the same gesture, made by accident. #paper already handles its own. */
-    touch-action: none;
+    /* pan-y: the page scrolls, and nothing zooms.
+       Three values, and only one of them is right:
+
+         manipulation  turns off double-tap. LEAVES PINCH ALONE.
+         none          the page handles its own touches -- INCLUDING SCROLL,
+                       which is why this said `none` for a day and the creature
+                       editor could not be scrolled at all. Reported as "I
+                       can't scroll in the creature editor".
+         pan-y         the one gesture a page actually needs, and no other.
+
+       Every surface that must swallow a drag -- the paper, the pad, the grid,
+       the canvases -- asks for `none` for itself further down. touch-action is
+       not inherited, so each of them has to. */
+    touch-action: pan-y;
   }
   h1 {
     margin: 0; font-size: 12px; font-weight: 400; letter-spacing: .14em;

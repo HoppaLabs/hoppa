@@ -130,7 +130,9 @@ function freshen(draft: Draft): Draft {
   // An engine this build does not offer -- a retired one from an old link --
   // becomes the default game rather than an unplayable header.
   const engine = newestBuild(draft.engine) > 0 ? draft.engine : GAMES[0].engine;
-  return retarget(draft, engine, currentBuild(engine));
+  // ...and in the world it was drawn in. A skin is not a rule, so freshening a
+  // draft has no business changing it: see retarget().
+  return retarget(draft, engine, currentBuild(engine), draft.tilesetId);
 }
 
 function opening(): { draft: Draft; name: string } {

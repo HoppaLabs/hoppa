@@ -1,6 +1,6 @@
 # 0050 — The city, and where the jaeger ended up
 
-Day 19. Accepted, with one question open.
+Day 19. Accepted. The open question was answered the next morning — see the end.
 
 ## What was asked for
 
@@ -94,3 +94,17 @@ city's own buildings are drawn in — 1.6:1, and simply invisible. The kaiju and
 the dog failed the same check at 2.8 and 3.1. All three were fixed by moving one
 step up the palette, and none of the three looked wrong to me before the tool
 said so.
+
+
+## The answer (day 20)
+
+"I want the jaeger included as one of the default characters."
+
+So **Vance** is the fourth preset, at `FORCE 5 / HASTE 1` — option 2 above. It
+beats all fifteen shipped rooms with the bot, and four chips fit across a
+360-pixel phone.
+
+Vance and Bash therefore have the same numbers and differ in look and name,
+which is most of what a preset is to a nine-year-old. Making them differ in
+PLAY needs a third characteristic or a bigger budget, and that is a spec change
+to take on purpose rather than smuggle in behind a character.

@@ -297,6 +297,25 @@ const PELL_ROWS = [
 ];
 
 
+const VANCE_ROWS = [
+  "................",
+  "......1111......",
+  "......3223......",
+  ".33311111111333.",
+  ".12111111111121.",
+  ".11111111111111.",
+  ".11.11333311.11.",
+  ".11.11322311.11.",
+  ".11.13333331.11.",
+  ".11.11111111.11.",
+  ".33..333333..33.",
+  "....111..111....",
+  "....333..333....",
+  "....111..111....",
+  "...1111111111...",
+  "...3333333333...",
+];
+
 /**
  * Bruk, the heavy. Spec S11's worked example, caps unchanged.
  * Loud enough that sneaking is not really on the menu, and tough enough not to
@@ -331,8 +350,41 @@ export const PELL = creatureFromBuild(
   spriteFromRows(PELL_ROWS, [45, 47, 5]),
 )
 
+/**
+ * Vance, the jaeger. As strong as anything gets, and as slow.
+ *
+ * Asked for with the city -- "one of the default characters should be a
+ * jaeger, very slow but incredibly strong" -- and then asked for again after
+ * being shown the measurement below, so here it is.
+ *
+ * ITS NUMBERS ARE BASH'S NUMBERS, and that is arithmetic rather than laziness.
+ * There are two characteristics and six points; "very slow but incredibly
+ * strong" is five of strength and one of speed, which is exactly what Bash
+ * already spends. The only build further out is HASTE 0, and it was built and
+ * measured: a bot that never dodges wins nine of the fifteen shipped rooms
+ * with it against fourteen of fifteen at HASTE 1, dying with a full purse and
+ * no hearts. A character a child picks off the front page and then cannot
+ * finish the pack with is a bad default.
+ *
+ * So Vance and Bash are the same creature underneath and different creatures
+ * to a nine-year-old, which is most of what a preset is. Making them differ in
+ * play needs a third characteristic or a bigger budget -- a spec change, and
+ * one to take on purpose. See docs/adr/0050.
+ */
+export const VANCE = creatureFromBuild(
+  "01J8XKB1N9F4",
+  "Vance",
+  "#",
+  { FORCE: 5, HASTE: 1 },
+  // Steel, an amber lamp, and the dark between the plates. Three inks, like
+  // every other creature: spec S5 gives a player no more, and a mech reads on
+  // the SHOULDERS -- the widest thing on the sprite -- rather than on panel
+  // detail there is no room for.
+  spriteFromRows(VANCE_ROWS, [3, 28, 0]),
+)
+
 /** The starter stable, in the order the picker shows them. */
-export const PRESETS: readonly Creature[] = [BRUK, NIM, PELL];
+export const PRESETS: readonly Creature[] = [BRUK, NIM, PELL, VANCE];
 
 export function presetByName(name: string): Creature | undefined {
   for (let i = 0; i < PRESETS.length; i = (i + 1) | 0) {

@@ -451,6 +451,11 @@ const FLOWER_FRAMES: readonly Pattern[] = [
  *
  * 1 is the rim, 2 the shadow between the ribs, 3 the shell, 4 the lit ribs,
  * 5 the pearl at the hinge.
+ *
+ * The widest frame has its rim on BOTH sides. Two rows of it ran off the left
+ * edge of the tile with no rim on them while the right edge had one, and an
+ * outline that stops on one side reads as a picture that has been cut: "the
+ * shell icon looks cropped on its left side when placed".
  */
 const SHELL_FRAMES: readonly Pattern[] = [
   [ // upright, and the frame the still buttons show
@@ -463,8 +468,8 @@ const SHELL_FRAMES: readonly Pattern[] = [
     ".1222433342221..",
     "122344333443221.",
     "123334434433321.",
-    "2233334343333221",
-    "2444334343344421",
+    "1233334343333221",
+    "1444334343344421",
     "111444333444111.",
     "...113355331....",
     ".....111111.....",

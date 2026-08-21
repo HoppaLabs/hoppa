@@ -467,7 +467,17 @@ export function draftFromLevel(level: {
  * beach and the garden are one engine, so switching between them changes
  * nothing but this number and every cell survives.
  */
-export function retarget(draft: Draft, engine: string, behaviourVersion: number, tilesetId = 0): Draft {
+export function retarget(
+  draft: Draft,
+  engine: string,
+  behaviourVersion: number,
+  // KEEPS THE SKIN unless told otherwise. It used to default to 0, which meant
+  // every caller that only wanted to change the engine version silently threw
+  // the skin away -- and freshen() is exactly such a caller, so opening "the
+  // beach" from the shelf handed back a garden. Reported as "the beach example
+  // level actually looks like a garden", which is precisely what it was.
+  tilesetId = draft.tilesetId,
+): Draft {
   if (engine === draft.engine) return { ...draft, behaviourVersion, tilesetId };
   const cells = draft.cells.slice() as Glyph[];
   if (!underwater(engine)) {

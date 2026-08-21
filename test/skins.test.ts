@@ -148,3 +148,34 @@ test("the city has its own way out, and its own thing to collect", () => {
   expect(words).not.toContain("door / exit");
   expect(words).not.toContain("treasure");
 });
+
+test("opening a skinned level from the shelf keeps its world", () => {
+  // The bug this exists for: retarget()'s tilesetId defaulted to 0, so every
+  // caller that only meant to change the ENGINE VERSION threw the skin away.
+  // freshen() -- which is what the level editor runs on anything opened from
+  // the shelf or a link -- is exactly such a caller, so tapping "the beach"
+  // handed back a garden. Reported as "the beach example level actually looks
+  // like a garden".
+  //
+  // The fix is retarget keeping the skin by default, so this walks the same
+  // path the shelf does: a shipped code, decoded, drafted, freshened.
+  for (const slug of ["the-beach", "the-city"]) {
+    const room = PACK.find((one) => one.slug === slug);
+    expect({ slug, found: room !== undefined }).toEqual({ slug, found: true });
+    const drawn = draftFromLevel(decodeLevel(room!.code));
+    expect({ slug, skin: drawn.tilesetId >= FIRST_SKIN }).toEqual({ slug, skin: true });
+    // freshen(), in the two lines the editor uses.
+    const freshened = retarget(drawn, drawn.engine, newestBuild(drawn.engine), drawn.tilesetId);
+    expect({ slug, skin: freshened.tilesetId }).toEqual({ slug, skin: drawn.tilesetId });
+    // ...and the plain three-argument call keeps it too, which is the actual fix.
+    expect({ slug, skin: retarget(drawn, drawn.engine, newestBuild(drawn.engine)).tilesetId })
+      .toEqual({ slug, skin: drawn.tilesetId });
+  }
+});
+
+test("changing GAME still changes the world, because the tab says which", () => {
+  // The other half: keeping the skin by default must not mean a beach stays a
+  // beach when a child taps "underwater". The tab passes its own number.
+  const beach = draftFromLevel(decodeLevel((PACK.find((o) => o.slug === "the-beach"))!.code));
+  expect(retarget(beach, "swim", newestBuild("swim"), 0).tilesetId).toBe(0);
+});

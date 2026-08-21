@@ -56,33 +56,32 @@ test("the level editor keeps the pinch it means", () => {
   expect(html.level).toContain("pinch to");
 });
 
-test("the pages a child plays and draws on hand NO gesture to the browser", () => {
-  // This asserted `touch-action: manipulation` on every page, and that was the
-  // bug rather than the rule.
+test("every page scrolls, and no page zooms", () => {
+  // Three values, and the first two are both wrong:
   //
   //   manipulation   turns off double-tap. LEAVES PINCH ALONE.
-  //   none           the page handles its own touches
+  //   none           the page handles its own touches -- INCLUDING SCROLL.
+  //   pan-y          the one gesture a page needs, and no other.
   //
-  // Reported as "the zooming problem has got pretty bad since we introduced
-  // the dpad, as the user is dragging their finger more and tapping the action
-  // button" -- both of those are gestures the browser recognises, and the pad
-  // turned the pinch from something that happened occasionally into something
-  // that happens all game.
+  // This asserted `none` on the play and make pages, which was the pinch fix
+  // and also a bug: `none` on a BODY turns off the browser's own scrolling for
+  // the whole page, and the creature editor is six rows of characters taller
+  // than a phone. Reported the next morning as "I can't scroll in the creature
+  // editor" -- so the rule that was written down here was the bug.
   //
-  // Everything else here -- the gesture events, the two-finger touchmove, the
-  // double-tap timer -- was already in place and still it zoomed, because this
-  // one value acts BEFORE any script runs.
-  for (const name of ["play", "make"] as const) {
-    expect({ page: name, none: html[name].includes("touch-action: none;") })
-      .toEqual({ page: name, none: true });
-    expect({ page: name, weak: /^\s*touch-action: manipulation;/m.test(html[name]) })
+  // pan-y is what both halves wanted all along. The surfaces that must swallow
+  // a drag ask for `none` for themselves, in the test below.
+  // Read the BODY rule itself, not the file: `touch-action: none` is right and
+  // necessary further down, on the paper and the pad and the grid.
+  for (const name of ["play", "make", "level"] as const) {
+    const at = html[name].indexOf("\n  body {");
+    expect({ page: name, hasBody: at > -1 }).toEqual({ page: name, hasBody: true });
+    const rule = html[name].slice(at, html[name].indexOf("\n  }", at));
+    expect({ page: name, body: /touch-action: pan-y;/.test(rule) })
+      .toEqual({ page: name, body: true });
+    expect({ page: name, weak: /touch-action: (manipulation|none|auto);/.test(rule) })
       .toEqual({ page: name, weak: false });
   }
-  // The level editor has a size control of its own and holdStill() is told to
-  // leave its viewport alone, so it is deliberately not locked down the same
-  // way. Written here so that making them all match is a decision somebody
-  // takes on purpose rather than a tidy-up.
-  expect(html.level).toContain("touch-action: manipulation;");
 });
 
 test("every surface a thumb lands on says it for itself", () => {

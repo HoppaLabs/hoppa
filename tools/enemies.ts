@@ -440,6 +440,13 @@ export const REEF_CAST: readonly Enemy[] = [
     // a big raked dorsal, a pointed snout with the mouth slung underneath
     // it, a long torpedo body and a forked tail on a thin peduncle -- so
     // those are drawn first and the shading only follows the shape.
+    //
+    // ONE white mark on the whole head, and it is the eye. It had a white
+    // highlight for an eye AND two white teeth on the jaw two rows below,
+    // and at the size a shark is actually drawn those read as a second eye:
+    // "the shark looks like it has two eyes from the side, it should only
+    // have one". The mouth is a dark line now, which is all a mouth needs
+    // to be at sixteen pixels.
     inks: ["#2b3a4a", "#546679", "#8fa1b3", "#e8f1f8", "#ffffff", "#0b0f14"],
     frames: [
       [
@@ -452,7 +459,7 @@ export const REEF_CAST: readonly Enemy[] = [
         "..6.611111166611",
         "6656111111111111",
         "1111111122211166",
-        "6656533333333111",
+        "6666633333333111",
         "..6.644444466611",
         "...62226666...61",
         "....62226......6",
@@ -470,7 +477,7 @@ export const REEF_CAST: readonly Enemy[] = [
         "..6.611111166611",
         "6656111111111111",
         "1111111122211166",
-        "6656533333333111",
+        "6666633333333111",
         "..66644444466611",
         "..622266666...61",
         "...62226......61",
@@ -628,47 +635,51 @@ export const BEACH_CAST: readonly Enemy[] = [
   {
     name: "gull",
     glyph: "B",
-    // At sixteen pixels a gull IS its wings, so they reach the edge of the
-    // tile and change between the frames, which is the only animation a
-    // bird needs. Drawn from one half and mirrored: a bird with two
-    // different wings reads as a bird with a broken one.
+    // A gull STANDING, from the side, like the shark does in the water.
+    //
+    // Two attempts from above -- wings spread, seen from overhead -- came out
+    // as a paper aeroplane and then as a dart, and were reported as such:
+    // "that gull icon could look more like a bird". From overhead a bird is a
+    // triangle with a lump on it, and at sixteen pixels there is nothing in
+    // that shape a child recognises. From the SIDE there is: a beak, an eye,
+    // a folded wing and two legs, and every one of those says bird on its own.
     inks: ["#39485c", "#7c8899", "#cdd6e0", "#ffffff", "#ff9f3d", "#0d1014"],
     frames: [
       [
         "................",
-        "666....66....666",
-        "1116..6446..6111",
-        "1116664444666111",
-        "2333366446633332",
-        "2233344554433322",
-        "6222344554433226",
-        ".66224444442266.",
-        "...6644444466...",
-        "....64444446....",
-        "....64444446....",
-        "....64444446....",
-        ".....666666.....",
-        ".....633336.....",
-        ".....636636.....",
-        "......6..6......",
+        "..66666.........",
+        ".6444446........",
+        "66544446........",
+        "555464446666....",
+        "5554444444446...",
+        "66444443333446..",
+        "..64444433333266",
+        "..64444422222233",
+        "...6444422221133",
+        "...6444444441116",
+        "....66444446666.",
+        "......66666.....",
+        ".....656656.....",
+        ".....656656.....",
+        "....65555556....",
       ],
       [
         "................",
-        ".......66.......",
-        "......6446......",
-        ".....644446.....",
-        ".....664466.....",
-        "....64455446....",
-        "...6644554466...",
-        ".66224444442266.",
-        "6333344444433336",
-        "2333344444433332",
-        "2332244444422332",
-        "2226644444466222",
-        "1116.666666.6111",
-        "1116.633336.6111",
-        "666..636636..666",
-        "......6..6......",
+        "..66666.........",
+        ".6444446........",
+        "66544446........",
+        "555464446666....",
+        "5554444444446...",
+        "66444443333446..",
+        "..64444433333266",
+        "..64444422222233",
+        "...6444422221133",
+        "...6444444441116",
+        "....66444446666.",
+        ".....656656.....",
+        ".....656656.....",
+        "....65555556....",
+        ".....666666.....",
       ],
     ],
   },
