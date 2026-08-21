@@ -90,6 +90,13 @@
   #swing { grid-area: swing; display: grid; place-items: center; padding: 0; }
   #swing[hidden] { display: none; }
   #swing svg { display: block; }
+  /* The bucket, in the jump slot. See the note by the button. */
+  #water { grid-area: wait; display: grid; place-items: center; padding: 0; }
+  #water[hidden] { display: none; }
+  #water svg { display: block; }
+  /* Pouring takes a moment and the button says so, or a child taps it again
+     thinking it did not work. */
+  #water.pouring { background: var(--key-lit); }
   #up { grid-area: up; } #left { grid-area: left; }
   #down { grid-area: down; } #right { grid-area: right; }
   /* Waiting is a move. Guards patrol on a fixed cycle, so standing still to let
@@ -362,6 +369,11 @@
     <!-- Only the side-on game needs this: from above the action button IS the
          weapon, and a second one would be the same button twice. -->
     <button id="swing" aria-label="swing" hidden></button>
+    <!-- Seen from above, the pad's left-hand action slot is empty: that is
+         where JUMP lives in the side-on game, and nothing from above jumps.
+         The bucket goes there. Only shown on a level that has a fire in it --
+         a button that can never do anything is worse than no button. -->
+    <button id="water" aria-label="pour water" hidden></button>
     <button id="left"  aria-label="left">&#9664;</button>
     <button id="down"  aria-label="down">&#9660;</button>
     <button id="right" aria-label="right">&#9654;</button>

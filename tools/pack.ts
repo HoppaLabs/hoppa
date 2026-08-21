@@ -131,7 +131,7 @@ export interface PackLevel {
   readonly text: string;
 }
 
-const roam = (seed: string) => `hoppa/1 roam seed=${seed} tiles=1 behaviour=7`;
+const roam = (seed: string) => `hoppa/1 roam seed=${seed} tiles=1 behaviour=8`;
 const dash = (seed: string) => `hoppa/1 dash seed=${seed} tiles=1 behaviour=7`;
 
 /* -------------------------------------------------------------------------- */

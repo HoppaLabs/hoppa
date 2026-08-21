@@ -10,7 +10,7 @@
 // produces the same hash, because nothing in here is ever asked.
 
 /** Every noise the game can make. */
-export type Cue = "treasure" | "hurt" | "swing" | "won" | "lost";
+export type Cue = "treasure" | "hurt" | "swing" | "douse" | "won" | "lost";
 
 /**
  * What the game sounded like at one instant.
@@ -86,6 +86,13 @@ const SCORE: Readonly<Record<Cue, readonly Note[]>> = {
   // a second while a child holds the button, and at the others' level it is a
   // drill rather than a game.
   swing: [{ hz: 620, to: 900, ms: 45, wave: "triangle", gain: 0.16, at: 0 }],
+  // A fire going out: a slap of water, then the hiss dying away. The slide
+  // goes DOWN, which is what every extinguishing noise in every game of the era
+  // did, and what a swing pointedly does not.
+  douse: [
+    { hz: 300, to: 120, ms: 90, wave: "sine", gain: 0.2, at: 0 },
+    { hz: 1500, to: 400, ms: 260, wave: "sawtooth", gain: 0.07, at: 40 },
+  ],
   won: [
     { hz: 660, ms: 100, wave: "square", gain: 0.34, at: 0 },
     { hz: 880, ms: 100, wave: "square", gain: 0.34, at: 90 },

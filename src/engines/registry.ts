@@ -18,6 +18,7 @@ import { RoamV4, ROAM_V4_BEHAVIOUR } from "./roam/v4.ts";
 import { RoamV5, ROAM_V5_BEHAVIOUR } from "./roam/v5.ts";
 import { RoamV6, ROAM_V6_BEHAVIOUR } from "./roam/v6.ts";
 import { RoamV7, ROAM_V7_BEHAVIOUR } from "./roam/v7.ts";
+import { RoamV8, ROAM_V8_BEHAVIOUR } from "./roam/v8.ts";
 import { DashV1, DASH_V1_BEHAVIOUR } from "./dash/v1.ts";
 import { DashV2, DASH_V2_BEHAVIOUR } from "./dash/v2.ts";
 import { DashV3, DASH_V3_BEHAVIOUR } from "./dash/v3.ts";
@@ -142,6 +143,15 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
     `dash/${DASH_V7_BEHAVIOUR}`,
     (level, creature) =>
       creature === undefined ? new DashV7(level) : new DashV7(level, creature),
+  ],
+  // v8, from above only: a bucket of water, and fire goes out. Asked for by the
+  // child this is built for. Fire is a route problem; a route problem with no
+  // answer but "go the long way" is a wall. Water makes it a price instead --
+  // every fire can be put out, and putting one out costs you the clock.
+  [
+    `roam/${ROAM_V8_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new RoamV8(level) : new RoamV8(level, creature),
   ],
 ]);
 

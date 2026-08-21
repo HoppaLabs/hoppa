@@ -552,6 +552,7 @@ function paint(): void {
       reachFor(chosen),
     );
     paintMovingHud();
+    paintPourState();
     listen();
     return;
   }
@@ -660,6 +661,20 @@ function airborneOf(game: Moving): { airborne?: boolean; vy?: number } {
 }
 
 /** The HUD for a real-time run: hearts, treasure, and a clock that ticks. */
+/**
+ * The bucket, while it is being emptied.
+ *
+ * Pouring takes sixteen ticks -- about half a second -- and during it the
+ * button does nothing. Without saying so, a child taps it four more times
+ * thinking it did not work, which is exactly what they did with the sword.
+ */
+function paintPourState(): void {
+  const bucket = document.getElementById("water") as HTMLButtonElement | null;
+  if (bucket === null || bucket.hidden || moving === null) return;
+  const pouring = (moving as unknown as { pouring?: () => number }).pouring?.() ?? 0;
+  bucket.classList.toggle("pouring", pouring > 0);
+}
+
 function paintMovingHud(): void {
   const game = moving as Moving;
   if (!finished()) flashMessage(loop === null ? null : loop.takeMessage());
@@ -797,6 +812,23 @@ const JUMP_ICON = `<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="
   <rect x="5" y="19" width="14" height="2.5" rx="1" fill="#7c8899"/>
 </svg>`;
 
+/**
+ * The bucket.
+ *
+ * A bucket, not a droplet or a wave: the child asked for "a water bucket to put
+ * out the fires" and that is the object in their head. Drawn tipping, with the
+ * water already leaving it, because a bucket sitting upright is a container and
+ * a bucket pouring is a verb.
+ */
+const WATER_ICON = `<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
+  <path d="M6.5 5.5 L17.5 5.5 L15.6 15 L8.4 15 Z" fill="#9aa8ba"/>
+  <path d="M6.5 5.5 L17.5 5.5 L17.1 7.5 L6.9 7.5 Z" fill="#c3d0de"/>
+  <path d="M8 5.5 a4 4 0 0 1 8 0" fill="none" stroke="#7c8899" stroke-width="1.3"/>
+  <path d="M9.6 15 q2.4 3.4 2.4 5 a2.4 2.4 0 0 1 -4.8 0 q0 -1.6 2.4 -5 Z" fill="#5ec8f0"/>
+  <circle cx="15.2" cy="18.4" r="1.5" fill="#5ec8f0"/>
+  <circle cx="13.4" cy="21.4" r="1" fill="#7fd8ee"/>
+</svg>`;
+
 function paintActionButton(): void {
   const button = document.getElementById("wait") as HTMLButtonElement;
   const swingButton = document.getElementById("swing") as HTMLButtonElement | null;
@@ -823,6 +855,28 @@ function paintActionButton(): void {
     // of the pad -- the left one there is the jump.
     pad.classList.toggle("one", !separate);
   }
+
+  // The bucket. From above only, and only when there is something to pour it
+  // on: a button that can never do anything is worse than no button at all.
+  const bucket = document.getElementById("water") as HTMLButtonElement | null;
+  if (bucket !== null) {
+    const wet = hasWater(level.engine, level.behaviourVersion) && level.fireCells.length > 0;
+    bucket.hidden = !wet;
+    if (wet) bucket.innerHTML = WATER_ICON;
+  }
+}
+
+/**
+ * The first build from above that carries water.
+ *
+ * A level pinned to roam/7 or earlier has no bucket, because the person who
+ * beat it did not have one -- hard rule 3. Asking the version rather than
+ * asking the engine is what keeps an old link honest.
+ */
+const FIRST_WATERED_ROAM = 8;
+
+function hasWater(engine: string, version: number): boolean {
+  return engine === "roam" && version >= FIRST_WATERED_ROAM;
 }
 
 /**
@@ -972,6 +1026,10 @@ const BUTTONS: ReadonlyArray<readonly [string, Input]> = [
   ["left", INPUT_LEFT],
   ["wait", INPUT_WAIT],
   ["swing", INPUT_WAIT],
+  // From above only, and real time only, so the turn-based value is never
+  // actually read -- but a button in this list with no entry is a button with
+  // no listener, which is exactly how the sword came to do nothing on day 16.
+  ["water", INPUT_WAIT],
 ];
 
 /** Which held-button bit each pad key maps to in a real-time game. */
@@ -982,6 +1040,10 @@ const PAD_BITS: ReadonlyArray<readonly [string, number]> = [
   ["left", HELD_LEFT],
   ["wait", HELD_ACT],
   ["swing", HELD_SWING],
+  // HELD_SWING is free from above: types.ts has said so since the bit was
+  // added. Seen from above HELD_ACT is already the weapon, so nothing else
+  // wanted it.
+  ["water", HELD_SWING],
 ];
 
 for (const [id, input] of BUTTONS) {
@@ -993,6 +1055,7 @@ for (const [id, input] of BUTTONS) {
     // The weapon is the one noise the engine cannot be asked about: whether a
     // swing connected is state, but whether a child pressed the button is not.
     if (id === "wait" || id === "swing") sounds.play("swing");
+    if (id === "water") sounds.play("douse");
     if (moving !== null) {
       // Held, not tapped: you keep walking while your thumb is down.
       buttons.set(bit, true);

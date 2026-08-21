@@ -13,7 +13,7 @@
 
 export const NEWEST_BUILD: Readonly<Record<string, number>> = {
   delve: 5,
-  roam: 7,
+  roam: 8,
   dash: 7,
 };
 
