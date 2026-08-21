@@ -680,10 +680,13 @@ export const REEF: Tileset = {
  * The garden. Somewhere to be, seen from above.
  *
  * Every drawing in here is one the game already had, on different ramps -- and
- * that is the whole argument for ramps. A hedge is EARTH in green, a pond is
- * the hazard in blue, a flower is the gem in pink. Nothing new was drawn and
- * nothing new was budgeted, which is why a fourth world took an afternoon
- * instead of a week.
+ * that is the whole argument for ramps. A hedge is EARTH in green and a pond is
+ * the hazard in blue. Nothing new was drawn and nothing new was budgeted,
+ * which is why a fourth world took an afternoon instead of a week.
+ *
+ * The flower is the one exception, and it earned it: a recoloured gem is still
+ * a cut crystal, and it sat under a button reading "flowers". See
+ * FLOWER_FRAMES in the renderer.
  *
  * The entities keep their behaviour and change what they ARE, the same trick
  * the hazard has played since roam/6:

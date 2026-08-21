@@ -7,6 +7,7 @@ import { newestBuild } from "../src/core/builds.ts";
 import { tilesetFor } from "../src/core/tileset.ts";
 import { CASTS, ENEMIES } from "../src/core/enemies.ts";
 import { ENGINE_IDS } from "../src/core/codec.ts";
+import { GAMES as PICKER } from "../src/web/level/palette.ts";
 
 // Four games shipped in one stretch, and the things that differ between them
 // are spread across an engine, a tileset, a cast, a pad and a HUD. This is the
@@ -99,11 +100,15 @@ test("the pad offers what the game has, and nothing it does not", async () => {
   expect(play).toContain("hud.innerHTML = aPlace()");
 });
 
-test("every game is reachable, named, and routed", async () => {
-  const editor = await Bun.file("src/web/level/main.ts").text();
+test("every game is reachable, named, and routed", () => {
+  // The picker itself, imported -- it used to be grepped out of the editor's
+  // source, which stopped finding it the moment the palette moved to its own
+  // file, and would have gone on passing if the picker had been deleted from
+  // one file and left in the other.
   const named = ["adventure", "platformer", "underwater", "garden"];
-  for (const [i, game] of GAMES.entries()) {
-    expect(editor).toContain(`{ engine: "${game.engine}", label: "${named[i]}" }`);
+  expect(PICKER.map((game) => game.engine)).toEqual(GAMES.map((game) => game.engine));
+  expect(PICKER.map((game) => game.label)).toEqual(named);
+  for (const game of PICKER) {
     expect(ENGINE_IDS).toContain(game.engine);
     expect(knownBuilds()).toContain(`${game.engine}/${newestBuild(game.engine)}`);
   }

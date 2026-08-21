@@ -8,9 +8,9 @@ import { engineFor } from "../src/engines/registry.ts";
 import { PRESETS } from "../src/core/creature.ts";
 import { HELD_RIGHT } from "../src/engines/types.ts";
 import { SPRITE_H, SPRITE_W } from "../src/core/sprite.ts";
+import { TOOLS } from "../src/web/level/palette.ts";
 
 const renderer = await Bun.file("src/web/play/renderer.ts").text();
-const levelMain = await Bun.file("src/web/level/main.ts").text();
 const draft = await Bun.file("src/core/draft.ts").text();
 
 function room(a: string, b: string, c: string): string {
@@ -154,8 +154,12 @@ test("enemies are drawn from stamps, which is what fixes the look", () => {
 });
 
 test("the level editor offers all three, and counts them together", () => {
-  for (const label of ['label: "goblin"', 'label: "bat"', 'label: "lizard"']) {
-    expect({ label, there: levelMain.includes(label) }).toEqual({ label, there: true });
+  // Read the palette, not the file it used to live in. What each button says
+  // in each world is test/palette.test.ts's job; this one only cares that all
+  // three creatures have a button at all.
+  for (const glyph of ENEMY_GLYPHS) {
+    const tool = TOOLS.find((one) => one.glyph === glyph);
+    expect({ glyph, there: tool !== undefined }).toEqual({ glyph, there: true });
   }
   // The cap is on enemies, not on each kind: the engine holds so many walking
   // things and does not care which is a bat. Per-kind counting would have let

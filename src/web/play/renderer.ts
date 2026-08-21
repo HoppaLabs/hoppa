@@ -289,6 +289,105 @@ const DOOR_INKS: Record<string, readonly string[]> = {
   open: ["#2a1a0d", "#12306b", "#2f7a4a", "#6fe08a"],
 };
 
+/**
+ * A flower, for the garden.
+ *
+ * The garden used to recolour the gem: same cut diamond, pink instead of teal,
+ * on a button that said "flowers". A recoloured crystal is still a crystal --
+ * it was the last thing left in the palette where the word and the picture
+ * disagreed, and it was the word that was right.
+ *
+ Five petals, not four. Four was drawn first and it was wrong: four petals
+ * at north, east, south and west make a DIAMOND at the size a level actually
+ * draws them, which is the shape the whole exercise was getting away from.
+ * Five reads as a flower down to about ten pixels.
+ *
+ * Symmetric to the pixel, checked rather than eyeballed. Five petals do not
+ * fall on a sixteen-wide grid symmetrically on their own -- the mirror of
+ * column x is column 15-x, so the centre is 8.0 and not the 7.5 that looks
+ * right -- so it is rasterised and then folded across its own mirror.
+ *
+ * The three frames are a NOD, not a spin. A gem turns to catch the light; a
+ * flower sits in the ground and moves because the air does. It is the same
+ * drawing one pixel lower, level, and one higher -- and gemFrame ping-pongs
+ * 0,1,2,1, so it rises and falls rather than snapping back.
+ *
+ * 1 is the outline, 2 the shadowed base of the petals, 3 the mid, 4 the lit
+ * tips, 5 the heart.
+ */
+const FLOWER_FRAMES: readonly Pattern[] = [
+  [ // low, and the frame the still buttons show
+    "................",
+    "................",
+    "......1111......",
+    "......1441......",
+    ".....143341.....",
+    "..111333333111..",
+    ".14433222233441.",
+    ".14432255223441.",
+    ".14332555523341.",
+    "..133255552331..",
+    "...1322552231...",
+    "...1332222331...",
+    "...1433333341...",
+    "...1444114441...",
+    "...1111..1111...",
+    "................",
+  ],
+  [ // level
+    "................",
+    "......1111......",
+    "......1441......",
+    ".....143341.....",
+    "..111333333111..",
+    ".14433222233441.",
+    ".14432255223441.",
+    ".14332555523341.",
+    "..133255552331..",
+    "...1322552231...",
+    "...1332222331...",
+    "...1433333341...",
+    "...1444114441...",
+    "...1111..1111...",
+    "................",
+    "................",
+  ],
+  [ // high
+    "......1111......",
+    "......1441......",
+    ".....143341.....",
+    "..111333333111..",
+    ".14433222233441.",
+    ".14432255223441.",
+    ".14332555523341.",
+    "..133255552331..",
+    "...1322552231...",
+    "...1332222331...",
+    "...1433333341...",
+    "...1444114441...",
+    "...1111..1111...",
+    "................",
+    "................",
+    "................",
+  ],
+];
+
+/**
+ * The shape a world's treasure is, where it is not the gem.
+ *
+ * The INKS have varied per world since the first tileset; the SHAPE had not,
+ * which is how a garden ended up with a pink diamond in it. Same mechanism,
+ * one level up. A world absent from here gets the gem.
+ */
+const GEM_SHAPES: Record<string, readonly Pattern[]> = {
+  garden: FLOWER_FRAMES,
+};
+
+/** The frames this world's treasure turns, or nods, through. */
+function gemShapes(world: string): readonly Pattern[] {
+  return GEM_SHAPES[world] ?? GEM_FRAMES;
+}
+
 /** Outline, face, highlight -- for each world. */
 const GEM_INKS: Record<string, readonly string[]> = {
   // Rim, shadowed facet, body, lit facet, specular. A gem is not one blue and
@@ -296,9 +395,10 @@ const GEM_INKS: Record<string, readonly string[]> = {
   underground: ["#062f2f", "#12807a", "#1fb3a6", "#5fe0d2", "#ffffff"],
   outside: ["#25093a", "#6b1fa8", "#9a3ad5", "#e8b6ff", "#ffffff"],
   reef: ["#062f2f", "#12807a", "#1fb3a6", "#5fe0d2", "#ffffff"],
-  // A flower, not a gem. Same cut shape, and the colours do the whole job:
-  // a warm pink with a yellow heart, which is what a child means by "flower"
-  // long before anything about petals comes into it.
+  // A flower, and by now a flower-shaped one -- see FLOWER_FRAMES. Outline,
+  // the shadow where the petals meet, the mid, the lit tips, and the yellow
+  // heart. Warm pink, which is what a child means by "flower" long before
+  // anything about petals comes into it.
   garden: ["#6b1420", "#d82f42", "#ff5f4d", "#ffb3a8", "#ffe9a3"],
 };
 
@@ -393,7 +493,7 @@ export function tileChip(
     : tile === TILE_LADDER ? set.ladder
     : tile === TILE_FIRE ? set.fire
     : tile === TILE_FLOW ? (set.flow ?? null)
-    : tile === TILE_TREASURE ? (GEM_FRAMES[0] as Pattern)
+    : tile === TILE_TREASURE ? (gemShapes(set.name)[0] as Pattern)
     : tile === TILE_EXIT_LOCKED ? (DOOR_SHUT[0] as Pattern)
     : tile === TILE_EXIT_OPEN ? (DOOR_OPEN[0] as Pattern)
     : null;
@@ -943,7 +1043,7 @@ export class GridRenderer {
     if (this.gemStampedAt === t && this.gemStampedSet === set.name) return;
     const inks = GEM_INKS[set.name] ?? (GEM_INKS.underground as readonly string[]);
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    this.gemStamps = GEM_FRAMES.map((frame) => {
+    this.gemStamps = gemShapes(set.name).map((frame) => {
       const canvas = document.createElement("canvas");
       canvas.width = Math.max(1, Math.round(t * dpr));
       canvas.height = Math.max(1, Math.round(t * dpr));
@@ -1364,7 +1464,7 @@ export class GridRenderer {
           // Frozen face-on when nothing is animating, so the level editor
           // never draws one as a sliver.
           const turn = this.spinning
-            ? gemFrame(y * GRID_W + x, GEM_FRAMES.length)
+            ? gemFrame(y * GRID_W + x, this.gemStamps.length)
             : 0;
           const gem = this.gemStamps[turn];
           if (gem !== undefined) {

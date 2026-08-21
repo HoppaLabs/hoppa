@@ -154,10 +154,6 @@ export const ENEMIES: readonly Enemy[] = [
   },
 ];
 
-/** The enemy a level glyph means, or undefined. */
-export function enemyByGlyph(glyph: string): Enemy | undefined {
-  return ENEMIES.find((one) => one.glyph === glyph);
-}
 
 /**
  * The garden's cast: the same three kinds, drawn as what lives in a garden.
@@ -452,3 +448,13 @@ export const CASTS: Readonly<Record<string, readonly Enemy[]>> = {
   garden: GARDEN_CAST,
   reef: REEF_CAST,
 };
+
+/** The enemy a level glyph means, or undefined. */
+export function enemyByGlyph(glyph: string, world?: string): Enemy | undefined {
+  // Which world matters, or the LEVEL EDITOR shows a lizard on a button that
+  // paints a shark. Reported exactly that way: "I still see lizard sprite
+  // underwater". The play page had been fixed and the editor's palette had not,
+  // because they fetch the art from two different places.
+  const cast = (world !== undefined ? CASTS[world] : undefined) ?? ENEMIES;
+  return cast.find((one) => one.glyph === glyph);
+}
