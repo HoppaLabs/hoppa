@@ -32,6 +32,12 @@ interface Mutation {
 
 const MUTATIONS: readonly Mutation[] = [
   {
+    breaks: "city blocks go back to a parapet per cell, so a building is fifteen roofs",
+    file: "src/core/tileset.ts",
+    find: "export function blockFor(open: number): Pattern {",
+    replace: "export function blockFor(open: number): Pattern {\n  open = POND_N | POND_E | POND_S | POND_W;",
+  },
+  {
     // The other half of the same line, and the one that shipped: `none` on a
     // body turns the page's own scrolling off with the pinch.
     breaks: "the creature editor stops scrolling, because its body says none",
@@ -97,7 +103,7 @@ const MUTATIONS: readonly Mutation[] = [
   {
     breaks: "a pond stops looking at its neighbours, so nothing ever joins up",
     file: "src/core/tileset.ts",
-    find: "  return (water(x, y - 1) ? 0 : POND_N)",
+    find: "  return (same(x, y - 1) ? 0 : POND_N)",
     replace: "  return (false ? 0 : POND_N)",
   },
   {

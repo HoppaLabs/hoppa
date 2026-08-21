@@ -12,7 +12,7 @@ import { CASTS, ENEMIES } from "../../core/enemies.ts";
 import {
   TILE_PX, flipPattern, inkOf, tilesetFor, turnPattern,
   type Pattern, type Ramp, type Tileset,
-  openSides,
+  openSides, sidesOf,
 } from "../../core/tileset.ts";
 import {
   TILE_ACTOR,
@@ -998,6 +998,8 @@ export class GridRenderer {
   private flames: HTMLCanvasElement[] = [];
   /** One pond per set of open sides, where the world's hazard is water. */
   private readonly ponds = new Map<number, HTMLCanvasElement>();
+  /** ...and one block per set of open sides, where a wall is a building. */
+  private readonly blocks = new Map<number, HTMLCanvasElement>();
 
   /**
    * Put the clouds up, behind everything.
@@ -1160,6 +1162,22 @@ export class GridRenderer {
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         paintPattern(ctx, set.fireFor(open), set.fireSub, set, t);
         this.ponds.set(open, canvas);
+      }
+    }
+
+    // ...and a block the same way, where a wall is a building. See
+    // Tileset.wallFor.
+    this.blocks.clear();
+    if (set.wallFor !== undefined) {
+      for (let open = 0; open < 16; open = (open + 1) | 0) {
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(t * dpr));
+        canvas.height = Math.max(1, Math.round(t * dpr));
+        const ctx = canvas.getContext("2d");
+        if (ctx === null) continue;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        paintPattern(ctx, set.wallFor(open), set.sub, set, t);
+        this.blocks.set(open, canvas);
       }
     }
 
@@ -1978,6 +1996,17 @@ export class GridRenderer {
         // why it costs the wire format nothing at all -- see Tileset.tree.
         const alone = tile === TILE_WALL && this.tiles().tree !== undefined
           && this.wallsAround(tiles, x, y) === 0;
+        // A run of walls is one building, with a parapet only where the roof
+        // actually ends. Same read as the ponds, one tile along: see
+        // blockFor() and the report that asked what a joined block was even
+        // supposed to be.
+        if (tile === TILE_WALL && !alone && this.blocks.size > 0) {
+          const roof = this.blocks.get(sidesOf(tiles, x, y, TILE_WALL));
+          if (roof !== undefined) {
+            ctx.drawImage(roof, x * t, y * t, t, t);
+            continue;
+          }
+        }
         const stamp = this.stamps?.get(
           alone ? GridRenderer.LONE_WALL : capped ? GridRenderer.WALL_TOP : tile,
         );

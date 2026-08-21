@@ -241,6 +241,17 @@ export interface Tileset {
    */
   readonly fireFor?: (open: number) => Pattern;
   /**
+   * ...and the same for a WALL, where a run of them is one thing rather than
+   * many.
+   *
+   * Only the city sets it. A cave wall is a cave wall however many of them
+   * there are; a city block is a BUILDING, and a building with a parapet
+   * around every sixteen-pixel cell of it is not a building, it is a car park.
+   * Reported as "I don't like what the buildings look like when they are
+   * joined" -- which is the pond bug exactly, one tile along. See blockFor().
+   */
+  readonly wallFor?: (open: number) => Pattern;
+  /**
    * A ramp for the hazard alone.
    *
    * It is a different MATERIAL from the terrain, and it borrowed the terrain's
@@ -481,14 +492,19 @@ export const POND_W = 8;
  * The decision is "where does the shoreline go", and a decision you cannot run
  * a test against is a decision nobody is checking.
  */
-export function openSides(tiles: Uint8Array, x: number, y: number): number {
-  const water = (cx: number, cy: number): boolean =>
+export function sidesOf(tiles: Uint8Array, x: number, y: number, tile: number): number {
+  const same = (cx: number, cy: number): boolean =>
     cx >= 0 && cx < GRID_W && cy >= 0 && cy < GRID_H
-    && (tiles[cy * GRID_W + cx] as number) === TILE_FIRE;
-  return (water(x, y - 1) ? 0 : POND_N)
-    | (water(x + 1, y) ? 0 : POND_E)
-    | (water(x, y + 1) ? 0 : POND_S)
-    | (water(x - 1, y) ? 0 : POND_W);
+    && (tiles[cy * GRID_W + cx] as number) === tile;
+  return (same(x, y - 1) ? 0 : POND_N)
+    | (same(x + 1, y) ? 0 : POND_E)
+    | (same(x, y + 1) ? 0 : POND_S)
+    | (same(x - 1, y) ? 0 : POND_W);
+}
+
+/** ...for water, which is what asked for it first. */
+export function openSides(tiles: Uint8Array, x: number, y: number): number {
+  return sidesOf(tiles, x, y, TILE_FIRE);
 }
 
 const POND_CACHE = new Map<number, Pattern>();
@@ -1030,12 +1046,82 @@ const FIRE_ESCAPE: Pattern = [
   "...4........4...",
 ];
 
+/**
+ * A city block, drawn for the sides that actually face a street.
+ *
+ * Same trick as pondFor(), and for the same reason: BLOCK has a parapet on all
+ * four edges, so a five-by-three building came out as fifteen little roofs
+ * with a kerb around each one. Reported as "I don't like what the buildings
+ * look like when they are joined, what are they supposed to represent?" --
+ * which is a fair question to ask of that picture.
+ *
+ * The lip goes only where the roof ends. Everything inside is gravel and plant
+ * running straight through, so a run of cells is ONE building with one
+ * roofline, and it costs the wire format nothing at all: the shape is read off
+ * the neighbours, never stored.
+ */
+const BLOCK_CACHE = new Map<number, Pattern>();
+
+export function blockFor(open: number): Pattern {
+  const had = BLOCK_CACHE.get(open);
+  if (had !== undefined) return had;
+
+  const W = TILE_PX;
+  const rows: string[][] = [];
+  for (let y = 0; y < W; y++) {
+    const row: string[] = [];
+    for (let x = 0; x < W; x++) {
+      // Gravel: the same field in every cell, so a big roof has one texture
+      // across it rather than a seam every sixteen pixels.
+      // Scattered by a HASH, not by a linear form. `(x * 5 + y * 11) % 11`
+      // puts its hits on a diagonal, which at this size reads as a barcode
+      // down the roof rather than as gravel.
+      const h = (Math.imul(x + 1, 73856093) ^ Math.imul(y + 1, 19349663)) >>> 0;
+      const v = h % 17;
+      row.push(v === 0 ? "2" : (v === 9 ? "4" : "3"));
+    }
+    rows.push(row);
+  }
+  const put = (x: number, y: number, ink: string): void => {
+    if (x < 0 || y < 0 || x >= W || y >= W) return;
+    (rows[y] as string[])[x] = ink;
+  };
+
+  // Plant on the roof, and ONLY on a cell with no side facing out -- the deep
+  // middle of a building. Drawn in every cell it tiled like wallpaper: the
+  // same two air handlers every sixteen pixels across a whole block. Kept to
+  // the interior, a building gets a line of plant down its middle and a clean
+  // roof at its edges, and the pattern never repeats where you can see both.
+  if (open === 0) {
+    for (const [x0, y0, w, h] of [[3, 4, 5, 3], [10, 9, 4, 3]] as const) {
+      for (let k = 0; k < h; k++) {
+        for (let x = x0; x < x0 + w; x++) put(x, y0 + k, k === 0 ? "4" : (k === h - 1 ? "1" : "2"));
+      }
+    }
+    put(6, 10, "1"); put(7, 10, "1"); put(6, 11, "1"); put(7, 11, "1");
+  }
+
+  // The parapet: a lit lip and a shadow inside it, on the sides facing out.
+  for (let i = 0; i < W; i++) {
+    if ((open & POND_N) !== 0) { put(i, 0, "4"); put(i, 1, "2"); }
+    if ((open & POND_S) !== 0) { put(i, W - 1, "1"); put(i, W - 2, "2"); }
+    if ((open & POND_W) !== 0) { put(0, i, "4"); put(1, i, "2"); }
+    if ((open & POND_E) !== 0) { put(W - 1, i, "1"); put(W - 2, i, "2"); }
+  }
+
+  const made = rows.map((row) => row.join("")) as unknown as Pattern;
+  BLOCK_CACHE.set(open, made);
+  return made;
+}
+
 export const CITY: Tileset = {
   id: 6,
   name: "city",
   // 1-5 are tarmac up to pale concrete; 6 is a lit window and 7 is white.
   sub: [0, 1, 2, 3, 4, 28, 5],
   wall: BLOCK,
+  // ...and a run of them is one building with one roofline. See blockFor().
+  wallFor: blockFor,
   // One on its own is a tower. Same rule as the garden's tree and the beach's
   // palm: a wall cell with no wall beside it, and it costs the format nothing.
   tree: TOWER,
