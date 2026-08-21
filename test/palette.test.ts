@@ -22,7 +22,7 @@ import { GAMES, enemyArtFor, labelFor, toolsFor, worldFor } from "../src/web/lev
 const EXPECTED: Readonly<Record<string, readonly string[]>> = {
   roam: ["clear", "wall", "start", "door / exit", "treasure", "goblin", "bat", "lizard", "fire"],
   dash: ["clear", "wall", "start", "door / exit", "treasure", "goblin", "bat", "lizard", "ladder", "spikes"],
-  swim: ["clear", "rock", "start", "door / exit", "treasure", "shark", "octopus", "crab", "current", "urchins"],
+  swim: ["clear", "rock", "start", "door / exit", "treasure", "shark", "kraken", "squid", "current", "urchins"],
   // No door: see the exit tool in palette.ts. A garden is not a level.
   calm: ["clear", "hedge", "start", "door / exit", "flowers", "bear", "bunny", "squirrel", "bridge", "pond"],
 };
@@ -56,7 +56,7 @@ test("an enemy button is labelled with the creature it draws", () => {
 test("each world's cast is in glyph order, because the game indexes it by number", () => {
   // A level stores an enemy as a NUMBER -- its index in ENEMY_GLYPHS -- and the
   // play page looks that number up in the world's cast. So a cast listed in a
-  // different order does not draw a different-looking shark, it draws a crab.
+  // different order does not draw a different-looking shark, it draws a squid.
   // Nothing else checks this: the number is the same in every world.
   for (const game of GAMES) {
     // The array itself, in the order it is written -- not a lookup by glyph,

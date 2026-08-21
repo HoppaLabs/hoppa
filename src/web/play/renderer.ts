@@ -4,6 +4,7 @@
 // tileset arrives on day 7; flat squares are the day 1 presentation.
 
 import { GRID_H, GRID_W } from "../../core/grid.ts";
+import { weaponArt } from "./weapon.ts";
 import { colourFor } from "../../core/palette.ts";
 import { SPRITE_H, SPRITE_W, spriteIndex, type Sprite } from "../../core/sprite.ts";
 import { ONE } from "../../core/fixed.ts";
@@ -1447,7 +1448,8 @@ export class GridRenderer {
       ctx.translate(cx, cy);
       ctx.rotate(angle);
 
-      if (this.weapon === "wand") {
+      const art = weaponArt(this.weapon, this.world);
+      if (art === "wand") {
         // A wand is a short pale rod with the work happening at the tip: the
         // star is the swing, the way the blade is for a sword.
         const star = Math.max(3, t * 0.22);
@@ -1463,6 +1465,35 @@ export class GridRenderer {
         ctx.beginPath();
         ctx.arc(hilt + len, 0, star * 0.45, 0, Math.PI * 2);
         ctx.fill();
+      } else if (art === "trident") {
+        // Three prongs on a shaft. Nobody swings a broadsword through water,
+        // and the prongs are the whole reason this reads as a trident rather
+        // than a sword drawn badly -- so they are the LAST thing to shrink:
+        // even at a quarter of a tile the head keeps all three.
+        ctx.fillStyle = "rgba(226,234,242,.18)";
+        ctx.fillRect(hilt, -thick, len * 0.7, thick * 2);
+        // The shaft, in bronze, so the head reads against it.
+        ctx.fillStyle = "#b98d4a";
+        ctx.fillRect(hilt, -thick / 2, len * 0.78, thick);
+        const head = hilt + len * 0.34;
+        const nose = hilt + len;
+        // The prongs are THINNER than the shaft and set wider than they are
+        // thick: at a phone's tile size the gaps between them are two or three
+        // pixels, and if the prongs were shaft-width the gaps would close and
+        // the whole head would read as one white paddle. It did.
+        const prong = Math.max(1.5, thick * 0.45);
+        const spread = Math.max(prong * 1.9, t * 0.12);
+        // The crossbar the prongs stand on.
+        ctx.fillStyle = "#dfe8f0";
+        ctx.fillRect(head, -spread - prong / 2, prong, spread * 2 + prong);
+        for (const at of [-spread, 0, spread]) {
+          ctx.fillRect(head, at - prong / 2, nose - head, prong);
+        }
+        // Barbs: a point on each prong, which is what a fish spear has.
+        ctx.fillStyle = "#ffffff";
+        for (const at of [-spread, 0, spread]) {
+          ctx.fillRect(nose - prong, at - prong / 2, prong, prong);
+        }
       } else {
         // Silver, not gold: a sword is steel, and the gold one read as brass.
         const trail = Math.max(2, thick);

@@ -64,8 +64,8 @@ export const TOOLS: readonly Tool[] = [
   // what changes is what a child sees walking towards them, which at nine
   // years old is most of what an enemy IS.
   { glyph: GLYPH_GUARD, label: "goblin", names: { swim: "shark", calm: "bear" }, limit: 10 },
-  { glyph: GLYPH_BAT, label: "bat", names: { swim: "octopus", calm: "bunny" }, limit: 10 },
-  { glyph: GLYPH_DRAGON, label: "lizard", names: { swim: "crab", calm: "squirrel" }, limit: 10 },
+  { glyph: GLYPH_BAT, label: "bat", names: { swim: "kraken", calm: "bunny" }, limit: 10 },
+  { glyph: GLYPH_DRAGON, label: "lizard", names: { swim: "squid", calm: "squirrel" }, limit: 10 },
   { glyph: GLYPH_LADDER, label: "ladder", names: { calm: "bridge" }, engines: ["dash", "calm"] },
   // One tool, four directions. Drag it and the water goes the way you dragged.
   { glyph: GLYPH_FLOW_RIGHT, label: "current", engines: ["swim"], limit: MAX_FLOW },

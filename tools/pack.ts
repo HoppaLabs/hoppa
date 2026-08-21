@@ -486,7 +486,7 @@ function theReef(): string {
   // learning both is a third, and the shipped rooms have to survive a bot that
   // never dodges -- which is the same bar as a child on their first go.
   //
-  // The sharks and the octopus are drawn and they are in the cast. They turn up
+  // The sharks and the kraken are drawn and they are in the cast. They turn up
   // the moment anybody paints one, which is where a hunting thing belongs: in a
   // room somebody chose to make hard.
 

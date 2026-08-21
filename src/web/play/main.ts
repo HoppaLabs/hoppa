@@ -42,6 +42,7 @@ import {
   type Input,
 } from "../../engines/types.ts";
 import { GridRenderer } from "./renderer.ts";
+import { weaponArt, weaponSays } from "./weapon.ts";
 import { goOffline } from "../offline.ts";
 import { holdStill } from "../nozoom.ts";
 import { paintLogo } from "../logo.ts";
@@ -1000,6 +1001,20 @@ const WAND_ICON = `<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="
   <circle cx="12" cy="7.2" r="1.5" fill="#ffffff"/>
 </svg>`;
 
+// Three prongs on a bronze shaft, held upright like the sword. Underwater a
+// sword read as the wrong tool for the room -- see weapon.ts.
+const TRIDENT_ICON = `<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
+  <path d="M4.6 3 L4.6 8.5 L6.9 8.5 L6.9 3 Z" fill="#dfe8f0"/>
+  <path d="M10.85 1.6 L10.85 8.5 L13.15 8.5 L13.15 1.6 Z" fill="#dfe8f0"/>
+  <path d="M17.1 3 L17.1 8.5 L19.4 8.5 L19.4 3 Z" fill="#dfe8f0"/>
+  <path d="M4.6 3 L5.75 1.2 L6.9 3 Z" fill="#ffffff"/>
+  <path d="M10.85 1.6 L12 0 L13.15 1.6 Z" fill="#ffffff"/>
+  <path d="M17.1 3 L18.25 1.2 L19.4 3 Z" fill="#ffffff"/>
+  <rect x="4" y="8.5" width="16" height="2.4" rx="1.2" fill="#dfe8f0"/>
+  <rect x="10.85" y="10.9" width="2.3" height="11" fill="#b98d4a"/>
+  <rect x="9.6" y="19.4" width="4.8" height="1.6" rx="0.8" fill="#8d7a5c"/>
+</svg>`;
+
 const JUMP_ICON = `<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
   <path d="M12 3 L18 11 L14 11 L14 16 L10 16 L10 11 L6 11 Z" fill="#ffe9a3"/>
   <rect x="5" y="19" width="14" height="2.5" rx="1" fill="#7c8899"/>
@@ -1026,9 +1041,9 @@ function paintActionButton(): void {
   const button = document.getElementById("wait") as HTMLButtonElement;
   const swingButton = document.getElementById("swing") as HTMLButtonElement | null;
   const jumping = level.engine === "dash";
-  const wand = chosen.weapon === "wand";
-  const weaponIcon = wand ? WAND_ICON : SWORD_ICON;
-  const weaponSays = wand ? "wave your wand" : "swing your sword";
+  const art = weaponArt(chosen.weapon, level.engine);
+  const weaponIcon = art === "wand" ? WAND_ICON : (art === "trident" ? TRIDENT_ICON : SWORD_ICON);
+  const says = weaponSays(art);
 
   // A garden has no action button, because there is nothing for it to do:
   // there is no weapon, nothing jumps, and playing with a bunny is done by
@@ -1037,7 +1052,7 @@ function paintActionButton(): void {
   // something of you that it does not.
   button.hidden = aPlace();
   button.innerHTML = jumping ? JUMP_ICON : weaponIcon;
-  button.setAttribute("aria-label", jumping ? "jump" : weaponSays);
+  button.setAttribute("aria-label", jumping ? "jump" : says);
 
   // From the side the action button is jump, so the weapon gets its own key.
   // From above they would be the same button, so there is only one.
@@ -1046,7 +1061,7 @@ function paintActionButton(): void {
     swingButton.hidden = !separate;
     if (separate) {
       swingButton.innerHTML = weaponIcon;
-      swingButton.setAttribute("aria-label", weaponSays);
+      swingButton.setAttribute("aria-label", says);
     }
     // With no second button, the one button moves across to sit beside up on
     // the RIGHT. A thumb reaching for the weapon should find it in the same

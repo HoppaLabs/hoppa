@@ -32,6 +32,18 @@ interface Mutation {
 
 const MUTATIONS: readonly Mutation[] = [
   {
+    breaks: "the underwater weapon goes back to a sword",
+    file: "src/web/play/weapon.ts",
+    find: '  return engine === "swim" ? "trident" : "sword";',
+    replace: '  return "sword";',
+  },
+  {
+    breaks: "a wand turns into a trident underwater, so the picture lies about what it does",
+    file: "src/web/play/weapon.ts",
+    find: '  if (weapon === "wand") return "wand";',
+    replace: "  if (false) return \"wand\";",
+  },
+  {
     breaks: "ponds go back to a rim on every side, so a big pool reads as puddles",
     file: "src/core/tileset.ts",
     find: "export function pondFor(open: number): Pattern {",
@@ -68,7 +80,7 @@ const MUTATIONS: readonly Mutation[] = [
     replace: 'names: { swim: "goblin", calm: "bear" }',
   },
   {
-    breaks: "the reef's cast is listed out of glyph order, so a shark draws as a crab",
+    breaks: "the reef's cast is listed out of glyph order, so a shark draws as a squid",
     file: "src/core/enemies.ts",
     find: "export const CASTS: Readonly<Record<string, readonly Enemy[]>> = {\n  garden: GARDEN_CAST,\n  reef: REEF_CAST,\n};",
     replace: "export const CASTS: Readonly<Record<string, readonly Enemy[]>> = {\n  garden: GARDEN_CAST,\n  reef: [REEF_CAST[2], REEF_CAST[1], REEF_CAST[0]] as readonly Enemy[],\n};",
