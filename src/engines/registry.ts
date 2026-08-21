@@ -24,6 +24,7 @@ import { DashV3, DASH_V3_BEHAVIOUR } from "./dash/v3.ts";
 import { DashV4, DASH_V4_BEHAVIOUR } from "./dash/v4.ts";
 import { DashV5, DASH_V5_BEHAVIOUR } from "./dash/v5.ts";
 import { DashV6, DASH_V6_BEHAVIOUR } from "./dash/v6.ts";
+import { DashV7, DASH_V7_BEHAVIOUR } from "./dash/v7.ts";
 import type { Engine } from "./types.ts";
 
 export class UnknownBehaviourError extends Error {}
@@ -131,6 +132,16 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
     `dash/${DASH_V6_BEHAVIOUR}`,
     (level, creature) =>
       creature === undefined ? new DashV6(level) : new DashV6(level, creature),
+  ],
+  // v7: the enemies move. In dash/1 through dash/6 not one of them ever did --
+  // they were placed 32 subcells above the floor they were standing on, so the
+  // test that stops them walking off a ledge read their own empty cell and
+  // turned them round on every tick. Reported as "the lizard enemy doesn't
+  // move"; it was every enemy, in every side-on level, always.
+  [
+    `dash/${DASH_V7_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new DashV7(level) : new DashV7(level, creature),
   ],
 ]);
 

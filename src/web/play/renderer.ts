@@ -896,6 +896,8 @@ export class GridRenderer {
       x: number; y: number; stunned: boolean; chasing: boolean;
       /** Which of the three it is drawn as. Presentation only. */
       art?: number;
+      /** Which way it is walking, if its engine says. Side-on, dash/7 on. */
+      dir?: number;
     }>,
     reach: number,
   ): void {
@@ -963,7 +965,21 @@ export class GridRenderer {
           // thing that can say it without a second set of drawings.
           ctx.globalAlpha = 0.92;
         }
-        ctx.drawImage(stamp, left, top, size, size);
+        // Face the way you are walking. Until dash/7 no side-on enemy ever took
+        // a step, so every one of them could be drawn facing the same way and
+        // nobody could tell; the moment they walk, one of the two directions is
+        // a moonwalk. Mirrored rather than drawn twice: the art is a silhouette
+        // with a light side, and at 16 pixels a flip reads as a turn.
+        const mirrored = (enemy.dir ?? 1) < 0;
+        if (mirrored) {
+          ctx.save();
+          ctx.translate(left + size, top);
+          ctx.scale(-1, 1);
+          ctx.drawImage(stamp, 0, 0, size, size);
+          ctx.restore();
+        } else {
+          ctx.drawImage(stamp, left, top, size, size);
+        }
         ctx.globalAlpha = 1;
 
         if (enemy.stunned && flickering) {
