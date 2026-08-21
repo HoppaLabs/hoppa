@@ -114,7 +114,19 @@ self.addEventListener("fetch", (event: never) => {
       }
 
       try {
-        return await fetch(request);
+        const fresh = await fetch(request);
+        // Keep what we go out for, if it is ours and it worked.
+        //
+        // The shell is precached; a lazily-loaded chunk is not, because the
+        // one the bot lives in is bigger than the whole rest of the game and
+        // most children never tap the button that wants it. Keeping it the
+        // first time it IS fetched gives the same offline answer for one
+        // download, paid by whoever asked. Chunk names carry a content hash,
+        // so a stale one can never be served for new code.
+        if (fresh.ok && request.mode !== "navigate" && url.pathname.endsWith(".js")) {
+          await cache.put(request, fresh.clone());
+        }
+        return fresh;
       } catch (err) {
         void err;
         // Offline and not in the cache. A sourcemap or a favicon, most likely.

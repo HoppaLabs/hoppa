@@ -18,6 +18,7 @@ import {
   GLYPH_START, GLYPH_TREASURE, GLYPH_WALL,
 } from "../../core/level.ts";
 import { parseLevel } from "../../core/level.ts";
+
 import {
   blankDraft, draftFromLevel, draftToText, paint, retarget, tally,
   type Draft, type Glyph,
@@ -135,6 +136,7 @@ const says = document.getElementById("says") as HTMLElement;
 const nameBox = document.getElementById("name") as HTMLInputElement;
 const playButton = document.getElementById("play") as HTMLButtonElement;
 const clearButton = document.getElementById("clear") as HTMLButtonElement;
+const watchButton = document.getElementById("watch") as HTMLButtonElement;
 
 const renderer = new GridRenderer(paper);
 const tiles = new Uint8Array(GRID_W * GRID_H);
@@ -787,6 +789,130 @@ playButton.addEventListener("click", () => {
     void err;
   }
 });
+
+/**
+ * The same trip as "play it", with the game asked to play it for you.
+ *
+ * It lives on the play page rather than here, and the difference is 117
+ * kilobytes: the bot drives the real engines, and there are eleven builds of
+ * them. Pulling that lot into the editor tripled this page, on a game a child
+ * downloads over mobile data. The play page already has every one of them, so
+ * the trip costs seven kilobytes there and nothing at all here.
+ */
+/**
+ * Watch the game play the level you have drawn.
+ *
+ * The checks below already say whether a room CAN be finished -- L3 walks the
+ * open cells, and jumpNotes() asks whether a jump reaches. But a green tick is
+ * a claim, and watching somebody get out is proof, and the difference matters
+ * most to the person least able to read the tick: a child who has drawn a room
+ * and does not know whether it is any good.
+ *
+ * The bot is loaded ON TAP, never with the page. It drives the real engines and
+ * there are eleven builds of them: bundled in, they take this page from 54
+ * kilobytes to 171, on a game a child downloads over mobile data. Behind an
+ * import() the editor stays the size it was and the 114 kilobytes are fetched
+ * once, by the people who ask for them, and then cached by the worker.
+ */
+let watching: number | null = null;
+
+function stopWatching(): void {
+  if (watching !== null) window.clearInterval(watching);
+  watching = null;
+  watchButton.textContent = "watch it played";
+  repaint();
+}
+
+watchButton.addEventListener("click", () => {
+  if (watching !== null) {
+    stopWatching();
+    return;
+  }
+  const creature = loadCharacter()?.creature ?? (PRESETS[0] as (typeof PRESETS)[number]);
+  says.textContent = "having a go...";
+  says.className = "";
+  void import("../../core/bot.ts")
+    .then((bot) => {
+      let level;
+      try {
+        level = parseLevel(draftToText(draft));
+      } catch {
+        says.textContent = "this level will not run yet";
+        says.className = "bad";
+        return;
+      }
+      const attempt = bot.botPlaysLevel(level, creature);
+      if (attempt.log.length === 0) {
+        says.textContent = "nothing to watch -- there is no way to move";
+        says.className = "bad";
+        return;
+      }
+      const engine = bot.engineFor(level, creature) as unknown as Watchable;
+      const guards = new Map<number, number>();
+      for (let g = 0; g < level.guardCells.length; g = (g + 1) | 0) {
+        guards.set(level.guardCells[g] as number, level.guardArt[g] ?? 0);
+      }
+      renderer.setGuardArt(guards);
+      renderer.setSprite(creature.sprite);
+      renderer.setSpinning(true);
+      watchButton.textContent = "stop watching";
+
+      // A tick is 33ms in the real-time games; a move is a move in the
+      // turn-based ones and wants longer to be followed by eye.
+      const realtime = typeof engine.where === "function";
+      let at = 0;
+      watching = window.setInterval(() => {
+        engine.step(attempt.log[at] as number);
+        at = (at + 1) | 0;
+        paintWatched(engine, level);
+        if (at >= attempt.log.length) {
+          says.textContent = attempt.won
+            ? `beaten in ${attempt.seconds}s, ${attempt.treasure} treasure, ${attempt.hearts} hearts left`
+            : `could not finish it -- ${attempt.why}`;
+          says.className = attempt.won ? "good" : "bad";
+          stopWatching();
+        }
+      }, realtime ? 33 : 110);
+    })
+    .catch(() => {
+      says.textContent = "could not load the player -- are you offline?";
+      says.className = "bad";
+    });
+});
+
+/** What the watcher needs from whichever engine the level pins. */
+interface Watchable {
+  step(held: number): number;
+  render(): Uint8Array;
+  where?(): { x: number; y: number; facing: number };
+  enemyPositions?(): Array<{ x: number; y: number; stunned: boolean; chasing: boolean }>;
+  swinging?(): boolean;
+  swingLeft?(): number;
+  swingLength?(): number;
+  merciful?(): boolean;
+}
+
+function paintWatched(engine: Watchable, level: ReturnType<typeof parseLevel>): void {
+  if (typeof engine.where !== "function") {
+    renderer.draw(engine.render(), false);
+    return;
+  }
+  renderer.drawMoving(
+    engine.render(),
+    {
+      ...engine.where(),
+      swinging: engine.swinging?.() ?? false,
+      blinking: engine.merciful?.() ?? false,
+      swingLeft: engine.swingLeft?.() ?? 0,
+      swingLength: engine.swingLength?.() ?? 0,
+    },
+    (engine.enemyPositions?.() ?? []).map((enemy, seat) => ({
+      ...enemy,
+      art: level.guardArt[seat] ?? 0,
+    })),
+    0,
+  );
+}
 
 clearButton.addEventListener("click", () => {
   draft = blankDraft(draft.engine, currentBuild(draft.engine));

@@ -9,7 +9,7 @@ const OUT = "dist";
 
 // What the service worker keeps so the game works with the radio off. Not the
 // sourcemaps: half a megabyte a child never looks at.
-const SHELL = [
+const SHELL_FIXED = [
   "index.html",
   "app.js",
   "make/index.html",
@@ -57,6 +57,7 @@ export async function build(): Promise<string[]> {
   await mkdir(OUT, { recursive: true });
 
   const written: string[] = [];
+  const chunks: string[] = [];
 
   for (const page of PAGES) {
     if (page.dir !== "") await mkdir(`${OUT}/${page.dir}`, { recursive: true });
@@ -64,10 +65,16 @@ export async function build(): Promise<string[]> {
     const result = await Bun.build({
       entrypoints: [page.entry],
       outdir: `${OUT}/${page.dir}`,
-      naming: page.js,
+      naming: { entry: page.js, chunk: "[name]-[hash].js", asset: "[name]-[hash].[ext]" },
       target: "browser",
       minify: true,
       sourcemap: "linked",
+      // Code splitting, for ONE reason: the level editor loads the bot on tap.
+      // The bot drives the real engines and there are eleven builds of them --
+      // bundled in, that page goes from 54 kilobytes to 171, on a game a child
+      // downloads over mobile data. Behind an import() it is a chunk of its
+      // own, fetched by the people who ask for it and cached by the worker.
+      splitting: true,
     });
 
     if (!result.success) {
@@ -77,6 +84,18 @@ export async function build(): Promise<string[]> {
 
     await Bun.write(`${OUT}/${page.dir}index.html`, await Bun.file(page.html).text());
     written.push(...result.outputs.map((o) => o.path));
+    // Chunks that every visit needs go in the shell. The one the bot lives in
+    // does NOT: it is bigger than the rest of the game put together, and
+    // posting it to every phone to serve the few who tap "watch it played"
+    // is the wrong way round. The worker keeps it once it has been fetched --
+    // see the runtime cache in src/web/sw.ts -- so it costs one download,
+    // paid by the person who asked for it.
+    for (const out of result.outputs) {
+      const name = `${page.dir}${out.path.slice(out.path.lastIndexOf("/") + 1)}`;
+      if (out.kind !== "chunk" || SHELL_FIXED.includes(name)) continue;
+      if (name.includes("/bot-")) continue;
+      chunks.push(name);
+    }
   }
 
   // Drawn from the real sprite and the real palette, so the icon on a home
@@ -91,6 +110,10 @@ export async function build(): Promise<string[]> {
   // deploy check compare bytes instead of grepping for strings. Change one
   // pixel of one page and the cache name changes with it, so a stale build
   // cannot survive as a cache nobody thought to delete.
+  // Sorted, so the same inputs give the same worker byte for byte however the
+  // bundler happened to order its outputs.
+  const SHELL = [...SHELL_FIXED, ...chunks.sort()];
+
   let stamp = hashInit();
   for (const name of SHELL) {
     stamp = hashBytes(stamp, new Uint8Array(await Bun.file(`${OUT}/${name}`).arrayBuffer()));
