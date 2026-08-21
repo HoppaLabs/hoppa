@@ -46,6 +46,7 @@ import { goOffline } from "../offline.ts";
 import { holdStill } from "../nozoom.ts";
 import { paintLogo } from "../logo.ts";
 import { AIR_QUIET, breathPips, breathWarning, type Breath } from "./breath.ts";
+import { keepsFresh, scoreFromTicks } from "./best.ts";
 
 
 /**
@@ -106,6 +107,8 @@ function keepProof(proof: StoredProof): void {
 /** The run in progress, and whether a replay of it has actually won. */
 let recorder = new Recorder();
 let proven = false;
+/** Whether THIS run has been replayed yet. Cleared by reset(); see proveIt(). */
+let provedThisRun = false;
 
 /**
  * A place, rather than a level.
@@ -137,13 +140,31 @@ function hasBeatenThis(): boolean {
  */
 let wonIn = -1;
 
-/** Replay what was just played. Only a win here opens the button. */
+/**
+ * Replay what was just played. Only a win here opens the button.
+ *
+ * Runs on EVERY win, not only the first. It used to sit behind `!proven`, so
+ * the second time you beat a level nothing happened at all and the share
+ * message kept quoting your first run -- reported exactly that way.
+ *
+ * A faster run replaces the kept one, log and time together, because the log
+ * is the evidence for the time. A slower one leaves both alone: what you send
+ * is your best, which is what "Beat that" means.
+ */
 function proveIt(): boolean {
   const log = recorder.log();
   if (!beats(log, () => engineFor(level, chosen) as unknown as Replayable, STATUS_WON)) {
     return false;
   }
-  wonIn = myScore();
+  const fresh = log.length;
+  const kept = keptTicks();
+  if (!keepsFresh(fresh, kept)) {
+    // Slower than the one on file. Still a win -- the button stays open -- but
+    // the boast stays the better run.
+    wonIn = scoreFromTicks(kept as number, moving !== null);
+    return true;
+  }
+  wonIn = scoreFromTicks(fresh, moving !== null);
   keepProof({
     level: levelCode,
     creature: chosen.id,
@@ -151,6 +172,16 @@ function proveIt(): boolean {
     key: proofKey(levelCode, chosen.id, log),
   });
   return true;
+}
+
+/** How long the kept proof for this level and creature took, if there is one. */
+function keptTicks(): number | null {
+  for (const proof of storedProofs()) {
+    if (proof.level !== levelCode || proof.creature !== chosen.id) continue;
+    if (proof.key !== proofKey(levelCode, chosen.id, proof.log)) continue;
+    return proof.log.length;
+  }
+  return null;
 }
 
 /**
@@ -168,7 +199,7 @@ function provenBefore(): boolean {
       // The kept log IS the run, so its length is the time it took. Counted the
       // way this engine counts: seconds where the world moves on its own, turns
       // where it waits for you.
-      wonIn = moving === null ? run.ticks : (run.ticks / 30) | 0;
+      wonIn = scoreFromTicks(run.ticks, moving !== null);
       return true;
     }
   }
@@ -626,9 +657,12 @@ function paint(): void {
 
   if (finished()) {
     const won = engine.currentStatus() === STATUS_WON;
-    if (won && !proven) {
+    if (won && !provedThisRun) {
       // Not "the page saw a win", but "these presses, replayed cold, win".
-      proven = proveIt();
+      // Once per RUN. Once per page was the bug: beat it again and nothing
+      // re-ran, so the message kept quoting the first time for ever.
+      provedThisRun = true;
+      proven = proveIt() || proven;
       paintShareGate();
     }
     if (won) paintQr();
@@ -789,9 +823,10 @@ function paintMovingHud(): void {
 
   if (finished()) {
     const won = game.currentStatus() === STATUS_WON;
-    if (won && !proven) {
-      // Not "the page saw a win", but "these presses, replayed cold, win".
-      proven = proveIt();
+    if (won && !provedThisRun) {
+      // See paintHud: once per run, or a second win is never counted.
+      provedThisRun = true;
+      proven = proveIt() || proven;
       paintShareGate();
     }
     if (won) paintQr();
@@ -829,6 +864,7 @@ function reset(): void {
   lastMoment = { hp: 0, treasure: 0, playing: true, won: false };
   // ...but a proof already earned still stands, including one from a previous
   // visit. Switching creature is a different run, so it is re-checked.
+  provedThisRun = false;
   proven = provenBefore();
   paintShareGate();
   // Only when the creature changes: stamping 256 pixels every frame is the

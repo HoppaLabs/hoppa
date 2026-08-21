@@ -82,6 +82,7 @@ test("it stays short enough to send: a challenge is a level plus a few character
 /* --- and the play page's side of it --------------------------------------- */
 
 const play = await Bun.file("src/web/play/main.ts").text();
+import { keepsFresh, scoreFromTicks } from "../src/web/play/best.ts";
 
 test("the time sent is the time that WON, not the time on the clock", () => {
   // The share button opens as soon as you have beaten the level and stays
@@ -89,9 +90,27 @@ test("the time sent is the time that WON, not the time on the clock", () => {
   // clock at zero. Sending "beaten in 0s" would be a lie, and sending the time
   // of a run still in progress would be a different one.
   expect(play.includes("let wonIn = -1;")).toBe(true);
-  expect(play.includes("wonIn = myScore();")).toBe(true);
-  // A proof IS the run, so its length is how long it took.
-  expect(play.includes("wonIn = moving === null ? run.ticks : (run.ticks / 30) | 0;")).toBe(true);
+  // A proof IS the run, so its length is how long it took. This used to name
+  // the line that does the sum; the sum moved into best.ts so it could be read
+  // without a browser, and this now names the fact instead.
+  expect(play).toContain("scoreFromTicks(run.ticks, moving !== null)");
+  expect(scoreFromTicks(660, true)).toBe(22);   // 660 ticks at 30/s
+  expect(scoreFromTicks(41, false)).toBe(41);   // turn-based: turns, not seconds
+});
+
+test("beating it again sends the better time, not the first one", () => {
+  // Reported as "When a replay a level it doesn't use my latest time in the
+  // message". proveIt() sat behind `if (won && !proven)`, so the second win
+  // never re-ran it and the message quoted the first run for ever.
+  expect(keepsFresh(500, null)).toBe(true);     // nothing on file yet
+  expect(keepsFresh(400, 500)).toBe(true);      // faster: replaces it
+  expect(keepsFresh(600, 500)).toBe(false);     // slower: the boast stands
+  expect(keepsFresh(500, 500)).toBe(false);     // a tie changes nothing
+
+  // ...and the page asks once per RUN rather than once per page.
+  expect(play).toContain("if (won && !provedThisRun) {");
+  expect(play).toContain("provedThisRun = false;");
+  expect(play).not.toContain("if (won && !proven) {");
 });
 
 test("...and with no winning time known, it sends the plain level", () => {
