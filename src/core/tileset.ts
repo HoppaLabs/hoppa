@@ -79,6 +79,34 @@ const STONE: Pattern = [
 
 /** Ground, seen from the side: a bright top edge and darker earth below. */
 const EARTH: Pattern = [
+  "7777677777777677",
+  "7767777777677777",
+  "7777778777777778",
+  "6777777776777777",
+  "7778777777787777",
+  "7777776777777767",
+  "7677777777677777",
+  "7777788777778877",
+  "7777777777777777",
+  "6777777767777777",
+  "7777677777777677",
+  "7778777777777877",
+  "7677777777677777",
+  "7777777877777777",
+  "7777677777777677",
+  "7777777777777777",
+];
+
+/**
+ * The same ground where the sky is above it: grass, and the soil under it.
+ *
+ * A tile cannot know what it is next to, which is why this is two patterns and
+ * not one. Drawing the grass on EVERY earth tile put a lawn through the middle
+ * of every platform four deep -- reported as "grass on top of grass" and it was
+ * exactly that. The renderer picks: capped where the cell above is open, buried
+ * where it is not.
+ */
+const EARTH_TOP: Pattern = [
   "5555555555555555",
   "4544455444554455",
   "4444444444444444",
@@ -158,12 +186,38 @@ const LADDER: Pattern = [
   "..1432....1432..",
 ];
 
+const STONE_TOP: Pattern = [
+  "4444444444444444",
+  "4444444444444444",
+  "2111111121111111",
+  "2444444424444444",
+  "2333333323333333",
+  "2322333323333233",
+  "1111111111111111",
+  "4444424444444424",
+  "3333323333333323",
+  "3323323332333323",
+  "2111111121111111",
+  "2444444424444444",
+  "2333333323333333",
+  "2333233323322333",
+  "1111111111111111",
+  "1111111111111111",
+];
+
 export interface Tileset {
   readonly id: number;
   readonly name: string;
   /** The terrain's ramp: palette indices, darkest first. */
   readonly sub: Ramp;
   readonly wall: Pattern;
+  /**
+   * The wall where the cell above it is open, if that is a different drawing.
+   *
+   * Grass belongs on the TOP of the ground, not through the middle of it. The
+   * renderer looks up; nothing else has to know.
+   */
+  readonly wallTop?: Pattern;
   readonly floor: Pattern;
   readonly ladder: Pattern;
   /**
@@ -326,6 +380,7 @@ export const UNDERGROUND: Tileset = {
   // Darkest first: pit, mortar, shadow, face, lit edge.
   sub: [0, 1, 2, 3, 4],
   wall: STONE,
+  wallTop: STONE_TOP,
   floor: GROUND,
   ladder: LADDER,
   // Wood, everywhere: edge, lit, face, shadow.
@@ -345,6 +400,7 @@ export const OUTSIDE: Tileset = {
   // Four steps of grass, then three of the soil under it.
   sub: [18, 19, 20, 21, 22, 49, 50, 51],
   wall: EARTH,
+  wallTop: EARTH_TOP,
   floor: AIR,
   ladder: LADDER,
   ladderSub: [1, 52, 51, 49],

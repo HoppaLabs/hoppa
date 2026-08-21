@@ -207,6 +207,50 @@ export function paint(draft: Draft, x: number, y: number, glyph: Glyph): PaintRe
     return { draft, changed: false, reason: `${MAX_FIRE} is as much fire as a level can hold` };
   }
 
+  // A platform in a side-on level is ONE TILE THICK.
+  //
+  // Not a style rule. A slab four deep is four grass tops stacked on each
+  // other in the art, and in the play it is a wall you cannot get on top of --
+  // reported twice, as "grass on top of grass" and then as "platforms need to
+  // be a single layer not stacked, they need to be jumpable height or have a
+  // ladder". Dragging sideways still draws a platform as long as you like;
+  // dragging DOWNWARDS now stops after one, which is the whole of it.
+  //
+  // The bottom row is exempt: that is the ground, not a platform, and a step
+  // standing on it is exactly the thing you are meant to jump onto.
+  if (glyph === GLYPH_WALL && sideOn(draft.engine)) {
+    const floor = (GRID_H - 1) | 0;
+    if (y !== floor) {
+      const above = y > 0 ? cells[cell - GRID_W] : GLYPH_FLOOR;
+      const under = y + 1 < floor ? cells[cell + GRID_W] : GLYPH_FLOOR;
+      if (above === GLYPH_WALL || under === GLYPH_WALL) {
+        return {
+          draft,
+          changed: false,
+          reason: "platforms are one deep -- draw it across, not down, so you can jump on top",
+        };
+      }
+    }
+  }
+
+  // Spikes stand on something. In the side-on game they are metal spikes
+  // coming up out of the ground, and a spike hanging in the sky with nothing
+  // under it is not a hazard, it is a mistake -- reported as "in the side
+  // games the spikes can't float mid air for sure". Underground the hazard is
+  // a FLAME on the floor of a cave, so it is fine anywhere.
+  //
+  // The bottom row of the grid counts as ground: you cannot fall off it.
+  if (glyph === GLYPH_FIRE && sideOn(draft.engine)) {
+    const below = y + 1 >= GRID_H ? GLYPH_WALL : (cells[cell + GRID_W] as string);
+    if (below !== GLYPH_WALL) {
+      return {
+        draft,
+        changed: false,
+        reason: "spikes need something to stand on -- put them on top of the ground",
+      };
+    }
+  }
+
   cells[cell] = glyph;
   return { draft: { ...draft, cells }, changed: true, reason: "" };
 }

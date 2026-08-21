@@ -12,6 +12,7 @@
 
 import { GRID_H, GRID_W } from "../../core/grid.ts";
 import {
+  ENEMY_GLYPHS,
   GLYPH_BAT, GLYPH_DRAGON,
   GLYPH_EXIT, GLYPH_FIRE, GLYPH_FLOOR, GLYPH_GUARD, GLYPH_LADDER,
   GLYPH_START, GLYPH_TREASURE, GLYPH_WALL,
@@ -281,9 +282,18 @@ function paintViewbar(): void {
 }
 
 function repaint(): void {
+  // Which enemy is in which cell, beside the tiles rather than in them: the
+  // tile grid carries one index for all three kinds on purpose, because no
+  // engine may be told them apart. Without this the level you are drawing
+  // showed a red square where the button you tapped showed a goblin.
+  const art = new Map<number, number>();
   for (let i = 0; i < tiles.length; i = (i + 1) | 0) {
-    tiles[i] = TILE_OF[draft.cells[i] as string] ?? TILE_FLOOR;
+    const glyph = draft.cells[i] as string;
+    tiles[i] = TILE_OF[glyph] ?? TILE_FLOOR;
+    const kind = ENEMY_GLYPHS.indexOf(glyph);
+    if (kind >= 0) art.set(i, kind);
   }
+  renderer.setGuardArt(art);
   // Sky for the side-on game, so tapping "from the side" visibly changes the
   // world rather than only changing which tools are on offer.
   renderer.setSideOn(draft.engine === "dash");

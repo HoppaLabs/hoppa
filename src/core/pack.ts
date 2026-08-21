@@ -29,7 +29,7 @@ export const PACK: readonly PackLevel[] = [
     slug: "four-corners",
     name: "four corners",
     teaches: "plan a loop rather than chasing the nearest gem",
-    code: "ESHEAAmEzwekYKECCgoQIKChAgek4MCBAgwIECDAgFpKCAoSIICgulBolYmRDSFqbSdqJbW71g",
+    code: "ESHEAAmEzwekYKECCgoQIKChAgek4MCBAgwIECDAgFpKCAoSIICgulBolYmRDSFqbSdqJdW7dg",
   },
   {
     slug: "up-and-over",
@@ -41,13 +41,13 @@ export const PACK: readonly PackLevel[] = [
     slug: "the-tall-room",
     name: "the tall room",
     teaches: "three floors, and the ladders are never above one another",
-    code: "ETGEAA9gd______-f8MkCfAmFF8D5GkQOhMaailKZjzwhxBxBxBAhghAhxBxBxBSgDM",
+    code: "ETGEAA9gd______-f8MkCfAmFF8D5GkQOhMaailKZmzwhxBxBxBAhghAhxBxBxBSgGM",
   },
   {
     slug: "the-gauntlet",
     name: "the gauntlet",
     teaches: "pick the doorway that is not being walked through",
-    code: "ESHEABJOSwekQQIOBhAg4GECDgWkwQIYIQIYIQIPpIECCAwQIIB6UGiUiaEPIVI9p2oqNcPd",
+    code: "ESHEABJOSwekQQIOBhAg4GECDgWkwQIYIQIYIQIPpIECCAwQIIB6UGiUiaEPIVI9p2oqVcO9",
   },
   {
     slug: "the-hot-floor",
@@ -59,7 +59,7 @@ export const PACK: readonly PackLevel[] = [
     slug: "the-narrow-way",
     name: "the narrow way",
     teaches: "a guard you can wait out, a fire you cannot",
-    code: "ESHEABgp8wekYMDAwMDAwMDAmkwOCA4OCA4OCAWkgOCA4OCAmlBqlYmZDSFqbSdqJbKcW8fsZQ",
+    code: "ESHEABgp8wekYMDAwMDAwMDAmkwOCA4OCA4OCAWkgOCA4OCAmlBqlYmZDSFqbSdqJdKcW8fsBQ",
   },
   {
     slug: "mind-the-spikes",

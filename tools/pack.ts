@@ -203,7 +203,7 @@ function fourCorners(): string {
   for (const y of [6, 7, 8]) room.wallRow(y, [7, 15, 21]);
   for (const y of [10, 11]) room.wallRow(y, [5, 11, 18]);
   room.put(2, 1, "$").put(21, 1, "$").put(2, 9, "$").put(21, 9, "$");
-  room.put(3, 3, "G").put(15, 7, "G");
+  room.put(3, 3, "B").put(15, 7, "G");
   room.put(11, 12, "@").put(18, 12, ">");
   return room.text(roam("3cc3"));
 }
@@ -233,7 +233,7 @@ function theTallRoom(): string {
   room.ladder(18, 5, 8);
   room.ladder(4, 9, 12);
   room.put(3, 4, "$").put(20, 8, "$").put(9, 12, "$");
-  room.put(12, 8, "G");
+  room.put(12, 8, "D");
   room.put(2, 12, "@").put(20, 4, ">");
   return room.text(dash("5ee5"));
 }
@@ -255,7 +255,7 @@ function theGauntlet(): string {
   for (const y of [6, 7, 8]) room.wallRow(y, [6, 16]);
   for (const y of [10, 11]) room.wallRow(y, [4, 14, 20]);
   room.put(6, 1, "$").put(18, 1, "$").put(3, 5, "$").put(21, 9, "$");
-  room.put(12, 3, "G").put(16, 7, "G");
+  room.put(12, 3, "B").put(16, 7, "G");
   room.put(9, 12, "@").put(20, 12, ">");
   return room.text(roam("6ff6"));
 }
@@ -298,7 +298,7 @@ function theNarrowWay(): string {
   // Fire in one gap of each band, so there is always another way and it is
   // always longer.
   room.put(11, 3, "^").put(15, 7, "^").put(13, 10, "^");
-  room.put(3, 3, "G");
+  room.put(3, 3, "B");
   room.put(2, 1, "$").put(21, 1, "$").put(2, 9, "$").put(21, 9, "$");
   room.put(11, 12, "@").put(19, 12, ">");
   return room.text(roam("8hh8"));

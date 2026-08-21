@@ -5,6 +5,7 @@ import {
   paint, retarget, tally,
 } from "../src/core/draft.ts";
 import { adviceFor } from "../src/core/advice.ts";
+import { PACK } from "../src/core/pack.ts";
 import { decodeLevel, encodeLevel, sameLevel } from "../src/core/codec.ts";
 import { parseLevel } from "../src/core/level.ts";
 import { verifyLevelText } from "../src/core/verify.ts";
@@ -185,4 +186,80 @@ test("every note is something a child could act on", () => {
     expect(note.text).not.toMatch(/L[0-9]|glyph|entity|codec|patrol period|cell index/);
     expect(note.text.length).toBeLessThan(120);
   }
+});
+
+test("a side-on platform is one deep: you can draw it across, not down", () => {
+  // Reported twice. First as art -- "grass on top of grass", because every
+  // earth tile carries a grass top and a slab four deep stacked four lawns --
+  // and then as play: "platforms need to be a single layer not stacked, they
+  // need to be jumpable height or have a ladder". A slab is a wall you cannot
+  // get on top of, which is not a platform at all.
+  let draft = blankDraft("dash", 6);
+  const across = paint(draft, 6, 8, "#");
+  expect(across.changed).toBe(true);
+  draft = across.draft;
+  // Sideways is a platform, and as long as you like.
+  const along = paint(draft, 7, 8, "#");
+  expect(along.changed).toBe(true);
+  draft = along.draft;
+  // Downwards is a slab, and it stops.
+  const under = paint(draft, 6, 9, "#");
+  expect(under.changed).toBe(false);
+  expect(under.reason).toContain("one deep");
+  const over = paint(draft, 7, 7, "#");
+  expect(over.changed).toBe(false);
+  expect(over.reason).toContain("one deep");
+});
+
+test("...and a step standing on the ground is still allowed", () => {
+  // The bottom row is the GROUND, not a platform, and a block sitting on it is
+  // exactly the thing a jump is for. Exempting it is the difference between a
+  // rule and an annoyance.
+  const draft = blankDraft("dash", 6);
+  const step = paint(draft, 8, GRID_H - 2, "#");
+  expect({ changed: step.changed, why: step.reason }).toEqual({ changed: true, why: "" });
+});
+
+test("the rule is for the side-on game only: a cave is solid rock", () => {
+  // From above there is no up, so a wall next to a wall is just more wall.
+  let draft = blankDraft("roam", 7);
+  draft = paint(draft, 6, 6, "#").draft;
+  const under = paint(draft, 6, 7, "#");
+  expect(under.changed).toBe(true);
+});
+
+test("spikes need something to stand on", () => {
+  // "In the side games the spikes can't float mid air for sure." Underground
+  // the hazard is a flame on the floor of a cave, so it is fine anywhere.
+  let draft = blankDraft("dash", 6);
+  const air = paint(draft, 10, 5, "^");
+  expect(air.changed).toBe(false);
+  expect(air.reason).toContain("stand on");
+
+  draft = paint(draft, 10, 8, "#").draft;
+  const onIt = paint(draft, 10, 7, "^");
+  expect({ changed: onIt.changed, why: onIt.reason }).toEqual({ changed: true, why: "" });
+
+  // ...and on the ground itself, where there is nothing below but the edge.
+  const onGround = paint(draft, 12, GRID_H - 2, "^");
+  expect(onGround.changed).toBe(true);
+
+  // A cave takes a flame anywhere.
+  const cave = paint(blankDraft("roam", 7), 10, 5, "^");
+  expect(cave.changed).toBe(true);
+});
+
+test("every enemy kind is somewhere in the pack", () => {
+  // Three were drawn and one was used. A child who unlocks the bat button and
+  // then never meets a bat has been told the game has bats and shown that it
+  // has not.
+  const seen = new Set<string>();
+  for (const level of PACK) for (const ch of level.code) void ch;
+  for (const level of PACK) {
+    const decoded = decodeLevel(level.code);
+    for (let i = 0; i < decoded.guardArt.length; i = (i + 1) | 0) {
+      seen.add("GBD"[decoded.guardArt[i] ?? 0] as string);
+    }
+  }
+  expect([...seen].sort()).toEqual(["B", "D", "G"]);
 });

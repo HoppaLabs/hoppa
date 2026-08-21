@@ -406,6 +406,20 @@ const flash = document.getElementById("flash") as HTMLElement;
 const tally = document.getElementById("tally") as HTMLElement;
 const renderer = new GridRenderer(canvas);
 
+/**
+ * Which enemy stands in which cell, for the still frames the renderer draws
+ * from the tile grid. The moving frames get it per actor; this is the same
+ * information for the frame between turns.
+ */
+function guardArtMap(from: typeof level): Map<number, number> {
+  const art = new Map<number, number>();
+  for (let i = 0; i < from.guardCells.length; i = (i + 1) | 0) {
+    art.set(from.guardCells[i] as number, from.guardArt[i] ?? 0);
+  }
+  return art;
+}
+
+
 let blockedUntil = 0;
 
 function finished(): boolean {
@@ -736,6 +750,7 @@ function reset(): void {
   renderer.setSprite(chosen.sprite);
   renderer.setWeapon(chosen.weapon);
   renderer.setSideOn(level.engine === "dash");
+  renderer.setGuardArt(guardArtMap(level));
   // Only the real-time engines redraw every frame. A turn-based level redraws
   // when you press something, so a spinning gem would freeze between moves.
   renderer.setSpinning(moving !== null);
@@ -1282,6 +1297,7 @@ paintShareGate();
 renderer.setSprite(chosen.sprite);
 renderer.setWeapon(chosen.weapon);
 renderer.setSideOn(level.engine === "dash");
+renderer.setGuardArt(guardArtMap(level));
 // Only the real-time engines redraw every frame. A turn-based level redraws
 // when you press something, so a spinning gem would freeze between moves.
 renderer.setSpinning(moving !== null);

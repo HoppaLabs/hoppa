@@ -549,7 +549,15 @@ export class GridRenderer {
    * blitted, it is 336 drawImage calls -- which is what the old flat squares
    * cost anyway.
    */
+  private guardArt: ReadonlyMap<number, number> | null = null;
   private stamps: Map<number, HTMLCanvasElement> | null = null;
+  /**
+   * The stamp key for a wall with open sky above it.
+   *
+   * Not a tile index -- no engine ever emits it and none may (hard rule 5).
+   * It is a second DRAWING of the same tile, chosen by what is next to it.
+   */
+  private static readonly WALL_TOP = -1;
   private stampedAt = -1;
   private stampedSet = "";
   /** Frames of landing squash left to draw, and what we saw last frame. */
@@ -644,6 +652,7 @@ export class GridRenderer {
     // stone grey. See Tileset.fireSub.
     const patterns: ReadonlyArray<readonly [number, Pattern, Ramp]> = [
       [TILE_WALL, set.wall, set.sub],
+      [GridRenderer.WALL_TOP, set.wallTop ?? set.wall, set.sub],
       [TILE_FLOOR, set.floor, set.sub],
       [TILE_LADDER, set.ladder, set.ladderSub],
       [TILE_FIRE, set.fire, set.fireSub],
@@ -784,6 +793,20 @@ export class GridRenderer {
         return stamp;
       })
     );
+  }
+
+  /**
+   * Which enemy stands in which cell, for the frames that are drawn from the
+   * tile grid rather than from moving actors -- the level editor, and the
+   * still frame between turns.
+   *
+   * Without it a placed enemy came out as a RED SQUARE WITH AN EYE while the
+   * button that placed it showed a goblin. The tile grid carries one index for
+   * all three kinds, deliberately: no engine may be told which is which (hard
+   * rule 4), so the art has to arrive beside the tiles rather than in them.
+   */
+  setGuardArt(art: ReadonlyMap<number, number> | null): void {
+    this.guardArt = art;
   }
 
   setSprite(sprite: Sprite | null): void {
@@ -1159,19 +1182,24 @@ export class GridRenderer {
         // answerable at a glance and at arm's length.
         if (tile === TILE_GUARD) {
           this.paintUnder(x, y);
+          this.stampEnemies();
+          const which = this.guardArt?.get(y * GRID_W + x) ?? 0;
+          const still = this.enemyStamps[which]?.[0];
+          if (still !== undefined) {
+            const scale = artUnit(t);
+            const size = SPRITE_W * scale;
+            ctx.drawImage(
+              still,
+              x * t + Math.round((t - size) / 2),
+              y * t + Math.round((t - size) / 2),
+              size,
+              size,
+            );
+            continue;
+          }
           const pad = Math.max(1, Math.floor(t / 8));
           ctx.fillStyle = this.ink(TILE_GUARD);
           ctx.fillRect(x * t + pad, y * t + pad, t - pad * 2, t - pad * 2);
-          if (t >= 10) {
-            const eye = Math.max(1, Math.floor(t / 5));
-            ctx.fillStyle = this.ink(TILE_VOID);
-            ctx.fillRect(
-              x * t + ((t - eye) >> 1),
-              y * t + ((t - eye) >> 1),
-              eye,
-              eye,
-            );
-          }
           continue;
         }
 
@@ -1231,7 +1259,11 @@ export class GridRenderer {
 
         // Terrain comes from the tileset; anything that moves or is personal
         // is still drawn by hand above.
-        const stamp = this.stamps?.get(tile);
+        // A wall with open air above it is drawn differently -- grass on the
+        // top of the ground rather than through the middle of it.
+        const capped = tile === TILE_WALL
+          && (y === 0 || (tiles[(y - 1) * GRID_W + x] as number) !== TILE_WALL);
+        const stamp = this.stamps?.get(capped ? GridRenderer.WALL_TOP : tile);
         if (stamp !== undefined) {
           ctx.drawImage(stamp, x * t, y * t, t, t);
           continue;
