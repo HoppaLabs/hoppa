@@ -388,6 +388,27 @@ function gemShapes(world: string): readonly Pattern[] {
   return GEM_SHAPES[world] ?? GEM_FRAMES;
 }
 
+/**
+ * The colour a creature goes when it has noticed you, and how much of it.
+ *
+ * Same hue and same strength as the translucent rectangle these replace, so
+ * nothing about the READING changes -- only that it lands on the creature
+ * instead of on a square of water behind it.
+ */
+export const CHASE_TINT = "#ff8a3d";
+export const CHASE_MIX = 0.28;
+export const STUN_MIX = 0.5;
+
+/** `amount` of `tint` mixed into `base`. Both are #rrggbb. Presentation only. */
+export function mix(base: string, tint: string, amount: number): string {
+  const of = (hex: string, at: number) => Number.parseInt(hex.slice(at, at + 2), 16);
+  const blend = (a: number, b: number) => Math.round(a + (b - a) * amount);
+  const r = blend(of(base, 1), of(tint, 1));
+  const g = blend(of(base, 3), of(tint, 3));
+  const b = blend(of(base, 5), of(tint, 5));
+  return `rgb(${r},${g},${b})`;
+}
+
 /** Outline, face, highlight -- for each world. */
 const GEM_INKS: Record<string, readonly string[]> = {
   // Rim, shadowed facet, body, lit facet, specular. A gem is not one blue and
@@ -1033,6 +1054,11 @@ export class GridRenderer {
   /** Which world the stamps above were drawn for. */
   private castStampedFor = "";
 
+  /** The same frames again, lit for a creature that has noticed you. */
+  private enemyChasing: HTMLCanvasElement[][] = [];
+  /** ...and for one that has just been hit. */
+  private enemyStunned: HTMLCanvasElement[][] = [];
+
   /** One stamp per gem frame, per world. Rebuilt when the tile size changes. */
   private gemStamps: HTMLCanvasElement[] = [];
   private gemStampedAt = -1;
@@ -1057,34 +1083,61 @@ export class GridRenderer {
     this.gemStampedSet = set.name;
   }
 
+  /**
+   * One enemy frame, drawn once, optionally tinted.
+   *
+   * The tint is mixed into the INK of each pixel the creature actually
+   * occupies. It used to be a translucent fillRect over the whole tile, and a
+   * hard-edged square over a sprite that is not square reads as a box behind
+   * the creature rather than as a light on it -- reported as "when enemy
+   * sprites move there background changes", with a screenshot of a shark in a
+   * grey rectangle. Over the reef's navy, #ff8a3d at 0.28 comes out
+   * rgb(84,73,94), which is exactly the box in the picture.
+   */
+  private stampOne(
+    frame: readonly string[],
+    inks: readonly string[],
+    tint: string | null,
+    amount: number,
+  ): HTMLCanvasElement {
+    const stamp = document.createElement("canvas");
+    stamp.width = SPRITE_W;
+    stamp.height = SPRITE_H;
+    const ctx = stamp.getContext("2d");
+    if (ctx === null) return stamp;
+    for (let y = 0; y < SPRITE_H; y++) {
+      const row = frame[y] as string;
+      for (let x = 0; x < SPRITE_W; x++) {
+        const ch = row[x] as string;
+        if (ch === ".") continue;
+        const ink = inks[ch.charCodeAt(0) - 49];
+        if (ink === undefined) continue;
+        ctx.fillStyle = tint === null ? ink : mix(ink, tint, amount);
+        ctx.fillRect(x, y, 1, 1);
+      }
+    }
+    return stamp;
+  }
+
   private stampEnemies(): void {
     // Rebuilt when the WORLD changes, not just once. A bat has no business in a
     // rock pool and a goblin has none on a lawn: each world picks its own cast,
     // the same way it already picks its gem colours.
+    //
+    // ...and when the WEAPON changes, because the stunned tint says which one
+    // hit it: a wand freezes blue, a sword flashes white.
     const cast = CASTS[this.tiles().name] ?? ENEMIES;
-    if (this.enemyStamps.length > 0 && this.castStampedFor === this.tiles().name) return;
-    this.castStampedFor = this.tiles().name;
+    const key = `${this.tiles().name}/${this.weapon}`;
+    if (this.enemyStamps.length > 0 && this.castStampedFor === key) return;
+    this.castStampedFor = key;
+
+    const stun = this.weapon === "wand" ? "#7fd8ee" : "#ffffff";
     this.enemyStamps = cast.map((one) =>
-      one.frames.map((frame) => {
-        const stamp = document.createElement("canvas");
-        stamp.width = SPRITE_W;
-        stamp.height = SPRITE_H;
-        const ctx = stamp.getContext("2d");
-        if (ctx === null) return stamp;
-        for (let y = 0; y < SPRITE_H; y++) {
-          const row = frame[y] as string;
-          for (let x = 0; x < SPRITE_W; x++) {
-            const ch = row[x] as string;
-            if (ch === ".") continue;
-            const ink = one.inks[ch.charCodeAt(0) - 49];
-            if (ink === undefined) continue;
-            ctx.fillStyle = ink;
-            ctx.fillRect(x, y, 1, 1);
-          }
-        }
-        return stamp;
-      })
-    );
+      one.frames.map((frame) => this.stampOne(frame, one.inks, null, 0)));
+    this.enemyChasing = cast.map((one) =>
+      one.frames.map((frame) => this.stampOne(frame, one.inks, CHASE_TINT, CHASE_MIX)));
+    this.enemyStunned = cast.map((one) =>
+      one.frames.map((frame) => this.stampOne(frame, one.inks, stun, STUN_MIX)));
   }
 
   /**
@@ -1248,7 +1301,14 @@ export class GridRenderer {
       const travelled = ((enemy.x + enemy.y) / (ONE >> 1)) | 0;
       const frame = enemy.stunned ? 0 : (((travelled % 2) + 2) % 2);
 
-      const art = this.enemyStamps[enemy.art ?? 0] ?? this.enemyStamps[0];
+      // Which SET, not which alpha. A creature that has noticed you is drawn
+      // in its own lit colours; a stunned one in the colours of whatever hit
+      // it. The tint lands on the creature and nowhere else -- see stampOne.
+      const flickering = enemy.stunned && (Date.now() >> 7) % 2 === 0;
+      const set = enemy.stunned && flickering ? this.enemyStunned
+        : enemy.chasing && !enemy.stunned ? this.enemyChasing
+        : this.enemyStamps;
+      const art = set[enemy.art ?? 0] ?? set[0];
       const stamp = art?.[frame];
 
       // A one-pixel bob on the walk beat, which is the era's whole vocabulary
@@ -1257,17 +1317,11 @@ export class GridRenderer {
       const top = foot - size + bob;
 
       if (stamp !== undefined) {
-        // Stunned reads as flickering white, and frozen as ice: "not moving" is
-        // not a signal, because a guard at the end of its patrol is not moving
+        // Stunned reads as flickering, and frozen as ice: "not moving" is not
+        // a signal, because a guard at the end of its patrol is not moving
         // either. A child has to tell at a glance which ones cannot touch them.
-        const flickering = enemy.stunned && (Date.now() >> 7) % 2 === 0;
-        if (enemy.stunned) {
-          ctx.globalAlpha = flickering ? 0.35 : 0.75;
-        } else if (enemy.chasing) {
-          // Chasing is a state worth shouting about, and a tint is the one
-          // thing that can say it without a second set of drawings.
-          ctx.globalAlpha = 0.92;
-        }
+        // The fade stays -- it is the flicker -- and only the tinting moved.
+        if (enemy.stunned) ctx.globalAlpha = flickering ? 0.35 : 0.75;
         // Face the way you are walking. Until dash/7 no side-on enemy ever took
         // a step, so every one of them could be drawn facing the same way and
         // nobody could tell; the moment they walk, one of the two directions is
@@ -1285,18 +1339,6 @@ export class GridRenderer {
         }
         ctx.globalAlpha = 1;
 
-        if (enemy.stunned && flickering) {
-          ctx.fillStyle = this.weapon === "wand" ? "#7fd8ee" : "#ffffff";
-          ctx.globalAlpha = 0.5;
-          ctx.fillRect(left, top, size, size);
-          ctx.globalAlpha = 1;
-        }
-        if (enemy.chasing) {
-          ctx.fillStyle = "#ff8a3d";
-          ctx.globalAlpha = 0.28;
-          ctx.fillRect(left, top, size, size);
-          ctx.globalAlpha = 1;
-        }
         continue;
       }
 
