@@ -23,7 +23,10 @@ test("a whole number of rows, because a gap reads as a broken character", () => 
   // divides by four: fourteen left a hole, and so would eighteen. Asking for a
   // knight and a princess is therefore asking for four -- a wizard and a
   // pirate came along to fill the row, which are the other two a child names.
-  expect(GALLERY.length).toBe(20);
+  //
+  // Same arithmetic when the jaeger arrived with the city: a twenty-first on
+  // its own leaves a hole, so it came with a kaiju, a dog and a frog.
+  expect(GALLERY.length).toBe(24);
   expect(GALLERY.length % 4).toBe(0);
   expect(html).toContain("grid-template-columns: repeat(4, 1fr)");
 });

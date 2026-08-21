@@ -721,21 +721,166 @@ export const BEACH_CAST: readonly Enemy[] = [
   },
 ];
 
+export const CITY_CAST: readonly Enemy[] = [
+  {
+    name: "kaiju",
+    glyph: "G",
+    // The big one, and the reason the room exists. Seen from above like
+    // everything else in the adventure game, so what there is to work with
+    // is the SHOULDERS, the head between them and the tail behind -- which
+    // is plenty, because that reads as a monster from further away than a
+    // face does.
+    inks: ["#12521f", "#1c7d2c", "#2fae42", "#ffc23d", "#ff5f4d", "#0a2a12"],
+    frames: [
+      [
+        "......666.......",
+        ".....63336......",
+        ".....611116.....",
+        ".66662511526....",
+        "62222234432266..",
+        "622222333322226.",
+        "666122344322226.",
+        "222122333322266.",
+        "2221223443222226",
+        "6666223333222226",
+        "...622333322666.",
+        "....66666666....",
+        ".......6226.....",
+        "......66226.....",
+        ".....62226......",
+        "....62266.......",
+      ],
+      [
+        "......666.......",
+        ".....63336......",
+        ".....611116.....",
+        "....62511526666.",
+        "..66223443222226",
+        ".622223333222226",
+        ".622223443221666",
+        ".662223333221222",
+        "6222223443221222",
+        "6222223333226666",
+        ".666223333226...",
+        "....66666666....",
+        ".......6226.....",
+        "........62266...",
+        ".........622266.",
+        "..........662226",
+      ],
+    ],
+  },
+  {
+    name: "swarmer",
+    glyph: "B",
+    // The flier. Small, wide-winged, and the one that gets over the blocks
+    // instead of coming down the street.
+    inks: ["#12521f", "#1c7d2c", "#2fae42", "#ffc23d", "#ff5f4d", "#0a2a12"],
+    frames: [
+      [
+        "................",
+        "66............66",
+        "226..........622",
+        "22266.6666.66222",
+        "6222261111622226",
+        ".62222522522226.",
+        "..662122221266..",
+        "....61111116....",
+        "....61144116....",
+        ".....614416.....",
+        ".....611116.....",
+        ".....611116.....",
+        "......6116......",
+        ".......66.......",
+        "................",
+        "................",
+      ],
+      [
+        "................",
+        "................",
+        "................",
+        "......6666......",
+        ".....611116.....",
+        ".....652256.....",
+        "....61222216....",
+        "..6621111116666.",
+        "6622211441122226",
+        "2222261441222222",
+        "2226661111666622",
+        "666..611116...66",
+        "......6116......",
+        ".......66.......",
+        "................",
+        "................",
+      ],
+    ],
+  },
+  {
+    name: "crawler",
+    glyph: "D",
+    // The low one: a long body on many legs. Legs drawn AFTER the body, or
+    // the body covers them and it is a slab with stripes on.
+    inks: ["#12521f", "#1c7d2c", "#2fae42", "#ffc23d", "#ff5f4d", "#0a2a12"],
+    frames: [
+      [
+        "................",
+        "....66..66..66..",
+        "...622662266226.",
+        "....626.626.626.",
+        "....62666266626.",
+        ".6661111111116..",
+        "622224444444446.",
+        "1511344344344336",
+        "1511333333333336",
+        "622222222222226.",
+        ".6661111111116..",
+        "....666666666.6.",
+        ".....626.626.626",
+        ".....626.626.626",
+        ".....62266226622",
+        "......66..66..66",
+      ],
+      [
+        "................",
+        ".....66..66..66.",
+        "....622662266226",
+        ".....626.626.626",
+        "....662666266626",
+        ".66611111111166.",
+        "622224444444446.",
+        "1511344344344336",
+        "1511333333333336",
+        "622222222222226.",
+        ".6661111111116..",
+        "....6666666666..",
+        "....626.626.626.",
+        "....626.626.626.",
+        "....622662266226",
+        ".....66..66..66.",
+      ],
+    ],
+  },
+];
+
 export const CASTS: Readonly<Record<string, readonly Enemy[]>> = {
   garden: GARDEN_CAST,
   reef: REEF_CAST,
   beach: BEACH_CAST,
+  city: CITY_CAST,
 };
 
 /** Every drawing this file holds, for the checks below. */
-export const ALL: readonly Enemy[] = [...ENEMIES, ...GARDEN_CAST, ...REEF_CAST, ...BEACH_CAST];
+export const ALL: readonly Enemy[] = [
+  ...ENEMIES, ...GARDEN_CAST, ...REEF_CAST, ...BEACH_CAST, ...CITY_CAST,
+];
 
 export function check(): string[] {
   const wrong: string[] = [];
   // Per CAST, not globally: every cast uses the same three glyphs, because a
   // level stores an enemy as an index and the worlds are alternative art for
   // the same three slots.
-  for (const [world, cast] of [["dungeon", ENEMIES], ["garden", GARDEN_CAST], ["reef", REEF_CAST], ["beach", BEACH_CAST]] as const) {
+  for (const [world, cast] of [["dungeon", ENEMIES], ["garden", GARDEN_CAST], ["reef", REEF_CAST], ["beach", BEACH_CAST],
+    ["city", CITY_CAST]] as const) {
     if (cast.length !== ENEMIES.length) {
       wrong.push(`${world}: ${cast.length} creatures, want ${ENEMIES.length}`);
     }
@@ -883,12 +1028,16 @@ function enemiesModule(): string {
   lines.push("");
   lines.push("export const BEACH_CAST: readonly Enemy[] = [");
   write(BEACH_CAST);
+  lines.push("");
+  lines.push("export const CITY_CAST: readonly Enemy[] = [");
+  write(CITY_CAST);
 
   lines.push("/** Which cast a world uses. Anything not named here uses the dungeon three. */");
   lines.push("export const CASTS: Readonly<Record<string, readonly Enemy[]>> = {");
   lines.push("  garden: GARDEN_CAST,");
   lines.push("  reef: REEF_CAST,");
   lines.push("  beach: BEACH_CAST,");
+  lines.push("  city: CITY_CAST,");
   lines.push("};");
   lines.push("");
   lines.push("/** The enemy a level glyph means, or undefined. */");

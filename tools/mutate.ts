@@ -32,6 +32,18 @@ interface Mutation {
 
 const MUTATIONS: readonly Mutation[] = [
   {
+    breaks: "the city forgets it is a skin, so a city level renders as a cave",
+    file: "src/core/tileset.ts",
+    find: "const SKINS: Readonly<Record<number, Tileset>> = { 5: BEACH, 6: CITY };",
+    replace: "const SKINS: Readonly<Record<number, Tileset>> = { 5: BEACH };",
+  },
+  {
+    breaks: "the city's palette says door and treasure over a pad and a person",
+    file: "src/web/level/palette.ts",
+    find: 'names: { garden: "flowers", beach: "shells", city: "people" }',
+    replace: 'names: { garden: "flowers", beach: "shells" }',
+  },
+  {
     breaks: "a level's skin is read from 1, so every shipped reef link is a cave",
     file: "src/core/tileset.ts",
     find: "export const FIRST_SKIN = 5;",
@@ -41,8 +53,8 @@ const MUTATIONS: readonly Mutation[] = [
   {
     breaks: "the beach forgets it is a skin, so a beach level renders as a garden",
     file: "src/core/tileset.ts",
-    find: "const SKINS: Readonly<Record<number, Tileset>> = { 5: BEACH };",
-    replace: "const SKINS: Readonly<Record<number, Tileset>> = {};",
+    find: "const SKINS: Readonly<Record<number, Tileset>> = { 5: BEACH, 6: CITY };",
+    replace: "const SKINS: Readonly<Record<number, Tileset>> = { 6: CITY };",
   },
   {
     breaks: "switching tab within one engine drops the skin, so the beach tab does nothing",
@@ -95,14 +107,14 @@ const MUTATIONS: readonly Mutation[] = [
   {
     breaks: "the underwater palette says goblin over a picture of a shark",
     file: "src/web/level/palette.ts",
-    find: 'names: { reef: "shark", garden: "bear", beach: "crab" }',
-    replace: 'names: { reef: "goblin", garden: "bear", beach: "crab" }',
+    find: 'names: { reef: "shark", garden: "bear", beach: "crab", city: "kaiju" }',
+    replace: 'names: { reef: "goblin", garden: "bear", beach: "crab", city: "kaiju" }',
   },
   {
     breaks: "the reef's cast is listed out of glyph order, so a shark draws as a squid",
     file: "src/core/enemies.ts",
-    find: "  reef: REEF_CAST,\n  beach: BEACH_CAST,\n};",
-    replace: "  reef: [REEF_CAST[2], REEF_CAST[1], REEF_CAST[0]] as readonly Enemy[],\n  beach: BEACH_CAST,\n};",
+    find: "  reef: REEF_CAST,\n  beach: BEACH_CAST,",
+    replace: "  reef: [REEF_CAST[2], REEF_CAST[1], REEF_CAST[0]] as readonly Enemy[],\n  beach: BEACH_CAST,",
   },
   {
     // Eighteen days of undecodable QR codes. Everything that checked the

@@ -245,6 +245,36 @@ const GEM_FRAMES: readonly Pattern[] = [
  *
  * 1 is the frame, 2 the face, 3 the brass (shut) or the lit way through (open).
  */
+/**
+ * The evac zone: a landing pad with an H on it.
+ *
+ * ONE pattern for both states, unlike the door, which has a shut drawing and
+ * an open one. A pad does not change shape when the last person is aboard --
+ * the lights come on. So the shape is fixed and only the inks move, which is
+ * also why it needs no second sixteen-by-sixteen.
+ *
+ * 1 is the tarmac round it, 2 the pad's edge, 3 the pad, 4 the H, 5 the
+ * corner lights.
+ */
+const EVAC_PAD: Pattern = [
+  "1111111111111111",
+  "1522222222222251",
+  "1233333333333321",
+  "1233333333333321",
+  "1233443333443321",
+  "1233443333443321",
+  "1233443333443321",
+  "1233444444443321",
+  "1233444444443321",
+  "1233443333443321",
+  "1233443333443321",
+  "1233443333443321",
+  "1233333333333321",
+  "1233333333333321",
+  "1522222222222251",
+  "1111111111111111",
+];
+
 const DOOR_SHUT: readonly Pattern[] = [[
   "................",
   ".11111111111111.",
@@ -290,6 +320,43 @@ const DOOR_INKS: Record<string, readonly string[]> = {
   // The way through: frame, the dark beyond, glow, the light you walk into.
   open: ["#2a1a0d", "#12306b", "#2f7a4a", "#6fe08a"],
 };
+
+/**
+ * The way out, where a world calls it something else.
+ *
+ * A door in a city is wrong twice over: nobody rescues people through a
+ * padlocked oak door, and there is no wall for it to be set into. The city's
+ * is a landing pad -- one shape, lit when the last person is aboard.
+ *
+ * Same mechanism as gemShapes(), one level along again. A world absent from
+ * here gets the door.
+ */
+const DOOR_BY_WORLD: Record<string, readonly Pattern[]> = {
+  city: [EVAC_PAD],
+};
+
+const DOOR_INKS_BY_WORLD: Record<string, Record<string, readonly string[]>> = {
+  city: {
+    // Waiting: the tarmac round it, a dull pad, and the H unlit.
+    shut: ["#1a212b", "#39485c", "#4a5c6f", "#7c8899", "#a37c14"],
+    // Cleared for lift: the pad lit, the H white, the corner lights on.
+    open: ["#0a2a12", "#1c7d2c", "#2fae42", "#bff0a8", "#ffffff"],
+  },
+};
+
+/** The drawing this world's way out uses, in the state it is in. */
+function doorShape(world: string, open: boolean): Pattern {
+  const own = DOOR_BY_WORLD[world];
+  if (own !== undefined) return own[0] as Pattern;
+  return (open ? DOOR_OPEN[0] : DOOR_SHUT[0]) as Pattern;
+}
+
+/** ...and its colours. */
+function doorInks(world: string, open: boolean): readonly string[] {
+  const own = DOOR_INKS_BY_WORLD[world];
+  const key = open ? "open" : "shut";
+  return (own?.[key] ?? DOOR_INKS[key]) as readonly string[];
+}
 
 /**
  * A flower, for the garden.
@@ -443,6 +510,79 @@ const SHELL_FRAMES: readonly Pattern[] = [
 ];
 
 /**
+ * Somebody to rescue, for the city.
+ *
+ * The treasure of a city level: the child is a jaeger and the job is getting
+ * people to the evac zone, which is what "pick the treasure up and the door
+ * opens" already was. So the only work is what it LOOKS like.
+ *
+ * It waves rather than spins. A person turning end over end is not somebody
+ * asking for help, and the first one -- the gem's own three frames, recoloured
+ * -- read as a doll being thrown. The arm is drawn as a chain from the
+ * shoulder: built as separate cells it came apart at the top of the wave and
+ * the hand floated.
+ *
+ * 1 is the outline, 2 the coat, 3 the lit coat, 4 skin, 5 hair.
+ */
+const PERSON_FRAMES: readonly Pattern[] = [
+  [ // arm down, and the frame the still buttons show
+    "................",
+    "......1111......",
+    ".....155551.....",
+    "....15555551....",
+    "....14444441....",
+    "...114144141....",
+    "..12214444111...",
+    "...12233322221..",
+    "....123332221...",
+    "....12222221....",
+    "....12222221....",
+    ".....122221.....",
+    ".....122221.....",
+    ".....121121.....",
+    ".....121121.....",
+    "......1..1......",
+  ],
+  [ // half up
+    "................",
+    "......1111......",
+    ".....155551.....",
+    "....15555551....",
+    "...114444441....",
+    "..1224144141....",
+    "..12214444111...",
+    "...12233322221..",
+    "....123332221...",
+    "....12222221....",
+    "....12222221....",
+    ".....122221.....",
+    ".....122221.....",
+    ".....121121.....",
+    ".....121121.....",
+    "......1..1......",
+  ],
+  [ // waving
+    "................",
+    "......1111......",
+    ".....155551.....",
+    "...115555551....",
+    "..1224444441....",
+    "..1224144141....",
+    "..12214444111...",
+    "...12233322221..",
+    "....123332221...",
+    "....12222221....",
+    "....12222221....",
+    ".....122221.....",
+    ".....122221.....",
+    ".....121121.....",
+    ".....121121.....",
+    "......1..1......",
+  ],
+];
+
+
+/**
  * The shape a world's treasure is, where it is not the gem.
  *
  * The INKS have varied per world since the first tileset; the SHAPE had not,
@@ -452,6 +592,7 @@ const SHELL_FRAMES: readonly Pattern[] = [
 const GEM_SHAPES: Record<string, readonly Pattern[]> = {
   garden: FLOWER_FRAMES,
   beach: SHELL_FRAMES,
+  city: PERSON_FRAMES,
 };
 
 /** The frames this world's treasure turns, or nods, through. */
@@ -520,6 +661,10 @@ const GEM_INKS: Record<string, readonly string[]> = {
   // the shell, the lit ribs, and a pearl at the hinge. Not sand-coloured --
   // a shell the colour of the beach it is lying on is a shell nobody finds.
   beach: ["#6b350c", "#d87a1f", "#ff9f3d", "#ffd0a3", "#ffffff"],
+  // A person: outline, coat, the lit side of the coat, skin, hair. High-vis
+  // blue, because the one thing that must not blend into a grey street is the
+  // thing you are there to pick up.
+  city: ["#0d1014", "#1f4fa8", "#3a7bd5", "#ffd0a3", "#6b350c"],
 };
 
 /** The gem's shape: a diamond, so a spin is a change of width and nothing else. */
@@ -615,8 +760,8 @@ export function tileChip(
     : tile === TILE_FIRE ? set.fire
     : tile === TILE_FLOW ? (set.flow ?? null)
     : tile === TILE_TREASURE ? (gemShapes(set.name)[0] as Pattern)
-    : tile === TILE_EXIT_LOCKED ? (DOOR_SHUT[0] as Pattern)
-    : tile === TILE_EXIT_OPEN ? (DOOR_OPEN[0] as Pattern)
+    : tile === TILE_EXIT_LOCKED ? doorShape(set.name, false)
+    : tile === TILE_EXIT_OPEN ? doorShape(set.name, true)
     : null;
 
   // The ground goes down first: a ladder and a hazard both have gaps in them,
@@ -672,8 +817,8 @@ export function tileChip(
     const own =
       tile === TILE_TREASURE
         ? (GEM_INKS[set.name] ?? GEM_INKS.underground)
-        : tile === TILE_EXIT_LOCKED ? DOOR_INKS.shut
-        : tile === TILE_EXIT_OPEN ? DOOR_INKS.open
+        : tile === TILE_EXIT_LOCKED ? doorInks(set.name, false)
+        : tile === TILE_EXIT_OPEN ? doorInks(set.name, true)
         : null;
     if (own != null) {
       paintInked(ctx, pattern, own as readonly [string, string, string], 0, 0, size);
@@ -1701,8 +1846,8 @@ export class GridRenderer {
           this.paintUnder(x, y);
           paintInked(
             ctx,
-            (open ? DOOR_OPEN[0] : DOOR_SHUT[0]) as Pattern,
-            (open ? DOOR_INKS.open : DOOR_INKS.shut) as readonly string[],
+            doorShape(this.tiles().name, open),
+            doorInks(this.tiles().name, open),
             x * t,
             y * t,
             t,

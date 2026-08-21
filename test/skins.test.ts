@@ -1,8 +1,13 @@
-// The beach, and the field that chooses it.
+// The skins, and the field that chooses them.
 //
-// "We have a request for beach levels." A beach is not a new game -- it is
-// somewhere else to put one -- so it is a SKIN: the garden's engine, drawn in
-// another world, chosen by the level's `tiles=` field.
+// "We have a request for beach levels", and then a city where the player is a
+// jaeger and the thing on the street is a kaiju. Neither is a new GAME -- both
+// are somewhere else to put one -- so both are SKINS: an existing engine drawn
+// in another world, chosen by the level's `tiles=` field.
+//
+// The beach is the garden's engine at the seaside. The city is the adventure
+// game downtown, where rescuing people and getting them to an evac zone is
+// what "pick the treasure up and the door opens" already was.
 //
 // That field has been on the wire since day one and read by nobody, which is
 // the whole risk here. Every level ever encoded carries a value in it. Start
@@ -10,7 +15,7 @@
 // something else. Most of this file is about that.
 
 import { expect, test } from "bun:test";
-import { BEACH, FIRST_SKIN, GARDEN, REEF, UNDERGROUND, OUTSIDE, tilesetFor } from "../src/core/tileset.ts";
+import { BEACH, CITY, FIRST_SKIN, GARDEN, REEF, UNDERGROUND, OUTSIDE, tilesetFor } from "../src/core/tileset.ts";
 import { CASTS } from "../src/core/enemies.ts";
 import { ENEMY_GLYPHS } from "../src/core/level.ts";
 import { blankDraft, draftFromLevel, draftToText, retarget } from "../src/core/draft.ts";
@@ -21,6 +26,7 @@ import { PRESETS } from "../src/core/creature.ts";
 import { hashHex } from "../src/core/hash.ts";
 import { PACK } from "../src/core/pack.ts";
 import { newestBuild } from "../src/core/builds.ts";
+import { GAMES, labelFor, toolsFor } from "../src/web/level/palette.ts";
 
 test("every number below the reserved floor is the engine's own world", () => {
   // The one that matters. tiles=1 is what every level ever encoded carries,
@@ -43,34 +49,39 @@ test("...and the shipped rooms all sit under it, so none of them moved", () => {
   }
 });
 
-test("tiles=5 is the beach, whatever engine is carrying it", () => {
+test("a skin is chosen by number, whatever engine is carrying it", () => {
   expect(tilesetFor(false, "calm", FIRST_SKIN).name).toBe(BEACH.name);
   expect(tilesetFor(false, "roam", FIRST_SKIN).name).toBe(BEACH.name);
   expect(BEACH.id).toBe(FIRST_SKIN);
+  expect(tilesetFor(false, "roam", CITY.id).name).toBe(CITY.name);
+  expect(tilesetFor(false, "calm", CITY.id).name).toBe(CITY.name);
+  expect(CITY.id).toBeGreaterThan(FIRST_SKIN);
 });
 
 test("an unknown skin number falls back rather than failing", () => {
   // A link from a future build asking for tileset 9 should still play. It gets
   // its engine's world, which is what it would have got before skins existed.
   expect(tilesetFor(false, "calm", 9).name).toBe(GARDEN.name);
+  expect(tilesetFor(false, "roam", 15).name).toBe(UNDERGROUND.name);
 });
 
-test("the beach has a cast of its own, in glyph order", () => {
-  const cast = CASTS[BEACH.name];
-  expect(cast).toBeDefined();
-  expect(cast!.map((one) => one.name)).toEqual(["crab", "gull", "jellyfish"]);
-  expect(cast!.map((one) => one.glyph)).toEqual(ENEMY_GLYPHS as string[]);
+test("each skin has a cast of its own, in glyph order", () => {
+  const want: Readonly<Record<string, readonly string[]>> = {
+    [BEACH.name]: ["crab", "gull", "jellyfish"],
+    [CITY.name]: ["kaiju", "swarmer", "crawler"],
+  };
+  for (const [world, names] of Object.entries(want)) {
+    const cast = CASTS[world];
+    expect({ world, defined: cast !== undefined }).toEqual({ world, defined: true });
+    expect({ world, names: cast!.map((one) => one.name) }).toEqual({ world, names: [...names] });
+    expect({ world, glyphs: cast!.map((one) => one.glyph) }).toEqual({ world, glyphs: [...ENEMY_GLYPHS] });
+  }
 });
 
-test("a skin is cosmetic: the same room plays the same on either", () => {
-  // Hard rule 4, at the level this feature actually risks breaking it. The
-  // beach IS the garden's engine, so the two levels differ in exactly one
-  // number and that number must reach nothing.
-  const version = newestBuild("calm");
-  const garden = draftToText(blankDraft("calm", version, 0));
-  const beach = draftToText(blankDraft("calm", version, FIRST_SKIN));
-  expect(beach).toBe(garden.replace("tiles=0", `tiles=${FIRST_SKIN}`));
-
+test("a skin is cosmetic: the same room plays the same in either world", () => {
+  // Hard rule 4, at the level this feature actually risks breaking it. A skin
+  // IS its engine's own rules, so the two levels differ in exactly one number
+  // and that number must reach nothing.
   const log = [0, 2, 2, 4, 8, 1, 1, 0, 4, 4, 2, 8, 0, 1, 2, 4];
   const hashOf = (text: string): string => {
     const game = engineFor(parseLevel(text), PRESETS[0] as (typeof PRESETS)[number]) as unknown as {
@@ -80,7 +91,14 @@ test("a skin is cosmetic: the same room plays the same on either", () => {
     for (const held of log) game.step(held);
     return hashHex(game.stateHash());
   };
-  expect(hashOf(beach)).toBe(hashOf(garden));
+  for (const [engine, skin] of [["calm", BEACH.id], ["roam", CITY.id]] as const) {
+    const version = newestBuild(engine);
+    const plain = draftToText(blankDraft(engine, version, 0));
+    const skinned = draftToText(blankDraft(engine, version, skin));
+    expect({ engine, same: skinned === plain.replace("tiles=0", `tiles=${skin}`) })
+      .toEqual({ engine, same: true });
+    expect({ engine, hash: hashOf(skinned) }).toEqual({ engine, hash: hashOf(plain) });
+  }
 });
 
 test("the skin survives the round trip a shared link makes", () => {
@@ -104,4 +122,29 @@ test("switching between the garden and the beach keeps every cell", () => {
   expect(beach.tilesetId).toBe(FIRST_SKIN);
   expect(beach.cells).toEqual(garden.cells);
   expect(retarget(beach, "calm", version, 0).tilesetId).toBe(0);
+});
+
+test("the city ships a room, and it is drawn as a city", () => {
+  // The one that would catch the whole feature being wired up and then not
+  // reaching a level anybody can open.
+  const room = PACK.find((one) => one.slug === "the-city");
+  expect(room).toBeDefined();
+  const level = decodeLevel(room!.code);
+  expect(level.tilesetId).toBe(CITY.id);
+  expect(level.engine).toBe("roam");
+  expect(tilesetFor(false, level.engine, level.tilesetId).name).toBe(CITY.name);
+});
+
+test("the city has its own way out, and its own thing to collect", () => {
+  // A padlocked oak door is wrong twice over in a city -- nobody rescues
+  // people through one, and there is no wall for it to be set into. The
+  // drawings live in the renderer; what is checkable from here is that the
+  // WORDS moved with them, which is the half that has been wrong before.
+  const city = GAMES.find((one) => one.label === "city");
+  expect(city).toBeDefined();
+  const words = toolsFor(city!.engine).map((tool) => labelFor(tool, city!.engine, city!.tiles));
+  expect(words).toContain("evac zone");
+  expect(words).toContain("people");
+  expect(words).not.toContain("door / exit");
+  expect(words).not.toContain("treasure");
 });

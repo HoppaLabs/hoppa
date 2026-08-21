@@ -97,4 +97,10 @@ export const PACK: readonly PackLevel[] = [
     teaches: "pick the shells up, mind the crab, keep out of the sea",
     code: "EVCUACA4HwekJBIgwsGiNEAiBwQgdCYj4mI6Q6Q6Q6Q6UHcNAXEiolptpxp2J7qAItUzV_6BuISIyJSKSKyLSUyVSWSWzXmHEHEFoNc",
   },
+  {
+    slug: "the-city",
+    name: "the city",
+    teaches: "get the people to the evac zone, and mind the kaiju",
+    code: "ESIYACOpWf___wAAA3re43re63re4wAAA3vW43vW43vW4wAAA1ve61ve4wAAA____uDImpDiEyFaPaRilKKDWteeQcb0dED3",
+  },
 ];

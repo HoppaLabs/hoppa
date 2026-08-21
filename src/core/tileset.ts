@@ -945,7 +945,114 @@ export const BEACH: Tileset = {
   ground: "#ffc23d",
 };
 
-export const TILESETS: readonly Tileset[] = [UNDERGROUND, OUTSIDE, REEF, GARDEN, BEACH];
+/**
+ * The city, seen from above. Asked for as a level where the player is a jaeger
+ * and the thing coming down the street is a kaiju.
+ *
+ * The second skin, and the same trick as the beach: this is the ADVENTURE
+ * game, drawn somewhere else. Rescuing people and getting them to an evac zone
+ * is what "pick the treasure up and the door opens" already is -- so the rules
+ * needed nothing, and the work is all in what a child sees.
+ */
+const STREET: Pattern = [
+  "1222222222222222",
+  "2222222222232222",
+  "2222322221222222",
+  "2212222223333322",
+  "2222222223333322",
+  "2222223222333222",
+  "2222122222222222",
+  "2222222222222223",
+  "2222222232222122",
+  "2322221222222222",
+  "2222222222222222",
+  "2213122222322221",
+  "2211122212222222",
+  "2122222222222222",
+  "2222222222223222",
+  "2222232222122222",
+];
+
+const BLOCK: Pattern = [
+  "4444444444444444",
+  "4323333332333331",
+  "4333233333323331",
+  "4334444333333231",
+  "4232222323333331",
+  "4331111333233331",
+  "4333323343332331",
+  "4333333244443321",
+  "4323333332333331",
+  "4333233334444431",
+  "4333332332222231",
+  "4231113321111131",
+  "4332333333233331",
+  "4333323333332331",
+  "4333333233333321",
+  "4111111111111111",
+];
+
+const TOWER: Pattern = [
+  "....15511331....",
+  "...1455553341...",
+  "...1444444441...",
+  "..144444444441..",
+  ".13333333333331.",
+  ".13663366331131.",
+  ".13663366331131.",
+  ".13333333333331.",
+  ".13663366336631.",
+  ".13663366336631.",
+  ".13333333333331.",
+  ".13113366336631.",
+  ".13113366336631.",
+  ".13333333333331.",
+  ".13333333333331.",
+  "..111111111111..",
+];
+
+const FIRE_ESCAPE: Pattern = [
+  "...4........4...",
+  "...5555555555...",
+  "...4........4...",
+  "...4........4...",
+  "...5555555555...",
+  "...4........4...",
+  "...4........4...",
+  "...5555555555...",
+  "...4........4...",
+  "...4........4...",
+  "...5555555555...",
+  "...4........4...",
+  "...4........4...",
+  "...5555555555...",
+  "...4........4...",
+  "...4........4...",
+];
+
+export const CITY: Tileset = {
+  id: 6,
+  name: "city",
+  // 1-5 are tarmac up to pale concrete; 6 is a lit window and 7 is white.
+  sub: [0, 1, 2, 3, 4, 28, 5],
+  wall: BLOCK,
+  // One on its own is a tower. Same rule as the garden's tree and the beach's
+  // palm: a wall cell with no wall beside it, and it costs the format nothing.
+  tree: TOWER,
+  floor: STREET,
+  // Nothing in the adventure game paints one, but a tileset without a ladder
+  // draws a hole if a level from somewhere else ever carries one.
+  ladder: FIRE_ESCAPE,
+  ladderSub: [1, 3, 4, 5],
+  // Burning wreckage. The same flame the caves use, and it wants no changing:
+  // the one thing on this street that is not grey is the fire.
+  fire: FLAME,
+  fireFrames: FLAME_FRAMES,
+  fireSub: [39, 40, 34, 28, 29, 5],
+  ground: PALETTE[1] as string, // #1a212b, the tarmac
+};
+
+export const TILESETS: readonly Tileset[] = [UNDERGROUND, OUTSIDE, REEF, GARDEN, BEACH, CITY];
 
 /**
  * The lowest `tiles=` value that names a skin rather than nothing.
@@ -963,7 +1070,7 @@ export const TILESETS: readonly Tileset[] = [UNDERGROUND, OUTSIDE, REEF, GARDEN,
 export const FIRST_SKIN = 5;
 
 /** The skins a level can ask for by number, by id. */
-const SKINS: Readonly<Record<number, Tileset>> = { 5: BEACH };
+const SKINS: Readonly<Record<number, Tileset>> = { 5: BEACH, 6: CITY };
 
 /**
  * The tileset for a world.

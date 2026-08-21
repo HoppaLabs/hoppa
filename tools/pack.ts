@@ -138,6 +138,8 @@ const calm = (seed: string) => `hoppa/1 calm seed=${seed} tiles=0 behaviour=2`;
 // The beach is the garden's engine drawn somewhere else: same rules, tiles=5.
 // See FIRST_SKIN in src/core/tileset.ts.
 const beach = (seed: string) => `hoppa/1 calm seed=${seed} tiles=5 behaviour=2`;
+// The city is the ADVENTURE game drawn downtown: same rules, tiles=6.
+const city = (seed: string) => `hoppa/1 roam seed=${seed} tiles=6 behaviour=8`;
 
 /* -------------------------------------------------------------------------- */
 
@@ -454,6 +456,12 @@ export const PACK: readonly PackLevel[] = [
     name: "the beach",
     teaches: "pick the shells up, mind the crab, keep out of the sea",
     text: theBeach(),
+  },
+  {
+    file: "15-the-city.lvl",
+    name: "the city",
+    teaches: "get the people to the evac zone, and mind the kaiju",
+    text: theCity(),
   },
 ];
 
@@ -780,6 +788,82 @@ function theBeach(): string {
   room.put(2, 1, "@");
   room.put(22, 1, ">");
   return room.text(beach("bbbb"));
+}
+
+/**
+ * The city. Rescue the people, get them to the evac zone, and there is a kaiju
+ * on the street.
+ *
+ * "It should be user vs Kaiju... the user has to rescue people and get them to
+ * an evac zone whilst fighting the kaiju." Which is what the adventure game
+ * already is -- pick the treasure up and the door opens -- so the rules needed
+ * nothing at all and the room is roam/8 with tiles=6.
+ *
+ * Laid out as STREETS, which is the whole reason to have it as well as the
+ * caves: blocks of building with roads between them, so the room is a grid of
+ * corridors you can see along rather than a cave you feel your way through.
+ * That changes how a monster works in it -- you see the kaiju coming from the
+ * end of a street, and the decision is which way to turn, not whether you
+ * noticed.
+ */
+function theCity(): string {
+  const room = new Room().border();
+
+  // Three bands of building with avenues between them, and a ONE-CELL ALLEY
+  // through a block wherever a monster stands.
+  //
+  // That last part is the whole shape of the room, and it is a rule rather
+  // than a look: spec S8 caps a guard's patrol at eight turns, which is a run
+  // of five cells, and a city street is twenty-two. The first draft had four
+  // fat blocks and open avenues, and all three monsters failed L5 with runs of
+  // twelve and twenty-two. An alley is exactly five -- the street at each end
+  // plus the three cells through the block -- which is the same trick "the
+  // gauntlet" plays with its doorways, and it makes the monster something you
+  // meet at a gap rather than something you see coming half a mile off.
+  const BANDS: readonly (readonly [number, number])[] = [[2, 4], [6, 8], [10, 11]];
+  // The last block is a cell narrower than the other three, which leaves a
+  // THREE-cell street down the east side -- the only place in a grid this
+  // dense where a wall cell can have no wall beside it, and therefore the only
+  // place a tower can stand. Every other gap is one or two cells between two
+  // blocks, so anything put in it is drawn as part of a terrace.
+  const BLOCKS: readonly (readonly [number, number])[] = [[2, 5], [7, 10], [12, 15], [17, 19]];
+  for (const [top, bottom] of BANDS) {
+    for (const [left, right] of BLOCKS) room.box(left, top, right, bottom, WALL);
+  }
+
+  // The alleys, cut back out of the blocks the monsters stand in.
+  const ALLEYS: readonly (readonly [number, number, string])[] = [
+    [8, 0, "G"],    // the kaiju, in band A, halfway across town
+    [13, 1, "B"],   // the swarmer, in band B
+    [3, 2, "D"],    // the crawler, in band C
+  ];
+  for (const [x, band, who] of ALLEYS) {
+    const [top, bottom] = BANDS[band] as readonly [number, number];
+    room.line(x, top, x, bottom, OPEN);
+    room.put(x, ((top + bottom) / 2) | 0, who);
+  }
+
+  // Two towers standing on their own in the wide street on the east side. A
+  // wall cell with no wall beside it is ONE building rather than a terrace --
+  // same rule as the garden's tree and the beach's palm, and it costs the wire
+  // format nothing at all.
+  room.put(21, 3, WALL).put(21, 10, WALL);
+
+  // Burning wreckage in the avenues, so the quickest way across is not the
+  // safe one. Not in an alley: a fire in the only gap is a wall.
+  room.put(11, 5, "^").put(16, 9, "^").put(6, 9, "^");
+
+  // People, along the streets. Six, and they are what the room is for.
+  room.put(4, 1, "$").put(14, 1, "$").put(19, 1, "$");
+  room.put(3, 5, "$").put(20, 5, "$");
+  room.put(9, 12, "$");
+
+  // In at the top left, out at the bottom right: the evac zone is a landing
+  // pad rather than a door -- see doorShape() -- and getting the last person
+  // to it is a walk right across town.
+  room.put(1, 1, "@");
+  room.put(21, 12, ">");
+  return room.text(city("city"));
 }
 
 /**

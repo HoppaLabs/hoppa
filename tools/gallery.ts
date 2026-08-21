@@ -466,6 +466,115 @@ export const GALLERY: readonly Example[] = [
       "................",
     ],
   },
+
+  // Four more, and they arrive together because the shelf is four wide: a
+  // twenty-first character on its own leaves a hole in the last row, and a
+  // hole reads as a character that failed to load. It was reported as one.
+  //
+  // The jaeger is the one that was asked for -- "one of the default
+  // characters should be a jaeger, very slow but incredibly strong" -- and
+  // it is HERE rather than in the preset stable, which is a measurement
+  // rather than a preference: see docs/adr/0050. The kaiju comes with it,
+  // because the first thing a child does with a monster is ask to be it.
+  {
+    name: "jaeger",
+    // LIGHT steel, an amber lamp, and the dark between the plates. The
+    // first draft used the slate the city's buildings are drawn in, which
+    // is 1.6:1 against the swatch behind it and simply invisible --
+    // check() measures that rather than leaving it to the eye.
+    //
+    // It reads on the SHOULDERS, the widest thing on the sprite: at
+    // sixteen pixels there is no room for panel detail, and every mech
+    // has shoulders.
+    sub: [3, 28, 0],
+    rows: [
+      "................",
+      "......1111......",
+      "......3223......",
+      ".33311111111333.",
+      ".12111111111121.",
+      ".11111111111111.",
+      ".11.11333311.11.",
+      ".11.11322311.11.",
+      ".11.13333331.11.",
+      ".11.11111111.11.",
+      ".33..333333..33.",
+      "....111..111....",
+      "....333..333....",
+      "....111..111....",
+      "...1111111111...",
+      "...3333333333...",
+    ],
+  },
+  {
+    name: "kaiju",
+    sub: [21, 29, 18],
+    rows: [
+      "................",
+      ".......33.......",
+      "....3.1111.3....",
+      ".....111111.....",
+      "....12211221....",
+      "....12311321....",
+      "....11111111....",
+      ".....323232.....",
+      ".11111111111111.",
+      ".11111222211111.",
+      "...1112222111...",
+      "...1111111111...",
+      "...111....111...",
+      "...111....111...",
+      "..3333....3333..",
+      "................",
+    ],
+  },
+  {
+    name: "dog",
+    // Ears hanging down the SIDES of the head. Drawn on top of it they
+    // merged in and the whole thing read as a bear: a dog is ears and a
+    // snout, in that order.
+    sub: [52, 29, 48],
+    rows: [
+      "................",
+      "................",
+      ".....111111.....",
+      ".11111111111111.",
+      ".11112311321111.",
+      ".11111111111111.",
+      ".11111233211111.",
+      "..11.222222.11..",
+      "..11.223322.111.",
+      ".....111111..11.",
+      "....1111111111..",
+      "....11222211....",
+      "....11222211....",
+      "....111..111....",
+      "....111..111....",
+      "................",
+    ],
+  },
+  {
+    name: "frog",
+    sub: [22, 29, 18],
+    rows: [
+      "................",
+      "...111....111...",
+      "..12321..12321..",
+      "..11111..11111..",
+      "...1111111111...",
+      "..111111111111..",
+      ".11113333331111.",
+      ".11112222221111.",
+      ".11122222222111.",
+      "..111222222111..",
+      "...1111111111...",
+      "..111......111..",
+      ".1111......1111.",
+      ".111........111.",
+      ".333........333.",
+      "................",
+    ],
+  },
 ];
 
 /** What a sprite is drawn on in the picker, so contrast is measured against it. */

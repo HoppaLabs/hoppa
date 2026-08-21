@@ -28,6 +28,7 @@ const EXPECTED: Readonly<Record<string, readonly string[]>> = {
   underwater: ["clear", "rock", "start", "door / exit", "treasure", "shark", "kraken", "squid", "current", "urchins"],
   garden: ["clear", "hedge", "start", "door / exit", "flowers", "bear", "bunny", "squirrel", "bridge", "pond"],
   beach: ["clear", "dune", "start", "door / exit", "shells", "crab", "gull", "jellyfish", "jetty", "sea"],
+  city: ["clear", "building", "start", "evac zone", "people", "kaiju", "swarmer", "crawler", "fire"],
 };
 
 test("every game's palette reads the way it should", () => {
