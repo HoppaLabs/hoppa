@@ -45,7 +45,7 @@ import {
 export const CODEC_VERSION = 1;
 
 /** Index is the wire value. Append only -- never reorder, never remove. */
-export const ENGINE_IDS: readonly string[] = ["delve", "shove", "roam", "dash", "swim"];
+export const ENGINE_IDS: readonly string[] = ["delve", "shove", "roam", "dash", "swim", "calm"];
 // "shove" at 1 is a slot the spec reserved for a block-pushing game and never
 // filled. It stays where it is: the index IS the wire value, so closing the
 // gap would silently repoint every link ever made.
@@ -88,7 +88,14 @@ function carriesCurrents(engine: string): boolean {
 }
 
 /** Engines whose levels carry a ladder map. */
-const CLIMBING_ENGINES: readonly string[] = ["dash"];
+/**
+ * Engines whose levels carry the walk-along tile.
+ *
+ * A ladder in the side-on game and a BRIDGE in the garden: one bitmap, two
+ * things, because "a cell you can cross that is not ordinary ground" is the
+ * same idea seen from two angles. Everything else still pays nothing for it.
+ */
+const CLIMBING_ENGINES: readonly string[] = ["dash", "calm"];
 
 export function carriesLadders(engine: string): boolean {
   return CLIMBING_ENGINES.includes(engine);

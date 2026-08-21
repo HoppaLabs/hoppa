@@ -106,8 +106,22 @@ function keepProof(proof: StoredProof): void {
 let recorder = new Recorder();
 let proven = false;
 
+/**
+ * A place, rather than a level.
+ *
+ * Almost every difference the garden makes to this page hangs off this one
+ * question: there is no clock, no hearts, no win screen and no share gate,
+ * because there is nothing to win, nothing to lose and nothing to prove.
+ */
+function aPlace(): boolean {
+  return level.engine === "calm";
+}
+
 function hasBeatenThis(): boolean {
-  return proven;
+  // You cannot fail to beat a garden, so there is nothing for the gate to
+  // protect against -- and the gate is the biggest wall in front of the
+  // youngest player, who can paint long before they can finish a room.
+  return aPlace() || proven;
 }
 
 /**
@@ -487,7 +501,8 @@ function paintShareGate(): void {
   sendIt.hidden = !hasBeatenThis();
   // A level you made is sent as a level; one you were sent goes back as a
   // time. The button says which, because they are different acts.
-  sendIt.textContent = sendingBack ? "send your score" : "share level";
+  sendIt.textContent = aPlace() ? "share this place"
+    : sendingBack ? "send your score" : "share level";
 }
 
 // --- noise ------------------------------------------------------------------
@@ -729,11 +744,15 @@ function paintMovingHud(): void {
   const got = game.collectedCount();
   const total = game.treasureTotal();
 
-  hud.innerHTML =
-    `<span class="hearts hearts-${health.hp}"><b>${hearts}</b></span>` +
-    breathBar(game) +
-    `<span class="${got === total ? "done" : "gold"}"><b>${got}/${total}</b> treasure</span>` +
-    `<span><b>${game.seconds()}</b>s</span>`;
+  hud.innerHTML = aPlace()
+    // A garden counts what you have picked and nothing else. Hearts you cannot
+    // lose and a clock counting up on a thing with no finish are both just
+    // scoreboards for a game nobody is playing.
+    ? `<span class="gold"><b>${got}</b> ${got === 1 ? "flower" : "flowers"}</span>`
+    : `<span class="hearts hearts-${health.hp}"><b>${hearts}</b></span>` +
+      breathBar(game) +
+      `<span class="${got === total ? "done" : "gold"}"><b>${got}/${total}</b> treasure</span>` +
+      `<span><b>${game.seconds()}</b>s</span>`;
 
   if (finished()) {
     const won = game.currentStatus() === STATUS_WON;

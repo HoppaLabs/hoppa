@@ -128,6 +128,16 @@ export function sideOn(engine: string): boolean {
 }
 
 /**
+ * A place to be in rather than a level to beat.
+ *
+ * The editor asks this to decide whether to insist on a way out. Everywhere
+ * else a level with no exit is a mistake; here it is the point.
+ */
+export function aPlace(engine: string): boolean {
+  return engine === "calm";
+}
+
+/**
  * Things fall, and there are ladders to get back up.
  *
  * This is the RULE, and it is what the level's shape has to answer to: how
@@ -209,7 +219,12 @@ export function blankDraft(engine: string, behaviourVersion: number): Draft {
   for (let i = 0; i < GRID_AREA; i = (i + 1) | 0) cells[i] = GLYPH_FLOOR;
   frame(cells, engine);
 
-  if (underwater(engine)) {
+  if (aPlace(engine)) {
+    // No exit, and that is the whole point. A garden is not somewhere you are
+    // trying to get out of, and a door standing in one is the single thing
+    // that would tell a child this is another level with another way to fail.
+    cells[idx(2, 2)] = GLYPH_START;
+  } else if (underwater(engine)) {
     // Just under the surface, top left: where the air is, which is where a
     // swimmer should be taught to think of as home.
     cells[idx(2, 1)] = GLYPH_START;

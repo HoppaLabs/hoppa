@@ -60,6 +60,8 @@ interface Playable {
   position(): { x: number; y: number };
   /** Subcell position. Steering on whole cells alone clips corners. */
   where?(): { x: number; y: number; facing: number };
+  /** Underwater only. Absent everywhere else, and absence means "no need". */
+  breath?(): { left: number; full: number };
   currentStatus(): number;
   collectedCount(): number;
   treasureTotal(): number;
@@ -194,6 +196,34 @@ function towards(from: number, to: number): number {
  * is picked up and because a bot that follows a stale plan into a wall tells you
  * nothing about the room.
  */
+/**
+ * How little air is left before the bot gives up on gems and goes up.
+ *
+ * A third of a breath. Generous on purpose: the bot is not here to play well,
+ * it is here to prove a room can be finished by somebody playing badly, and a
+ * bot that surfaces at the last possible moment proves a much narrower thing.
+ */
+const GASPING = 200;
+
+/**
+ * The cell to head for when the air is running out, or null when it is not.
+ *
+ * Free movement was the reason swimming could reuse this router at all -- and
+ * that was true of MOVEMENT and quietly false of survival. Measured on the
+ * shipped reef before this existed: Bash finished it with every heart, and Nim
+ * and Pell both drowned holding the gems they had already collected. The router
+ * knew how to reach everywhere in the room and nothing about needing to breathe.
+ *
+ * Straight up, because straight up is where air is -- the surface is the top
+ * row and nowhere else -- and because a bot that had to plan a route to it
+ * would be a second router rather than one more goal.
+ */
+function breathingRoom(engine: Playable): number | null {
+  const breath = engine.breath?.();
+  if (breath === undefined || breath.left > GASPING) return null;
+  return idx(engine.position().x, 0);
+}
+
 function playFromAbove(engine: Playable, level: LevelBits, cap: number): number[] {
   const log: number[] = [];
   for (let tick = 0; tick < cap; tick++) {
@@ -201,7 +231,7 @@ function playFromAbove(engine: Playable, level: LevelBits, cap: number): number[
     const tiles = engine.render();
     const here = engine.position();
     const at = idx(here.x, here.y);
-    const want = goal(tiles, here.x, here.y);
+    const want = breathingRoom(engine) ?? goal(tiles, here.x, here.y);
     if (want < 0) break;
 
     const path = routeAvoidingFire(level, at, want);

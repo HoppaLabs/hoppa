@@ -10,6 +10,7 @@ import { adviceFor } from "../src/core/advice.ts";
 import { verifyLevelText } from "../src/core/verify.ts";
 import { DAY7_LEVEL_TEXT, ROAM3_LEVEL_TEXT, DASH3_LEVEL_TEXT } from "../src/core/fixtures.ts";
 import { STATUS_PLAYING, STATUS_WON, type Replayable } from "../src/engines/types.ts";
+import { TILE_COUNT } from "../src/core/tiles.ts";
 import { GRID_AREA, GRID_H, GRID_W } from "../src/core/grid.ts";
 
 // Deliberately hostile, and reproducible: a seeded PRNG, so a failure here can
@@ -194,10 +195,14 @@ test("a level with no exit still runs, and still ends", () => {
  * plays, and hard rule 3 forbids giving it one now. Pinned below rather than
  * quietly skipped, so nobody later mistakes it for an oversight.
  */
-const NEVER_ENDS = "delve/1";
+const NEVER_ENDS: readonly string[] = ["delve/1", "calm/1"];
 
-test("delve/1 really does run forever, which is why it is excluded below", () => {
-  const engine = engineFor(parseLevel(levelFor(NEVER_ENDS)), CREATURES[2]) as unknown as Replayable;
+test.each(NEVER_ENDS)("%s really does run forever, which is why it is excluded below", (key) => {
+  // Two builds, for opposite reasons. delve/1 was day one and simply had no
+  // ending written yet. calm/1 has no ending ON PURPOSE: it is a place to walk
+  // around, and every other engine turns a two-minute visit into a LOSS when
+  // the tick cap runs out, which is the exact feeling it exists to avoid.
+  const engine = engineFor(parseLevel(levelFor(key)), CREATURES[2]) as unknown as Replayable;
   let status: number = STATUS_PLAYING;
   for (let t = 0; t < 5000; t++) status = engine.step(t % 5);
   expect(status).toBe(STATUS_PLAYING);
@@ -206,7 +211,7 @@ test("delve/1 really does run forever, which is why it is excluded below", () =>
 test("E1, E2 and E4: a nothing creature and an everything creature finish every build", () => {
   const surprises: string[] = [];
   for (const key of knownBuilds()) {
-    if (key === NEVER_ENDS) continue;
+    if (NEVER_ENDS.includes(key)) continue;
     for (const creature of [CREATURES[0], CREATURES[1]]) {
       const bad = onlyThrows(() => {
         const engine = engineFor(parseLevel(levelFor(key)), creature) as unknown as Replayable;
@@ -259,7 +264,12 @@ test("E7: render always returns one valid tile per cell", () => {
     for (let t = 0; t < 60; t++) engine.step(t % 5);
     const tiles = engine.render();
     expect(tiles).toHaveLength(GRID_AREA);
-    for (const tile of tiles) expect(tile).toBeLessThan(10);
+    // Against TILE_COUNT, not a number typed here. This was a hardcoded 10 and
+    // had already gone stale twice over -- TILE_FIRE is 10 and TILE_FLOW is 11
+    // -- so it only passed for as long as no test level had a hazard in it.
+    for (const tile of tiles) {
+      expect({ tile, known: tile < TILE_COUNT }).toEqual({ tile, known: true });
+    }
   }
 });
 

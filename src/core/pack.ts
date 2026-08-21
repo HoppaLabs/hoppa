@@ -67,4 +67,16 @@ export const PACK: readonly PackLevel[] = [
     teaches: "walk through for a heart, or go round the long way",
     code: "ETHEABsXx______-f-RgwmCfY-SJEF8Velwl6pQpZJbN6QcQcQcQcQcQUoDV",
   },
+  {
+    slug: "the-reef",
+    name: "the reef",
+    teaches: "swim up for air; strength beats a current, speed goes round",
+    code: "EUCEAFIDM______-fkGkOkOkOkOlBEukOkOkOkOkOlBoDQjpGaLimKk0k8lsKuZozpoDRmBC",
+  },
+  {
+    slug: "the-garden",
+    name: "the garden",
+    teaches: "pick flowers, play with the bunnies, keep out of the ponds",
+    code: "EVBEACMl8wekMCUiMCRiY-ImOkOkOkOkIDRCA0QsdCOlB0GQIqQKSSZahSjqkymCGbIdNefLl7VsV0V8bsb0b83Bp0EAGw",
+  },
 ];

@@ -20,12 +20,22 @@ const rooms = await Promise.all(
   })),
 );
 
-test("nine rooms ship, and the file on disk is the code in the bundle", () => {
-  // Six taught the game; three more teach the hazard that does not move. Nine
-  // also fills the editor's three-wide grid, which is the same reason the
-  // characters went to sixteen.
-  expect(PACK.length).toBe(9);
-  expect(PACK.length % 3).toBe(0);
+/**
+ * The rooms that are CHALLENGES, which is every room but the garden.
+ *
+ * A place is not a level with the difficulty turned down; it is a different
+ * kind of thing, and most of what this file checks -- an exit, a route to it, a
+ * bot that can get out -- is meaningless applied to somewhere you go to sit.
+ * Listed by what it IS rather than by name, so the next place is covered too.
+ */
+const challenges = rooms.filter((room) => parseLevel(room.text).engine !== "calm");
+const places = rooms.filter((room) => parseLevel(room.text).engine === "calm");
+
+test("eleven rooms ship, and the file on disk is the code in the bundle", () => {
+  // Six taught the game; three more teach the hazard that does not move; the
+  // tenth is not a challenge at all.
+  expect(PACK.length).toBe(11);
+  expect(places).toHaveLength(1);
   for (const room of rooms) {
     // The .lvl file is the source; the code is generated from it. If they drift,
     // the level somebody plays is not the level anybody checked.
@@ -37,7 +47,7 @@ test("nine rooms ship, and the file on disk is the code in the bundle", () => {
 });
 
 test("every room passes the checks a child's own level has to pass", () => {
-  for (const room of rooms) {
+  for (const room of challenges) {
     const failed = verifyLevelText(room.text)
       .checks.filter((check) => !check.ok)
       .map((check) => `${check.id}: ${check.detail}`);
@@ -55,7 +65,7 @@ test("every room can be finished, by every ready-made creature", () => {
   // too hard to be one of the six the game opens with, which is the same answer
   // for this purpose.
   const table: string[] = [];
-  for (const room of rooms) {
+  for (const room of challenges) {
     for (const creature of PRESETS) {
       const attempt = botPlays(room.text, creature);
       table.push(
@@ -98,11 +108,14 @@ test("the rooms get longer, so the order on screen is the order to play them", (
   }
 });
 
-test("both games are in the six, or half of what was built never gets seen", () => {
+test("every game ships a room, or half of what was built never gets seen", () => {
+  // The reason this test exists: an engine nobody can reach from the front
+  // page is an engine that was built and then hidden. It grows as the games do.
   const engines = rooms.map((room) => parseLevel(room.text).engine);
-  expect(new Set(engines).size).toBe(2);
-  expect(engines.filter((engine) => engine === "roam").length).toBeGreaterThan(0);
-  expect(engines.filter((engine) => engine === "dash").length).toBeGreaterThan(0);
+  for (const engine of ["roam", "dash", "swim", "calm"]) {
+    expect({ engine, shipped: engines.filter((e) => e === engine).length > 0 })
+      .toEqual({ engine, shipped: true });
+  }
 });
 
 test("every room is on the newest rules, so nothing ships already retired", () => {
@@ -184,7 +197,7 @@ test("the play page is for playing: neither list is on it any more", () => {
 test("but the shipped rooms are still known to be shipped", () => {
   // Which matters for one thing that is NOT a list: a room the game ships with
   // has nobody to send a score back to, so it shares as a level.
-  expect(PACK.length).toBe(9);
+  expect(PACK.length).toBe(11);
   expect(play.includes("const shipped = new Set(PACK.map((room) => room.code));")).toBe(true);
   expect(play.includes("const isShipped = shipped.has(levelCode);")).toBe(true);
 });
@@ -217,9 +230,10 @@ test("beating one of the six offers the level, not a score to send back", () => 
       "const sendingBack = reply !== null || (shared !== null && !isShipped && !mine);",
     ),
   ).toBe(true);
-  expect(play.includes('sendIt.textContent = sendingBack ? "send your score" : "share level";')).toBe(
-    true,
-  );
+  // Three answers now, because a garden is neither: you are not sending a score
+  // and you are not sending a challenge, you are sending somewhere to be.
+  expect(play).toContain('sendIt.textContent = aPlace() ? "share this place"');
+  expect(play).toContain(': sendingBack ? "send your score" : "share level";');
 });
 
 test("a room that ships is a level to share, but it is not YOUR level", () => {
@@ -253,4 +267,24 @@ test("the editor would let a child draw the rooms we ship", () => {
     }
     expect({ room: room.name, refused }).toEqual({ room: room.name, refused: [] });
   }
+});
+
+
+test("the garden is a place, and the tests know the difference", () => {
+  // Not a level with the difficulty turned down. Everything that makes a
+  // challenge a challenge is deliberately absent, and this says so out loud so
+  // that nobody later "fixes" it by adding a door.
+  const garden = places[0];
+  expect(garden).toBeDefined();
+  const level = parseLevel((garden as { text: string }).text);
+  expect(level.engine).toBe("calm");
+  expect(level.exitX).toBe(-1);              // nowhere you are trying to get to
+  expect(level.treasureCells.length).toBeGreaterThan(4);   // flowers to pick
+  expect(level.guardCells.length).toBeGreaterThan(2);      // bunnies to find
+  expect(level.fireCells.length).toBeGreaterThan(0);       // ponds to walk round
+  console.log(
+    `\n  ${(garden as { name: string }).name}: ` +
+    `${level.treasureCells.length} flowers, ${level.guardCells.length} bunnies, ` +
+    `${level.fireCells.length} cells of pond, and no way out`,
+  );
 });

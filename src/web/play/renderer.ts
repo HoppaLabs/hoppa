@@ -295,6 +295,11 @@ const GEM_INKS: Record<string, readonly string[]> = {
   // a white dot -- what makes it read as CUT is that the facets disagree.
   underground: ["#062f2f", "#12807a", "#1fb3a6", "#5fe0d2", "#ffffff"],
   outside: ["#25093a", "#6b1fa8", "#9a3ad5", "#e8b6ff", "#ffffff"],
+  reef: ["#062f2f", "#12807a", "#1fb3a6", "#5fe0d2", "#ffffff"],
+  // A flower, not a gem. Same cut shape, and the colours do the whole job:
+  // a warm pink with a yellow heart, which is what a child means by "flower"
+  // long before anything about petals comes into it.
+  garden: ["#6b1420", "#d82f42", "#ff5f4d", "#ffb3a8", "#ffe9a3"],
 };
 
 /** The gem's shape: a diamond, so a spin is a change of width and nothing else. */

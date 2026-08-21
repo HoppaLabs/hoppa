@@ -415,6 +415,67 @@ export function turnPattern(pattern: Pattern): Pattern {
   return out as unknown as Pattern;
 }
 
+/**
+ * Still water: a pond.
+ *
+ * The garden borrowed the reef's chevrons for this at first and it was wrong in
+ * a way that only showed on screen -- a chevron is an ARROW, so eight cells of
+ * pond read as eight cells of current, and the one thing a pond must say is
+ * that it is not going anywhere.
+ *
+ * It also has to MERGE. The first version rounded every corner, so a pond made
+ * of five cells came out as five separate lozenges -- little pills of water
+ * lying next to each other. Water does not do that. So it fills the cell edge
+ * to edge, with the lit rim only along the top where the sky would catch it,
+ * and neighbouring cells run together into one body.
+ *
+ * Flat and quiet, which is the whole brief.
+ */
+const POND: Pattern = [
+  "4444444444444444",
+  "4444444444444444",
+  "3333333333333333",
+  "3311111111111133",
+  "3111111111111113",
+  "3111111111111113",
+  "3111551111111113",
+  "3115511111111113",
+  "3111111111111113",
+  "3111111111111113",
+  "3111111111111113",
+  "3111111111111113",
+  "3111111111111113",
+  "3311111111111133",
+  "3333333333333333",
+  "3333333333333333",
+];
+
+/**
+ * Planks: a bridge over a pond.
+ *
+ * Boards across, with a gap of water showing between each pair, because a solid
+ * slab reads as a floor and the whole point is that there is water under it.
+ * Rails down the long edges so it reads as a thing you walk ALONG.
+ */
+const BRIDGE: Pattern = [
+  "2222222222222222",
+  "3333333333333333",
+  "................",
+  "4444444444444444",
+  "4444444444444444",
+  "................",
+  "4444444444444444",
+  "4444444444444444",
+  "................",
+  "4444444444444444",
+  "4444444444444444",
+  "................",
+  "4444444444444444",
+  "4444444444444444",
+  "3333333333333333",
+  "2222222222222222",
+];
+
 const SPIKES: Pattern = [
   ".......56.......",
   ".......54.......",
@@ -513,7 +574,50 @@ export const REEF: Tileset = {
   ground: "#12306b",
 };
 
-export const TILESETS: readonly Tileset[] = [UNDERGROUND, OUTSIDE, REEF];
+/**
+ * The garden. Somewhere to be, seen from above.
+ *
+ * Every drawing in here is one the game already had, on different ramps -- and
+ * that is the whole argument for ramps. A hedge is EARTH in green, a pond is
+ * the hazard in blue, a flower is the gem in pink. Nothing new was drawn and
+ * nothing new was budgeted, which is why a fourth world took an afternoon
+ * instead of a week.
+ *
+ * The entities keep their behaviour and change what they ARE, the same trick
+ * the hazard has played since roam/6:
+ *
+ *   treasure -> a flower you pick        guard -> a bunny you play with
+ *   hazard   -> a pond you walk round    ladder -> a garden path
+ */
+export const GARDEN: Tileset = {
+  id: 4,
+  name: "garden",
+  // Warmer. The first garden was leaf-green over cold grey-green grass and it
+  // came out looking like a lawn in February -- asked for "warmer colours", and
+  // the fix is in the ramp, not in a new drawing: the same hedge lit from
+  // sunlight down through leaf into the warm earth underneath it.
+  sub: [29, 23, 22, 21, 20, 52, 51, 50],
+  wall: EARTH,
+  wallTop: EARTH_TOP,
+  floor: AIR,
+  // A bridge, not a ladder. In a garden the tile you walk ALONG is a plank
+  // crossing over water, which is the one thing a top-down world never had a
+  // use for -- see calm/1 and docs/adr/0040.
+  ladder: BRIDGE,
+  // Warm wood, lit from above, on the water it is crossing.
+  ladderSub: [8, 49, 51, 52, 53],
+  // A pond. The hazard's own shape is a pointed thing, which is wrong for
+  // water, and the reef's chevrons were worse -- a chevron is an arrow, and a
+  // pond is the one thing that is definitely not going anywhere.
+  fire: POND,
+  // Deep in the middle, lighter at the rim, one glint. Nothing about it says
+  // "this will hurt", because it will not: it is a shape you walk round.
+  fireSub: [8, 9, 10, 11, 5],
+  // Sunlit grass rather than pale mint.
+  ground: "#6fd968",
+};
+
+export const TILESETS: readonly Tileset[] = [UNDERGROUND, OUTSIDE, REEF, GARDEN];
 
 /**
  * The tileset for a world.
@@ -528,6 +632,7 @@ export function tilesetFor(sideOn: boolean, engine?: string): Tileset {
   // that used to answer this on its own no longer can. It stays as the default
   // for every caller that has only ever had two worlds to pick between.
   if (engine === "swim") return REEF;
+  if (engine === "calm") return GARDEN;
   return sideOn ? OUTSIDE : UNDERGROUND;
 }
 

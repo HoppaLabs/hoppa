@@ -133,6 +133,8 @@ export interface PackLevel {
 
 const roam = (seed: string) => `hoppa/1 roam seed=${seed} tiles=1 behaviour=8`;
 const dash = (seed: string) => `hoppa/1 dash seed=${seed} tiles=1 behaviour=7`;
+const swim = (seed: string) => `hoppa/1 swim seed=${seed} tiles=1 behaviour=2`;
+const calm = (seed: string) => `hoppa/1 calm seed=${seed} tiles=1 behaviour=1`;
 
 /* -------------------------------------------------------------------------- */
 
@@ -420,7 +422,133 @@ export const PACK: readonly PackLevel[] = [
     teaches: "walk through for a heart, or go round the long way",
     text: mindTheSpikes(),
   },
+  {
+    file: "10-the-reef.lvl",
+    name: "the reef",
+    teaches: "swim up for air; strength beats a current, speed goes round",
+    text: theReef(),
+  },
+  {
+    file: "11-the-garden.lvl",
+    name: "the garden",
+    teaches: "pick flowers, play with the bunnies, keep out of the ponds",
+    text: theGarden(),
+  },
 ];
+
+
+
+/**
+ * The reef. The one shipped room in the water, and the one that teaches what
+ * a current is for.
+ *
+ * Built round the thing that makes swimming different from walking, which is
+ * that STRENGTH decides how well you get up a current and SPEED decides
+ * everything else. So there are two ways down to the gem at the bottom:
+ * straight down the rising current, which a strong creature manages and a fast
+ * one is pushed back out of, or the long way round the outside, which a fast
+ * one does quicker than a strong one manages the short way.
+ *
+ * It also has to teach the air, and the honest way to teach air is to make the
+ * player notice they want some -- so the deep gem is far enough down that the
+ * trip back up is a decision rather than a formality.
+ */
+function theReef(): string {
+  const room = new Room().border();
+  // The top row is the surface: rock everywhere else, open along the top, which
+  // is what a swim frame is. border() walls it, so open it back up.
+  for (let x = 0; x < GRID_W; x++) room.put(x, 0, OPEN);
+
+  // A shelf across the middle with one gap, so the room has an upstairs and a
+  // downstairs and one obvious way between them.
+  room.line(1, 6, 15, 6, WALL);
+  room.line(19, 6, 22, 6, WALL);
+
+  // The rising current, in the gap. Swim down it if you can.
+  room.line(17, 7, 17, 11, "u");
+
+  // Urchins on the seabed, so the bottom is somewhere to be careful.
+  room.line(6, 12, 7, 12, "^").put(13, 12, "^");
+
+  // Gems: two easy ones up top, one at the bottom of the current.
+  room.put(3, 2, "$").put(20, 3, "$").put(17, 12, "$");
+
+  room.put(2, 1, "@").put(21, 11, ">");
+  return room.text(swim("ssss"));
+}
+
+/**
+ * The garden. Somewhere to be, rather than something to beat.
+ *
+ * The tenth room and the only one that is not a challenge -- asked for as "a
+ * cosy place to hang out for your friend's creatures". So it is built like a
+ * garden and not like a level: no way out, no route to solve, and nothing in
+ * it that can hurt anybody.
+ *
+ * Everything a level uses to make a SHAPE, a garden uses to make a PLACE:
+ *
+ *   * two ponds, because water is what you walk round, and walking round
+ *     something is what turns an open field into somewhere with corners
+ *   * hedges in clumps rather than lines, so nothing reads as a wall you are
+ *     meant to find the gap in
+ *   * a path, which is the ladder tile doing the one job a ladder cannot do
+ *     in a level with no gravity
+ *   * flowers spread to the corners, since picking them is the activity and a
+ *     flower you can see from the last one is not worth crossing to
+ *   * four bunnies, well apart, so there is always one somewhere to go and find
+ */
+function theGarden(): string {
+  const room = new Room().border();
+
+  // ONE pond, three by three, with a bridge across the middle of it.
+  //
+  // Every cell of water is an ENTITY on the wire -- the same budget the flowers
+  // and the bunnies come out of -- and the format holds 31 in total, with
+  // MAX_FIRE capping the water at ten. The first draft ignored that and would
+  // not encode at all: 32 entities for a format that holds 31.
+  //
+  // The second draft spent the ten on two five-cell ponds and that was worse
+  // for a reason only a screenshot showed: a bridge across a five-cell pond
+  // covers its whole middle, so what is left is two blue squares with planks
+  // between them. Nine cells in a block, crossed by a bridge, leaves water
+  // visible on BOTH sides of the crossing -- which is the only arrangement
+  // that reads as a pond somebody built a bridge over.
+  room.box(5, 7, 7, 9, "^");
+
+  // Hedges, in clumps. Nothing spans far enough to read as a barrier.
+  room.box(10, 2, 12, 3, WALL);
+  room.box(2, 9, 3, 10, WALL);
+  room.box(17, 3, 18, 4, WALL);
+  room.box(8, 11, 11, 11, WALL);
+
+  // No path. A ladder is the only tile that could have drawn one, and a
+  // top-down world does not draw ladders at all -- worse, `carriesLadders()` is
+  // dash-only, so the cells were not even written to the link. The first draft
+  // of this garden had a path down the middle of it and it was invisible in
+  // the game and gone from the code, which is two different kinds of nothing.
+
+  // Flowers, out to the corners.
+  room.put(2, 6, "$").put(9, 5, "$").put(21, 2, "$").put(6, 12, "$");
+  room.put(16, 12, "$").put(21, 11, "$").put(2, 11, "$").put(11, 8, "$");
+
+  // The bridge, running a cell past the water at each end so it lands on the
+  // bank rather than stopping at the edge. A bridge is the ladder tile, which
+  // every other top-down world ignores -- a plank across water is the first
+  // thing from above that is worth walking ALONG.
+  room.line(4, 8, 8, 8, "H");
+
+  // The garden's creatures: bunnies, a bird and a squirrel. Same three kinds
+  // the dungeon uses, patrolling the same way, and not one of them can hurt
+  // you -- what changes is what a child sees hopping towards them.
+  // Not on the bridge: a cell holds one glyph, so a bunny placed at (7,8)
+  // simply replaced a plank and left a hole in the crossing.
+  room.put(9, 10, "G").put(3, 2, "G").put(15, 12, "G");
+  room.put(19, 2, "B").put(11, 4, "D");
+
+  // You, by the gate. And no door: there is nowhere you are trying to get to.
+  room.put(2, 2, "@");
+  return room.text(calm("cccc"));
+}
 
 /**
  * The pack as the web build sees it: a name and a code, nothing else.

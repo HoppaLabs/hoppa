@@ -100,23 +100,23 @@ const TOOLS: readonly Tool[] = [
   // tool you reach for most and the one you want before you have decided what
   // you are drawing, and it was sitting second behind the wall.
   { glyph: GLYPH_FLOOR, label: "clear", rubber: true },
-  { glyph: GLYPH_WALL, label: "wall" },
+  { glyph: GLYPH_WALL, label: "wall", names: { calm: "hedge" } },
   { glyph: GLYPH_START, label: "start" },
   { glyph: GLYPH_EXIT, label: "door / exit" },
-  { glyph: GLYPH_TREASURE, label: "treasure", limit: 8 },
+  { glyph: GLYPH_TREASURE, label: "treasure", names: { calm: "flowers" }, limit: 8 },
   // Three enemies, one tool each. They walk, chase and die exactly alike --
   // what changes is what a child sees walking towards them, which at nine
   // years old is most of what an enemy IS.
-  { glyph: GLYPH_GUARD, label: "goblin", limit: 10 },
-  { glyph: GLYPH_BAT, label: "bat", limit: 10 },
-  { glyph: GLYPH_DRAGON, label: "lizard", limit: 10 },
-  { glyph: GLYPH_LADDER, label: "ladder", engines: ["dash"] },
+  { glyph: GLYPH_GUARD, label: "goblin", names: { calm: "bunny" }, limit: 10 },
+  { glyph: GLYPH_BAT, label: "bat", names: { calm: "bird" }, limit: 10 },
+  { glyph: GLYPH_DRAGON, label: "lizard", names: { calm: "squirrel" }, limit: 10 },
+  { glyph: GLYPH_LADDER, label: "ladder", names: { calm: "bridge" }, engines: ["dash", "calm"] },
   // One tool, four directions. Drag it and the water goes the way you dragged.
   { glyph: GLYPH_FLOW_RIGHT, label: "current", engines: ["swim"], limit: MAX_FLOW },
   // One tool, two names. It is the same entity either way -- what changes is
   // what the world draws, because a flame standing on grass looks like a
   // mistake and spikes in a cave look like a floor. See src/core/tileset.ts.
-  { glyph: GLYPH_FIRE, label: "fire", names: { dash: "spikes", swim: "urchins" }, limit: 10 },
+  { glyph: GLYPH_FIRE, label: "fire", names: { dash: "spikes", swim: "urchins", calm: "pond" }, limit: 10 },
 ];
 
 /**
@@ -136,6 +136,9 @@ const GAMES = [
   { engine: "roam", label: "from above" },
   { engine: "dash", label: "from the side" },
   { engine: "swim", label: "underwater" },
+  // Not "from above" twice. What makes this one different is not the camera,
+  // it is that there is nothing to beat -- so the label says what it IS.
+  { engine: "calm", label: "a garden" },
 ] as const;
 
 function currentBuild(engine: string): number {
