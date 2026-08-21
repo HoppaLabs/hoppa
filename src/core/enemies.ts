@@ -2,32 +2,157 @@
 //
 // The three things that walk about and hurt you, two frames each.
 //
+// Rows of digits plus a list of colours, rather than the two-bits-a-pixel
+// a CREATURE uses. A creature has to fit in a link and spec S5 fixes it at
+// three inks; an enemy travels nowhere, so it can have as many materials as
+// it needs -- which is what the era's best work actually had, by way of
+// metasprites, and what these were missing.
+//
 // Cosmetic only: hard rule 4. Which one a level carries travels in the wire
 // format, but no engine is ever told, and all three behave exactly as the
-// single old guard did. A run replays identically whichever art it wore.
-
-import { spriteFromText } from "./sprite.ts";
-import type { Sprite } from "./sprite.ts";
+// single old guard did.
 
 export interface Enemy {
   readonly name: string;
   /** What the level text calls it. */
   readonly glyph: string;
-  /** Two frames: legs together, legs apart. */
-  readonly frames: readonly Sprite[];
+  /** Two frames: legs together, legs apart. Digits index `inks`. */
+  readonly frames: readonly (readonly string[])[];
+  /** Colours, indexed by digit: "1" is inks[0]. */
+  readonly inks: readonly string[];
 }
 
-const DRAWN: readonly (readonly [string, string, readonly string[], readonly number[]])[] = [
-  ["goblin", "G", ["AAAAAAwAADAPAADwDfAPcA1__XANVVVdDWlpXA1paVwNVVVcDX__XA1VVVwDVVXAA9VXwADX1wAA8A8AAAAAAA", "AAAAAAwAADAPAADwDfAPcA1__XANVVVdDWlpXA1paVwNVVVcDX__XA1VVVwDVVXAA9VXwANQAFwDwAA8AAAAAA"], [22, 5, 1]],
-  ["bat", "B", ["AAAAAAwAADA3AADcNcADXDVwDVwNXDVwA1fVwADZZwAA6WsAANVXAAA1XAAADXAAAAAAAAAAAAAAAAAAAAAAAA", "AAAAAAAAAAAAAAAAA1fVwADZZwAA6WsAANVXAANVVcANXDVwNXANXNcAANcAAAAAAAAAAAAAAAAAAAAAAAAAAA"], [45, 5, 1]],
-  ["dragon", "D", ["AwAAAA7AAAAOsAAADqwAAA6rAPAOqsNcDqpzbA6q11c9VVVc_VVVcM1VVcADVVXAA1w1wAPADwAAAAAAAAAAAA", "AAAAAAMAAAAOwAAADrAAAA6sAPAOqwNcDqnDbA6rXVw9VVVc_VVVcM1VVcADVVXAA1AFwAPAA8AAAAAAAAAAAA"], [40, 41, 1]],
+export const ENEMIES: readonly Enemy[] = [
+  {
+    name: "goblin",
+    glyph: "G",
+    inks: ["#6fd968", "#ffffff", "#1a212b"],
+    frames: [
+      [
+        "................",
+        "..3..........3..",
+        "..33........33..",
+        "..3133....3313..",
+        "..311333333113..",
+        "..31111111111131",
+        "..3112211221113.",
+        "..3112211221113.",
+        "..3111111111113.",
+        "..3113333333113.",
+        "..3111111111113.",
+        "...3111111113...",
+        "...3311111133...",
+        "....31133113....",
+        "....33....33....",
+        "................",
+      ],
+      [
+        "................",
+        "..3..........3..",
+        "..33........33..",
+        "..3133....3313..",
+        "..311333333113..",
+        "..31111111111131",
+        "..3112211221113.",
+        "..3112211221113.",
+        "..3111111111113.",
+        "..3113333333113.",
+        "..3111111111113.",
+        "...3111111113...",
+        "...3311111133...",
+        "...311......113.",
+        "...33........33.",
+        "................",
+      ],
+    ],
+  },
+  {
+    name: "bat",
+    glyph: "B",
+    inks: ["#9a3ad5", "#ffffff", "#1a212b"],
+    frames: [
+      [
+        "................",
+        "..3..........3..",
+        ".313........313.",
+        ".3113......3113.",
+        ".31113....31113.",
+        "..31113..31113..",
+        "...3111331113...",
+        "....31211213....",
+        "....32211223....",
+        "....31111113....",
+        ".....311113.....",
+        "......3113......",
+        "................",
+        "................",
+        "................",
+        "................",
+      ],
+      [
+        "................",
+        "................",
+        "................",
+        "...3111331113...",
+        "....31211213....",
+        "....32211223....",
+        "....31111113....",
+        "...3111111113...",
+        "..31113..31113..",
+        ".31113....31113.",
+        "3113........3113",
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+      ],
+    ],
+  },
+  {
+    name: "dragon",
+    glyph: "D",
+    inks: ["#ff5f4d", "#ffb3a8", "#1a212b"],
+    frames: [
+      [
+        "...3............",
+        "..323...........",
+        "..3223..........",
+        "..32223.........",
+        "..322223....33..",
+        "..3222223..3113.",
+        "..32222213.3123.",
+        "..32222231131113",
+        ".33111111111113.",
+        "33311111111113..",
+        "3.31111111113...",
+        "...3111111113...",
+        "...3113..3113...",
+        "...33.....33....",
+        "................",
+        "................",
+      ],
+      [
+        "................",
+        "...3............",
+        "..323...........",
+        "..3223..........",
+        "..32223.....33..",
+        "..322223...3113.",
+        "..3222213..3123.",
+        "..3222231131113.",
+        ".33111111111113.",
+        "33311111111113..",
+        "3.31111111113...",
+        "...3111111113...",
+        "...311....113...",
+        "...33......33...",
+        "................",
+        "................",
+      ],
+    ],
+  },
 ];
-
-export const ENEMIES: readonly Enemy[] = DRAWN.map(([name, glyph, frames, sub]) => ({
-  name,
-  glyph,
-  frames: frames.map((pixels) => spriteFromText(pixels, sub)),
-}));
 
 /** The enemy a level glyph means, or undefined. */
 export function enemyByGlyph(glyph: string): Enemy | undefined {

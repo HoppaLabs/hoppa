@@ -7,7 +7,7 @@ import { hashHex } from "../src/core/hash.ts";
 import { engineFor } from "../src/engines/registry.ts";
 import { PRESETS } from "../src/core/creature.ts";
 import { HELD_RIGHT } from "../src/engines/types.ts";
-import { SPRITE_PIXELS, inkedCount } from "../src/core/sprite.ts";
+import { SPRITE_H, SPRITE_W } from "../src/core/sprite.ts";
 
 const renderer = await Bun.file("src/web/play/renderer.ts").text();
 const levelMain = await Bun.file("src/web/level/main.ts").text();
@@ -43,10 +43,30 @@ test("the art is well formed: two frames each, and they are the same creature", 
   for (const one of ENEMIES) {
     expect(one.frames.length).toBe(2);
     for (const frame of one.frames) {
-      expect(frame.pixels.length).toBe(SPRITE_PIXELS);
-      expect(inkedCount(frame)).toBeGreaterThan(40);
+      expect(frame.length).toBe(SPRITE_H);
+      for (const row of frame) expect(row.length).toBe(SPRITE_W);
+      expect(frame.join("").replace(/\./g, "").length).toBeGreaterThan(40);
     }
   }
+});
+
+test("an enemy may have more materials than a creature can", () => {
+  // A CREATURE is three inks and has to be: it travels inside a link, and spec
+  // S5 fixes it at two bits a pixel. One of those three is the outline, so a
+  // creature has two materials -- which is why these read flat beside the
+  // era's best work. That work is not more detailed pixel by pixel; it has
+  // more distinct materials, which the hardware got from metasprites.
+  //
+  // An enemy travels nowhere. It is art in the bundle, and the only thing
+  // holding it to three inks was drawing it with the creature machinery.
+  for (const one of ENEMIES) {
+    expect(one.inks.length).toBeGreaterThanOrEqual(3);
+    expect(one.inks.length).toBeLessThanOrEqual(7);
+    for (const ink of one.inks) expect(ink).toMatch(/^#[0-9a-f]{6}$/);
+  }
+  // ...and every ink is actually drawn with. An unused colour in a budget this
+  // small is a quarter of the character thrown away.
+  expect(check()).toEqual([]);
 });
 
 test("what ships is what was drawn", () => {

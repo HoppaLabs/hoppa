@@ -259,6 +259,7 @@ export function tileChip(
   sideOn: boolean,
   size: number,
   sprite?: Sprite | null,
+  enemy?: { rows: readonly string[]; inks: readonly string[] } | null,
 ): HTMLCanvasElement {
   const set = tilesetFor(sideOn);
   const canvas = document.createElement("canvas");
@@ -289,9 +290,27 @@ export function tileChip(
     paintPattern(ctx, set.floor, set.sub, set, size);
   }
 
-  // A 16x16 creature -- the player, or one of the enemies -- drawn at whatever
-  // whole multiple fits. This is what was missing: every entity button was a
-  // flat block of one colour, so the tool grid showed no sprites at all.
+  // An enemy, which has its own inks rather than a creature's three.
+  if (enemy != null) {
+    const scale = Math.max(1, Math.floor(size / SPRITE_W));
+    const pad = Math.floor((size - SPRITE_W * scale) / 2);
+    for (let y = 0; y < SPRITE_H; y++) {
+      const row = enemy.rows[y] ?? "";
+      for (let x = 0; x < SPRITE_W; x++) {
+        const ch = row[x] ?? ".";
+        if (ch === ".") continue;
+        const ink = enemy.inks[ch.charCodeAt(0) - 49];
+        if (ink === undefined) continue;
+        ctx.fillStyle = ink;
+        ctx.fillRect(pad + x * scale, pad + y * scale, scale, scale);
+      }
+    }
+    return canvas;
+  }
+
+  // A 16x16 creature -- the player -- drawn at whatever whole multiple fits.
+  // This is what was missing: every entity button was a flat block of one
+  // colour, so the tool grid showed no sprites at all.
   if (sprite != null) {
     const scale = Math.max(1, Math.floor(size / SPRITE_W));
     const drawn = SPRITE_W * scale;
@@ -658,10 +677,13 @@ export class GridRenderer {
         const ctx = stamp.getContext("2d");
         if (ctx === null) return stamp;
         for (let y = 0; y < SPRITE_H; y++) {
+          const row = frame[y] as string;
           for (let x = 0; x < SPRITE_W; x++) {
-            const colour = colourFor(frame.sub, frame.pixels[spriteIndex(x, y)] as number);
-            if (colour === null) continue;
-            ctx.fillStyle = colour;
+            const ch = row[x] as string;
+            if (ch === ".") continue;
+            const ink = one.inks[ch.charCodeAt(0) - 49];
+            if (ink === undefined) continue;
+            ctx.fillStyle = ink;
             ctx.fillRect(x, y, 1, 1);
           }
         }

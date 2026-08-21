@@ -644,8 +644,14 @@ for (const [id, dx, dy] of PANS) {
  */
 function artFor(glyph: string): Sprite | null {
   if (glyph === GLYPH_START) return (loadCharacter()?.creature ?? PRESETS[0])?.sprite ?? null;
+  return null;
+}
+
+/** The enemy drawing a tool paints, as rows and inks. */
+function enemyArtFor(glyph: string): { rows: readonly string[]; inks: readonly string[] } | null {
   const enemy = enemyByGlyph(glyph);
-  return enemy?.frames[0] ?? null;
+  if (enemy === undefined) return null;
+  return { rows: enemy.frames[0] as readonly string[], inks: enemy.inks };
 }
 
 function paintTools(): void {
@@ -665,7 +671,13 @@ function paintTools(): void {
     const chip = document.createElement("span");
     chip.className = "chip";
     chip.appendChild(
-      tileChip(TILE_OF[entry.glyph] as number, draft.engine === "dash", 22, artFor(entry.glyph)),
+      tileChip(
+        TILE_OF[entry.glyph] as number,
+        draft.engine === "dash",
+        24,
+        artFor(entry.glyph),
+        enemyArtFor(entry.glyph),
+      ),
     );
     if (entry.rubber === true) {
       const rubber = document.createElement("span");

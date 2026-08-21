@@ -26,8 +26,7 @@
 // format, but no engine is ever told, and every one of them behaves exactly as
 // the single old guard did. A run replays identically whichever art it wore.
 
-import { SPRITE_H, SPRITE_W, pixelsToText, spriteFromRows } from "../src/core/sprite.ts";
-import { PALETTE } from "../src/core/palette.ts";
+import { SPRITE_H, SPRITE_W } from "../src/core/sprite.ts";
 
 export interface Enemy {
   /** The name in a level file, the editor, and the wire format's kind field. */
@@ -36,15 +35,30 @@ export interface Enemy {
   readonly glyph: string;
   /** Two frames: legs together, legs apart. */
   readonly frames: readonly (readonly string[])[];
-  /** Three indices into PALETTE: body, light, dark. */
-  readonly sub: readonly [number, number, number];
+  /**
+   * The colours, indexed by the digits used in the rows. Up to seven.
+   *
+   * A CREATURE gets three, and has to: a character travels inside a link, and
+   * spec S5 fixes it at two bits a pixel. An enemy travels nowhere. It is art
+   * baked into the bundle, so the only thing that was holding it to three inks
+   * was reusing the creature machinery to draw it.
+   *
+   * Three inks means one is the outline, so a creature has TWO materials --
+   * which is why these read as flat next to the era's best work. That work is
+   * not more detailed pixel by pixel; it has more distinct materials. On the
+   * hardware that came from metasprites: several 8x8 tiles, each with its own
+   * three-colour palette, assembled into one character. Same idea here,
+   * without the hardware.
+   */
+  readonly inks: readonly string[];
 }
 
 export const ENEMIES: readonly Enemy[] = [
   {
     name: "goblin",
     glyph: "G",
-    sub: [22, 5, 1], // #6fd968 green, white eyes, near-black outline
+    // Skin, a darker skin for the underside, eye white, and the outline.
+    inks: ["#6fd968", "#ffffff", "#1a212b"],
     frames: [
       [
         "................",
@@ -87,7 +101,7 @@ export const ENEMIES: readonly Enemy[] = [
   {
     name: "bat",
     glyph: "B",
-    sub: [45, 5, 1], // #9a3ad5 purple, white eyes, near-black outline
+    inks: ["#9a3ad5", "#ffffff", "#1a212b"],
     frames: [
       [
         "................",
@@ -130,7 +144,7 @@ export const ENEMIES: readonly Enemy[] = [
   {
     name: "dragon",
     glyph: "D",
-    sub: [40, 41, 1], // #ff5f4d body, #ffb3a8 wing membrane, near-black outline
+    inks: ["#ff5f4d", "#ffb3a8", "#1a212b"],
     frames: [
       [
         "...3............",
@@ -188,12 +202,27 @@ export function check(): string[] {
         const row = rows[y] as string;
         if (row.length !== SPRITE_W) wrong.push(`${one.name} f${f} r${y}: ${row.length} wide`);
         for (const ch of row) {
-          if (!".123".includes(ch)) wrong.push(`${one.name} f${f} r${y}: bad glyph "${ch}"`);
+          if (ch === ".") continue;
+          const at = ch.charCodeAt(0) - 49;
+          if (at < 0 || at >= one.inks.length) {
+            wrong.push(`${one.name} f${f} r${y}: glyph "${ch}" has no ink`);
+          }
         }
       }
     }
-    for (const index of one.sub) {
-      if (index < 0 || index >= PALETTE.length) wrong.push(`${one.name}: palette ${index}`);
+    if (one.inks.length < 3) wrong.push(`${one.name}: ${one.inks.length} inks, want at least 3`);
+    if (one.inks.length > 7) wrong.push(`${one.name}: ${one.inks.length} inks, more than a digit`);
+    for (const ink of one.inks) {
+      if (!/^#[0-9a-f]{6}$/.test(ink)) wrong.push(`${one.name}: "${ink}" is not a colour`);
+    }
+    // Every ink has to be USED, or it is a colour somebody meant to draw with
+    // and forgot -- and an unused ink in a four-colour budget is a wasted
+    // quarter of the character.
+    const used = new Set(one.frames.flatMap((rows) => rows.join("").split("")));
+    for (let at = 0; at < one.inks.length; at++) {
+      if (!used.has(String.fromCharCode(49 + at))) {
+        wrong.push(`${one.name}: ink ${at + 1} (${one.inks[at]}) is never drawn with`);
+      }
     }
     // The two frames have to be the same creature. A walk beat moves the legs;
     // it does not redraw the animal, and a large change in inked mass reads as
@@ -212,37 +241,43 @@ function enemiesModule(): string {
     "//",
     "// The three things that walk about and hurt you, two frames each.",
     "//",
+    "// Rows of digits plus a list of colours, rather than the two-bits-a-pixel",
+    "// a CREATURE uses. A creature has to fit in a link and spec S5 fixes it at",
+    "// three inks; an enemy travels nowhere, so it can have as many materials as",
+    "// it needs -- which is what the era's best work actually had, by way of",
+    "// metasprites, and what these were missing.",
+    "//",
     "// Cosmetic only: hard rule 4. Which one a level carries travels in the wire",
     "// format, but no engine is ever told, and all three behave exactly as the",
-    "// single old guard did. A run replays identically whichever art it wore.",
-    "",
-    'import { spriteFromText } from "./sprite.ts";',
-    'import type { Sprite } from "./sprite.ts";',
+    "// single old guard did.",
     "",
     "export interface Enemy {",
     "  readonly name: string;",
     "  /** What the level text calls it. */",
     "  readonly glyph: string;",
-    "  /** Two frames: legs together, legs apart. */",
-    "  readonly frames: readonly Sprite[];",
+    "  /** Two frames: legs together, legs apart. Digits index `inks`. */",
+    "  readonly frames: readonly (readonly string[])[];",
+    "  /** Colours, indexed by digit: \"1\" is inks[0]. */",
+    "  readonly inks: readonly string[];",
     "}",
     "",
-    "const DRAWN: readonly (readonly [string, string, readonly string[], readonly number[]])[] = [",
+    "export const ENEMIES: readonly Enemy[] = [",
   ];
   for (const one of ENEMIES) {
-    const packed = one.frames.map((rows) => pixelsToText(spriteFromRows(rows, one.sub)));
-    lines.push(
-      `  [${JSON.stringify(one.name)}, ${JSON.stringify(one.glyph)}, ` +
-        `[${packed.map((p) => JSON.stringify(p)).join(", ")}], [${one.sub.join(", ")}]],`,
-    );
+    lines.push("  {");
+    lines.push(`    name: ${JSON.stringify(one.name)},`);
+    lines.push(`    glyph: ${JSON.stringify(one.glyph)},`);
+    lines.push(`    inks: [${one.inks.map((i) => JSON.stringify(i)).join(", ")}],`);
+    lines.push("    frames: [");
+    for (const rows of one.frames) {
+      lines.push("      [");
+      for (const row of rows) lines.push(`        ${JSON.stringify(row)},`);
+      lines.push("      ],");
+    }
+    lines.push("    ],");
+    lines.push("  },");
   }
   lines.push("];");
-  lines.push("");
-  lines.push("export const ENEMIES: readonly Enemy[] = DRAWN.map(([name, glyph, frames, sub]) => ({");
-  lines.push("  name,");
-  lines.push("  glyph,");
-  lines.push("  frames: frames.map((pixels) => spriteFromText(pixels, sub)),");
-  lines.push("}));");
   lines.push("");
   lines.push("/** The enemy a level glyph means, or undefined. */");
   lines.push("export function enemyByGlyph(glyph: string): Enemy | undefined {");
