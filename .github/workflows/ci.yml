@@ -33,3 +33,9 @@ jobs:
 
       - name: build
         run: bun run build
+
+      # Break nine things on purpose and check the suite notices. Thirty
+      # seconds here, and it is kept OUT of `bun run check` so the local loop
+      # stays at four. See tools/mutate.ts and adr/0044.
+      - name: mutants
+        run: bun run check:mutants

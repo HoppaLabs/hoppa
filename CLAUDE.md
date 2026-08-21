@@ -55,6 +55,32 @@ These are not style preferences. Breaking them costs days.
    `(level, creature, log) → hash` fixtures fail, stop and flag it. Do not
    regenerate them to go green.
 
+## A green suite is not the same as a working game
+
+Four bugs in two days were visible on a phone and invisible to `bun test`.
+They had three causes, and each has a tool now:
+
+1. **Nobody asserts the obvious.** Enemies had never moved in the side-on game
+   -- six behaviour versions of it. The garden shipped with a working sword.
+   `test/liveness.test.ts` walks the cross-product -- every engine, every
+   creature, every kind of spot a child can drop one into -- so a new engine is
+   covered by existing rather than by somebody remembering.
+
+2. **An assertion that cannot fail.** "reach lifts a gem from further away"
+   compared a number to itself for nine days. `bun run check:mutants` breaks
+   nine real defects on purpose and demands the suite go red. A mutation that
+   SURVIVES is a hole, and it names it.
+
+3. **No page ever boots.** The editor shipped completely dead while 683 tests
+   passed. `check:types` catches that class now. For the rest: **lift the
+   decision out of the DOM module** so it can be read without a browser --
+   `src/web/level/palette.ts` and `src/web/play/breath.ts` are the two worked
+   examples.
+
+When a measurement and the screen disagree, **check the measurement**. Net
+displacement is not travel; a walker pacing a ledge and a walker jittering on
+the spot are the same number and opposite things.
+
 ## Definition of done for a day
 
 - The new thing works on a phone at the deployed URL
@@ -76,6 +102,7 @@ decision, then record it in `docs/adr/` as a short numbered file.
 ```bash
 bun install           # once, and after pulling: two DEV dependencies, see adr/0041
 bun run check         # determinism + types + tests. The gate. Must be green.
+bun run check:mutants # break nine things on purpose; the suite must notice. ~30s
 bun test              # just the tests
 bun run dev           # local dev server
 bun run cli <cmd>     # terminal tools: verify, play, sim

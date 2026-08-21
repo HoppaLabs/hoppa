@@ -10,7 +10,8 @@
     "cli": "bun run src/cli/index.ts",
     "check:determinism": "bun run tools/check-determinism.ts",
     "check": "bun run check:determinism && bun run check:types && bun test",
-    "check:types": "tsc --noEmit"
+    "check:types": "tsc --noEmit",
+    "check:mutants": "bun run tools/mutate.ts"
   },
   "devDependencies": {
     "@types/bun": "^1.4.0",
