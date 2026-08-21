@@ -27,6 +27,9 @@ import { decodeLevel, encodeLevel } from "../../core/codec.ts";
 import { slugify } from "../play/link.ts";
 import { GridRenderer, tileChip } from "../play/renderer.ts";
 import { RUBBER_ICON } from "../icons.ts";
+import { enemyByGlyph } from "../../core/enemies.ts";
+import { PRESETS } from "../../core/creature.ts";
+import type { Sprite } from "../../core/sprite.ts";
 import { ask } from "../ask.ts";
 import { PACK } from "../../core/pack.ts";
 import {
@@ -34,7 +37,7 @@ import {
   TILE_ACTOR, TILE_EXIT_LOCKED, TILE_FLOOR, TILE_GUARD,
   TILE_LADDER, TILE_TREASURE, TILE_WALL,
 } from "../../core/tiles.ts";
-import { loadDraft, saveDraft } from "../stash.ts";
+import { loadCharacter, loadDraft, saveDraft } from "../stash.ts";
 import { goOffline } from "../offline.ts";
 
 // --- what you can draw with ---------------------------------------------------
@@ -631,6 +634,20 @@ for (const [id, dx, dy] of PANS) {
 
 // --- the tool and game strips --------------------------------------------------
 
+/**
+ * The sprite a tool paints, where there is one.
+ *
+ * The enemies and the start point are 16x16 creatures, not tiles, so the
+ * button has to show the drawing rather than a colour. Without this the whole
+ * entity half of the tool grid was flat blocks -- reported as "the sprites are
+ * not appearing in the tool grid".
+ */
+function artFor(glyph: string): Sprite | null {
+  if (glyph === GLYPH_START) return (loadCharacter()?.creature ?? PRESETS[0])?.sprite ?? null;
+  const enemy = enemyByGlyph(glyph);
+  return enemy?.frames[0] ?? null;
+}
+
 function paintTools(): void {
   toolsBox.innerHTML = "";
   for (const entry of TOOLS) {
@@ -647,7 +664,9 @@ function paintTools(): void {
     // and they had already drifted from the room.
     const chip = document.createElement("span");
     chip.className = "chip";
-    chip.appendChild(tileChip(TILE_OF[entry.glyph] as number, draft.engine === "dash", 22));
+    chip.appendChild(
+      tileChip(TILE_OF[entry.glyph] as number, draft.engine === "dash", 22, artFor(entry.glyph)),
+    );
     if (entry.rubber === true) {
       const rubber = document.createElement("span");
       rubber.className = "rubber";

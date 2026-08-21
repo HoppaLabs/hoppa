@@ -96,6 +96,100 @@ const CLOUDS: readonly { at: Cloud; x: number; y: number; drift: number }[] = [
   { at: CLOUD_WIDE, x: 8, y: 4, drift: 380 },
 ];
 
+/**
+ * The gem, drawn as pixels rather than as a path.
+ *
+ * It was a canvas path: moveTo, lineTo, fill -- which is a VECTOR diamond, so
+ * every edge came out anti-aliased and the spin was a cosine sampled per
+ * frame. That was tolerable while it was small and became obvious the moment
+ * it was made bigger. Reported as "the treasure doesn't look like pixel art
+ * any more, it's too sharp", which is exactly right: everything around it is
+ * made of squares and it was not.
+ *
+ * Three frames rather than a continuous width: full face, half turned, edge
+ * on. The era had no tweening, and a gem that snaps between three poses reads
+ * as turning far better than one that smoothly narrows.
+ *
+ * 1 is the outline, 2 the face, 3 the highlight.
+ */
+const GEM_FRAMES: readonly Pattern[] = [
+  [
+    "...11...",
+    "..1331..",
+    ".133221.",
+    "13322221",
+    ".132221.",
+    "..1221..",
+    "...11...",
+    "........",
+  ],
+  [
+    "...11...",
+    "..1331..",
+    "..1322..",
+    "..13221.",
+    "..1221..",
+    "..1221..",
+    "...11...",
+    "........",
+  ],
+  [
+    "...11...",
+    "...13...",
+    "...13...",
+    "...132..",
+    "...12...",
+    "...12...",
+    "...11...",
+    "........",
+  ],
+];
+
+/**
+ * The door, shut and open.
+ *
+ * It was drawn procedurally -- rounded fillRects and a ctx.arc for the
+ * padlock's shackle -- which put a smooth anti-aliased curve in the middle of
+ * a screen made of squares, and gave the level editor's button nothing to show
+ * but a flat purple block. A pattern fixes both: the room and the button draw
+ * the same eight-by-eight, and there is no curve left to soften.
+ *
+ * 1 is the frame, 2 the face, 3 the brass (shut) or the lit way through (open).
+ */
+const DOOR_SHUT: readonly Pattern[] = [[
+  "........",
+  ".111111.",
+  ".122221.",
+  ".122221.",
+  ".113311.",
+  ".123321.",
+  ".122221.",
+  ".111111.",
+]];
+
+const DOOR_OPEN: readonly Pattern[] = [[
+  "........",
+  ".111111.",
+  ".133331.",
+  ".133331.",
+  ".133331.",
+  ".133331.",
+  ".133331.",
+  ".111111.",
+]];
+
+/** Frame, face, brass or glow. */
+const DOOR_INKS: Record<string, readonly [string, string, string]> = {
+  shut: ["#6f5681", "#8a6f9e", "#ffc23d"],
+  open: ["#2f7a4a", "#6fe08a", "#d8ffe6"],
+};
+
+/** Outline, face, highlight -- for each world. */
+const GEM_INKS: Record<string, readonly [string, string, string]> = {
+  underground: ["#0e3b4a", "#7fe3ff", "#ffffff"],
+  outside: ["#3d0029", "#a3006f", "#ff9fd8"],
+};
+
 /** The gem's shape: a diamond, so a spin is a change of width and nothing else. */
 function diamond(
   ctx: CanvasRenderingContext2D,
@@ -110,6 +204,21 @@ function diamond(
   ctx.lineTo(cx, cy + ry);
   ctx.lineTo(cx - rx, cy);
   ctx.closePath();
+}
+
+/**
+ * Which gem frame this cell is showing.
+ *
+ * Same arithmetic as the flame, and the same trap: Math.floor rather than
+ * `| 0`, because a clock divided down is still far past what 32 bits hold.
+ * A full turn is six steps -- out and back through the three drawings -- so a
+ * gem spends as long edge-on as face-on.
+ */
+function gemFrame(cell: number, frames: number): number {
+  const step = Math.floor(Date.now() / 190) + cell;
+  const round = frames * 2 - 2;
+  const at = ((step % round) + round) % round;
+  return at < frames ? at : round - at;
 }
 
 /**
@@ -145,7 +254,12 @@ function flameFrame(cell: number, frames: number): number {
  * honestly what the game draws for it -- if a gem ever gets a shape, it gets
  * one here and on the button at the same moment.
  */
-export function tileChip(tile: number, sideOn: boolean, size: number): HTMLCanvasElement {
+export function tileChip(
+  tile: number,
+  sideOn: boolean,
+  size: number,
+  sprite?: Sprite | null,
+): HTMLCanvasElement {
   const set = tilesetFor(sideOn);
   const canvas = document.createElement("canvas");
   const dpr = Math.min(window.devicePixelRatio || 1, 3);
@@ -162,6 +276,9 @@ export function tileChip(tile: number, sideOn: boolean, size: number): HTMLCanva
     : tile === TILE_FLOOR ? set.floor
     : tile === TILE_LADDER ? set.ladder
     : tile === TILE_FIRE ? set.fire
+    : tile === TILE_TREASURE ? (GEM_FRAMES[0] as Pattern)
+    : tile === TILE_EXIT_LOCKED ? (DOOR_SHUT[0] as Pattern)
+    : tile === TILE_EXIT_OPEN ? (DOOR_OPEN[0] as Pattern)
     : null;
 
   // The ground goes down first: a ladder and a hazard both have gaps in them,
@@ -172,8 +289,37 @@ export function tileChip(tile: number, sideOn: boolean, size: number): HTMLCanva
     paintPattern(ctx, set.floor, set.sub, set, size);
   }
 
+  // A 16x16 creature -- the player, or one of the enemies -- drawn at whatever
+  // whole multiple fits. This is what was missing: every entity button was a
+  // flat block of one colour, so the tool grid showed no sprites at all.
+  if (sprite != null) {
+    const scale = Math.max(1, Math.floor(size / SPRITE_W));
+    const drawn = SPRITE_W * scale;
+    const pad = Math.floor((size - drawn) / 2);
+    for (let y = 0; y < SPRITE_H; y++) {
+      for (let x = 0; x < SPRITE_W; x++) {
+        const colour = colourFor(sprite.sub, sprite.pixels[spriteIndex(x, y)] as number);
+        if (colour === null) continue;
+        ctx.fillStyle = colour;
+        ctx.fillRect(pad + x * scale, pad + y * scale, scale, scale);
+      }
+    }
+    return canvas;
+  }
+
   if (pattern !== null) {
     const sub = tile === TILE_FIRE ? set.fireSub : set.sub;
+    // The gem and the door carry their own colours rather than the terrain's.
+    const own =
+      tile === TILE_TREASURE
+        ? (GEM_INKS[set.name] ?? GEM_INKS.underground)
+        : tile === TILE_EXIT_LOCKED ? DOOR_INKS.shut
+        : tile === TILE_EXIT_OPEN ? DOOR_INKS.open
+        : null;
+    if (own != null) {
+      paintInked(ctx, pattern, own as readonly [string, string, string], 0, 0, size);
+      return canvas;
+    }
     paintPattern(ctx, pattern, sub, set, size);
     return canvas;
   }
@@ -181,6 +327,38 @@ export function tileChip(tile: number, sideOn: boolean, size: number): HTMLCanva
   ctx.fillStyle = (COLOUR[tile] ?? COLOUR[TILE_FLOOR]) as string;
   ctx.fillRect(0, 0, size, size);
   return canvas;
+}
+
+/**
+ * A three-ink pattern, at an explicit set of colours.
+ *
+ * The tileset's own patterns go through paintPattern and its sub-palette; the
+ * gem and the door have colours of their own, so they come here instead. Both
+ * land on whole pixels the same way.
+ */
+function paintInked(
+  ctx: CanvasRenderingContext2D,
+  pattern: Pattern,
+  inks: readonly [string, string, string],
+  left: number,
+  top: number,
+  size: number,
+): void {
+  const step = size / TILE_PX;
+  for (let y = 0; y < TILE_PX; y++) {
+    const row = pattern[y] as string;
+    for (let x = 0; x < TILE_PX; x++) {
+      const ch = row[x] as string;
+      if (ch === ".") continue;
+      ctx.fillStyle = inks[(ch.charCodeAt(0) - 49) as 0 | 1 | 2] as string;
+      ctx.fillRect(
+        left + Math.floor(x * step),
+        top + Math.floor(y * step),
+        Math.ceil(step),
+        Math.ceil(step),
+      );
+    }
+  }
 }
 
 function paintPattern(
@@ -446,6 +624,30 @@ export class GridRenderer {
    */
   private enemyStamps: HTMLCanvasElement[][] = [];
 
+  /** One stamp per gem frame, per world. Rebuilt when the tile size changes. */
+  private gemStamps: HTMLCanvasElement[] = [];
+  private gemStampedAt = -1;
+  private gemStampedSet = "";
+
+  private stampGems(t: number): void {
+    const set = this.tiles();
+    if (this.gemStampedAt === t && this.gemStampedSet === set.name) return;
+    const inks = GEM_INKS[set.name] ?? GEM_INKS.underground as readonly [string, string, string];
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    this.gemStamps = GEM_FRAMES.map((frame) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(t * dpr));
+      canvas.height = Math.max(1, Math.round(t * dpr));
+      const ctx = canvas.getContext("2d");
+      if (ctx === null) return canvas;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      paintInked(ctx, frame, inks, 0, 0, t);
+      return canvas;
+    });
+    this.gemStampedAt = t;
+    this.gemStampedSet = set.name;
+  }
+
   private stampEnemies(): void {
     if (this.enemyStamps.length > 0) return;
     this.enemyStamps = ENEMIES.map((one) =>
@@ -574,7 +776,20 @@ export class GridRenderer {
       // held SEVENTEEN distinct colours; real pixel art holds three or four.
       // Hardware of the era could not position at half a pixel and could not
       // scale at all, and that is exactly why its sprites look the way they do.
-      const size = Math.max(4, Math.floor(t * 0.86));
+      // An INTEGER multiple of the sprite, never a fraction of the tile.
+      //
+      // This was t * 0.86, which on a 15px tile drew a 16px sprite at 12: a
+      // 0.75 downscale that throws away every fourth row and column. With
+      // smoothing off that is not a blur, it is DELETION -- and it is why the
+      // dragon, whose identity is a thin wing edge and a snout, arrived on
+      // screen as a smudge while the goblin survived. Rendered side by side at
+      // 12, 24 and 48 pixels, the difference is not subtle.
+      //
+      // Integer scale factors only is the era's rule and the reason its art
+      // still looks like itself. A 16px sprite slightly overhangs a 15px tile,
+      // which is what sprites have always done.
+      const scale = Math.max(1, Math.round(t / SPRITE_W));
+      const size = SPRITE_W * scale;
       const left = Math.round(px(enemy.x) - size / 2);
       const foot = Math.round(px(enemy.y) + size / 2);
 
@@ -780,47 +995,24 @@ export class GridRenderer {
         // so a row of them ripples instead of pulsing in lockstep.
         if (tile === TILE_TREASURE) {
           this.paintUnder(x, y);
-          const cx = x * t + t / 2;
-          const cy = y * t + t / 2;
-          // As big as the tile allows, less the lip below.
+          this.stampGems(t);
+          // Which way it is facing, in three steps rather than as a smooth
+          // narrowing: the era had no tweening, and the snap between poses is
+          // what reads as turning. Each gem starts at its own point in the
+          // cycle from its cell number, so a row of them ripples.
           //
-          // It used to hold back a fifth of the tile AND then stroke its own
-          // outline, and a stroke is centred on the path -- so a 14px tile got
-          // a gem 5 across whose coloured part was 4.5. Reported as looking
-          // small, which it was: a third of the tile was margin.
-          const lip = t >= 10 ? Math.max(1, Math.round(t / 14)) : 0;
-          const r = Math.max(3, (t / 2) - lip);
-
-          // A full turn every 1.6 seconds. Frozen mid-face when nothing is
-          // animating, so the level editor never draws one as a sliver.
-          const phase = this.spinning
-            ? ((Date.now() / 1600) + (y * GRID_W + x) * 0.13) * Math.PI * 2
+          // Frozen face-on when nothing is animating, so the level editor
+          // never draws one as a sliver.
+          const turn = this.spinning
+            ? gemFrame(y * GRID_W + x, GEM_FRAMES.length)
             : 0;
-          const wide = Math.abs(Math.cos(phase));
-          // Never quite vanishes: a gem you cannot see is a gem you cannot find.
-          const rx = Math.max(1, r * wide);
-
-          // Edge-on it catches less light, which is what sells the turn.
-          const face = this.ink(TILE_TREASURE);
-          const edge = this.sideOn ? "#6b0049" : "#3fa7c9";
-
-          // The lip goes UNDER the gem, not around it.
-          //
-          // It still earns its place, and the numbers say where: side-on the
-          // gem is 4.03:1 against the sky and only 1.44:1 against the grass it
-          // sits on, so without a lip a gem on a ledge is nearly invisible.
-          // Underground it is 9.88:1 against the floor and the lip is worth
-          // 1.20:1 -- nothing at all. But drawn as a slightly larger diamond
-          // behind, rather than as a stroke centred on the edge, it costs the
-          // gem no size anywhere: it adds outside instead of eating inside.
-          if (lip > 0) {
-            diamond(ctx, cx, cy, rx + lip, r + lip);
-            ctx.fillStyle = this.sideOn ? "#3d0029" : "#0e3b4a";
-            ctx.fill();
+          const gem = this.gemStamps[turn];
+          if (gem !== undefined) {
+            ctx.drawImage(gem, x * t, y * t, t, t);
+          } else {
+            ctx.fillStyle = this.ink(TILE_TREASURE);
+            ctx.fillRect(x * t + (t >> 2), y * t + (t >> 2), t >> 1, t >> 1);
           }
-          diamond(ctx, cx, cy, rx, r);
-          ctx.fillStyle = wide > 0.35 ? face : edge;
-          ctx.fill();
           continue;
         }
 
@@ -834,63 +1026,15 @@ export class GridRenderer {
         // into. A child should not have to be told which is which.
         if (tile === TILE_EXIT_LOCKED || tile === TILE_EXIT_OPEN) {
           const open = tile === TILE_EXIT_OPEN;
-          const left = x * t;
-          const top = y * t;
-
           this.paintUnder(x, y);
-
-          // The doorway: taller than it is wide, and standing on the ground.
-          const pad = Math.max(1, Math.round(t * 0.14));
-          const dx = left + pad;
-          const dy = top + Math.max(1, Math.round(t * 0.08));
-          const dw = t - pad * 2;
-          const dh = t - (dy - top);
-
-          ctx.fillStyle = open ? "#6fe08a" : "#8a6f9e";
-          ctx.fillRect(dx, dy, dw, dh);
-
-          if (open) {
-            // A lit way through, so it reads as somewhere to walk rather than
-            // as a green door you still have to open.
-            const inset = Math.max(1, Math.round(t * 0.16));
-            ctx.fillStyle = "#d8ffe6";
-            ctx.fillRect(dx + inset, dy + inset, dw - inset * 2, dh - inset);
-          } else {
-            // Panelling, so it is a door and not a coloured block.
-            ctx.fillStyle = "#6f5681";
-            const gap = Math.max(1, Math.round(t * 0.1));
-            ctx.fillRect(dx + gap, dy + gap, dw - gap * 2, Math.max(1, Math.round(t * 0.06)));
-
-            if (t >= 12) {
-              // The padlock. A shackle on top of a body, in brass, because a
-              // lock is the one shape everybody already reads as "shut".
-              const bodyW = Math.max(3, Math.round(t * 0.34));
-              const bodyH = Math.max(3, Math.round(t * 0.26));
-              const bx = left + Math.round((t - bodyW) / 2);
-              const by = top + Math.round(t * 0.44);
-              const ring = Math.max(1, Math.round(t * 0.08));
-
-              ctx.strokeStyle = "#ffc23d";
-              ctx.lineWidth = ring;
-              ctx.beginPath();
-              ctx.arc(left + t / 2, by, Math.max(2, bodyW * 0.32), Math.PI, 0);
-              ctx.stroke();
-
-              ctx.fillStyle = "#ffc23d";
-              ctx.fillRect(bx, by, bodyW, bodyH);
-              ctx.fillStyle = "#6f5681";
-              ctx.fillRect(
-                left + Math.round(t / 2) - Math.max(1, Math.round(ring / 2)),
-                by + Math.round(bodyH * 0.3),
-                Math.max(1, ring),
-                Math.max(1, Math.round(bodyH * 0.45)),
-              );
-            } else {
-              // Too small for a lock; a brass bar still says "shut".
-              ctx.fillStyle = "#ffc23d";
-              ctx.fillRect(dx, top + Math.round(t * 0.5), dw, Math.max(1, Math.round(t * 0.16)));
-            }
-          }
+          paintInked(
+            ctx,
+            (open ? DOOR_OPEN[0] : DOOR_SHUT[0]) as Pattern,
+            (open ? DOOR_INKS.open : DOOR_INKS.shut) as readonly [string, string, string],
+            x * t,
+            y * t,
+            t,
+          );
           continue;
         }
 

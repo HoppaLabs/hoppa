@@ -141,11 +141,15 @@
   /* The chip holds the real tile on a canvas, so it gets no background of its
      own -- and the rubber sits over it, the way it does on the character
      editor's see-through pen. */
+  /* The canvas fills the chip exactly. It used to be given the chip's OUTER
+     size while box-sizing made the content box two pixels smaller, so the
+     drawing sat one pixel down and right and the chip's own dark background
+     showed as an L along the top and left. */
   #tools .chip {
-    width: 22px; height: 22px; border-radius: 4px; border: 1px solid var(--ink);
-    position: relative; overflow: hidden; display: block;
+    width: 24px; height: 24px; border-radius: 4px; border: 1px solid var(--ink);
+    position: relative; overflow: hidden; display: block; padding: 0;
   }
-  #tools .chip canvas { display: block; width: 22px; height: 22px; }
+  #tools .chip canvas { display: block; width: 100%; height: 100%; }
   #tools .rubber { position: absolute; inset: 0; display: grid; place-items: center; }
   #tools .rubber svg { display: block; width: 16px; height: 16px; }
   #tools .rubber svg path {
