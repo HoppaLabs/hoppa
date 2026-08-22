@@ -610,6 +610,47 @@ const MUTATIONS: readonly Mutation[] = [
     find: "    this.vx = pushed(this.vx, dx, cap);",
     replace: "    this.vx = pushed(this.vx, dx, (cap / 2) | 0);",
   },
+  {
+    // The other half of "moving a cursor", and the half no engine can fix: a
+    // creature that accelerates beautifully and never moves a leg is still a
+    // picture being slid across a screen.
+    breaks: "the player stops walking and goes back to sliding",
+    file: "src/web/play/stride.ts",
+    find: "  if (pose === 1) return 1;",
+    replace: "  if (pose === 1) return 0;",
+  },
+  {
+    // Five rows moves the bottom third of the body with the feet: the creature
+    // does not step, it waddles.
+    breaks: "the walk shifts the body as well as the feet",
+    file: "src/web/play/stride.ts",
+    find: "export const LEG_ROWS = 3;",
+    replace: "export const LEG_ROWS = 8;",
+  },
+  {
+    // Half of all frames move nothing even at a dead run, because the screen
+    // draws at sixty and the engine ticks at thirty. Without the grace the
+    // creature snaps to attention every other frame.
+    breaks: "the walk resets between every pair of frames, so it twitches",
+    file: "src/web/play/stride.ts",
+    find: "export const SETTLE_FRAMES = 5;",
+    replace: "export const SETTLE_FRAMES = 1;",
+  },
+  {
+    // A foot that reappears on the other side of the creature is a horror.
+    breaks: "legs shoved off the edge wrap round to the other side",
+    file: "src/web/play/stride.ts",
+    find: "      out[row + x] = source >= 0 && source < SPRITE_W ? (pixels[row + source] as number) : 0;",
+    replace: "      out[row + x] = pixels[row + (((source % SPRITE_W) + SPRITE_W) % SPRITE_W)] as number;",
+  },
+  {
+    // Measured from where the drawing actually ends. Otherwise a creature drawn
+    // floating, or small in the middle of the box, never moves a leg.
+    breaks: "a creature drawn floating never gets a walk",
+    file: "src/web/play/stride.ts",
+    find: "  const floor = lowestInked(pixels);",
+    replace: "  const floor = SPRITE_H - 1;",
+  },
 ];
 
 /**

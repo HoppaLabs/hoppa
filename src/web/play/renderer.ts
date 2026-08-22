@@ -8,6 +8,7 @@ import { weaponArt } from "./weapon.ts";
 import { colourFor } from "../../core/palette.ts";
 import { SPRITE_H, SPRITE_W, spriteIndex, type Sprite } from "../../core/sprite.ts";
 import { Facing } from "./facing.ts";
+import { Stride, bobs, legShift, strode } from "./stride.ts";
 import { ONE } from "../../core/fixed.ts";
 import { CASTS, ENEMIES } from "../../core/enemies.ts";
 import {
@@ -1162,7 +1163,20 @@ export class GridRenderer {
   private squash = 0;
   private wasAirborne = false;
   private lastVy = 0;
+  /**
+   * The player, in three poses: feet together, left foot out, right foot out.
+   *
+   * Three canvases rather than one, because the alternative is re-stamping 256
+   * fillRects on the frames the pose changes -- and the pose changes several
+   * times a second. See ./stride.ts for why a walk cycle has to be derived at
+   * all when the picture is one a child drew.
+   */
+  private stamps3: readonly (HTMLCanvasElement | null)[] = [null, null, null];
+
   private stamp: HTMLCanvasElement | null = null;
+
+  /** How far the player has walked, and therefore which foot is out. */
+  private readonly stride = new Stride();
 
   /**
    * Set the sprite to draw the actor with. Re-stamped to an offscreen canvas
@@ -1183,6 +1197,9 @@ export class GridRenderer {
     // frame of a restart compares a fresh position against a stale one and can
     // turn a shark round for no reason anybody could explain.
     this.facing.forget();
+    // Same argument for the walk: a restart compares this frame's position
+    // against the last frame of the run before it, which is a whole room away.
+    this.stride.forget();
     this.sideOn = sideOn;
     this.world = engine;
     this.skin = tilesetId | 0;
@@ -1779,22 +1796,34 @@ export class GridRenderer {
   setSprite(sprite: Sprite | null): void {
     this.sprite = sprite;
     this.stamp = null;
+    this.stamps3 = [null, null, null];
+    this.stride.forget();
     if (sprite === null) return;
 
+    // The drawing as given, and the same drawing with its legs thrown each way.
+    this.stamps3 = [
+      this.stampSprite(sprite, sprite.pixels),
+      this.stampSprite(sprite, strode(sprite.pixels, 1)),
+      this.stampSprite(sprite, strode(sprite.pixels, -1)),
+    ];
+    this.stamp = this.stamps3[0] ?? null;
+  }
+
+  private stampSprite(sprite: Sprite, pixels: Uint8Array): HTMLCanvasElement | null {
     const stamp = document.createElement("canvas");
     stamp.width = SPRITE_W;
     stamp.height = SPRITE_H;
     const ctx = stamp.getContext("2d");
-    if (ctx === null) return;
+    if (ctx === null) return null;
     for (let y = 0; y < SPRITE_H; y++) {
       for (let x = 0; x < SPRITE_W; x++) {
-        const colour = colourFor(sprite.sub, sprite.pixels[spriteIndex(x, y)] as number);
+        const colour = colourFor(sprite.sub, pixels[spriteIndex(x, y)] as number);
         if (colour === null) continue;
         ctx.fillStyle = colour;
         ctx.fillRect(x, y, 1, 1);
       }
     }
-    this.stamp = stamp;
+    return stamp;
   }
 
   constructor(canvas: HTMLCanvasElement) {
@@ -2097,7 +2126,27 @@ export class GridRenderer {
       ctx.restore();
     }
 
-    const size = Math.max(4, Math.floor(t * 0.8));
+    // An INTEGER multiple of the sprite, never a fraction of the tile.
+    //
+    // This was `Math.floor(t * 0.8)`, which on a fifteen-pixel tile drew a
+    // sixteen-pixel sprite at twelve: a 0.75 downscale that throws away every
+    // fourth row and column. With smoothing off that is not a blur, it is
+    // DELETION -- and it is the exact fault that was found and fixed for the
+    // ENEMIES weeks ago (see the long note in the enemy loop above), while the
+    // player, the one sprite a child drew themselves, went on being quietly
+    // wrecked every frame.
+    //
+    // The player is now stamped on the same grid as everything else it stands
+    // next to. A sixteen-pixel sprite slightly overhangs a fifteen-pixel tile,
+    // which is what sprites have always done.
+    const size = SPRITE_W * artUnit(t);
+
+    // Which foot is out. Derived from the one drawing we have, because it is
+    // the child's drawing and there is no second frame -- see ./stride.ts.
+    const pose = actor.airborne === true ? 0 : this.stride.at(actor.x, actor.y);
+    const foot = [0, 1, 0, 2][pose] ?? 0;
+    const walkStamp = this.stamps3[foot] ?? this.stamp;
+    const drop = bobs(pose) ? artUnit(t) : 0;
     // Squash and stretch, the oldest trick there is.
     //
     // A jump where the only thing that changes is the y coordinate reads as a
@@ -2127,14 +2176,16 @@ export class GridRenderer {
 
     const drawW = size * stretchX;
     const drawH = size * stretchY;
-    const ax = px(actor.x) - drawW / 2;
+    const ax = Math.round(px(actor.x) - drawW / 2);
     // Anchored at the FEET, not the middle: a stretched sprite centred on its
-    // middle sinks into the floor it is standing on.
-    const ay = px(actor.y) + size / 2 - drawH;
+    // middle sinks into the floor it is standing on. Plus the walk's one-pixel
+    // drop on the beats where the legs are out, which is where a walking body
+    // actually is.
+    const ay = Math.round(px(actor.y) + size / 2 - drawH) + drop;
     // Blink while the mercy window is open, the way every game of this shape does.
     if (!actor.blinking || (Date.now() >> 6) % 2 === 0) {
-      if (this.stamp !== null) {
-        ctx.drawImage(this.stamp, ax, ay, drawW, drawH);
+      if (walkStamp !== null) {
+        ctx.drawImage(walkStamp, ax, ay, drawW, drawH);
       } else {
         ctx.fillStyle = this.ink(TILE_ACTOR);
         ctx.fillRect(ax, ay, drawW, drawH);
