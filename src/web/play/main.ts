@@ -380,12 +380,6 @@ if (refusal !== null) {
 }
 const levelCode = encodeLevel(level);
 
-/**
- * One of the six the game ships with.
- *
- * They arrive as `#p/` links like any other level, which is the point -- but
- * it means the page cannot tell "somebody sent me this" from "I tapped it in
-
 // The wordmark, drawn rather than typed. See src/web/logo.ts.
 //
 // Two on a phone and three from a tablet up. Whole scales only -- a fractional
@@ -396,9 +390,20 @@ const levelCode = encodeLevel(level);
 // header -- and the level is fitted to whatever the header leaves. Reported as
 // "the game canvas has shrunk", and measured: 140px of a 210px level, a third
 // of it, given to a header that was never that tall.
+//
+// THIS BLOCK WAS PASTED INTO THE MIDDLE OF THE COMMENT BELOW and sat inside it
+// -- so the play page's logo was never drawn at all, on any build, and nothing
+// noticed because a comment type-checks perfectly. Reported as "the hoppa logo
+// seems to have disappeared", which is generous: it had never arrived.
+// test/logo.test.ts now asserts the call is reachable code on every page.
 const logoCanvas = document.getElementById("logo") as HTMLCanvasElement | null;
 if (logoCanvas !== null) paintLogo(logoCanvas, window.innerWidth >= 560 ? 3 : 2);
 
+/**
+ * One of the six the game ships with.
+ *
+ * They arrive as `#p/` links like any other level, which is the point -- but
+ * it means the page cannot tell "somebody sent me this" from "I tapped it in
  * the list" by the URL alone. It matters, because a room the game ships with
  * has nobody to send a score back TO.
  */
@@ -1308,6 +1313,26 @@ function stepFor(held: number): Input | null {
 }
 
 let padPointer = -1;
+
+// The iOS selection loupe, and the last thing that stops it.
+//
+// Three goes at this now. `user-select: none` did not stop it; neither did
+// `preventDefault` on pointerdown, because on iOS the pointer events are
+// SYNTHESISED from touch and cancelling the synthetic one cancels nothing
+// underneath; `-webkit-touch-callout: none` stopped the long-press menu but
+// not the magnifier you get from a long-press DRAG, which is what a d-pad is.
+//
+// So: cancel the touch itself, on the pad only, with a non-passive listener.
+// touchmove is the one that matters -- the loupe appears once the finger has
+// moved with the touch still down -- and cancelling it there leaves pointerdown
+// and pointer capture untouched, which is what actually drives the pad.
+// The whole pad: the cross AND the round buttons beside it, because a thumb
+// that slides off one onto the other is the exact gesture being reported.
+for (const surface of [pad]) {
+  if (surface === null) continue;
+  surface.addEventListener("touchmove", (ev) => ev.preventDefault(), { passive: false });
+  surface.addEventListener("touchstart", (ev) => ev.preventDefault(), { passive: false });
+}
 
 dpad.addEventListener("pointerdown", (ev) => {
   ev.preventDefault();

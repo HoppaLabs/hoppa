@@ -48,12 +48,19 @@ test("a single finger is never interfered with", () => {
 });
 
 test("the level editor keeps the pinch it means", () => {
-  // "pinch to zoom, or tap bigger" is how you draw at a size a fingertip can
-  // hit -- the one place on the site where a pinch is the point.
+  // Pinching the LEVEL is how you draw at a size a fingertip can hit -- the one
+  // place on the site where a pinch is the point, and holdStill() is told to
+  // leave that viewport alone.
+  //
+  // This also asserted the sentence "pinch to zoom, or tap bigger". It does not
+  // any more: the whole instruction block came off the page on request, and a
+  // test that pins PROSE fails when the prose is cut whether or not the thing
+  // it described still works. What matters is the exemption, so that is what is
+  // checked -- and `bigger` is still a button, which is the discoverable half.
   expect(pages.level).toContain("holdStill(viewport);");
   expect(pages.play).toContain("holdStill();");
   expect(pages.make).toContain("holdStill();");
-  expect(html.level).toContain("pinch to");
+  expect(html.level).toContain('id="zoom"');
 });
 
 test("every page scrolls, and no page zooms", () => {
