@@ -301,7 +301,9 @@ test("the garden is a level now, and it still reads as a garden", () => {
   expect(garden).toBeDefined();
   const level = parseLevel((garden as { text: string }).text);
   expect(level.engine).toBe("calm");
-  expect(level.behaviourVersion).toBe(2);
+  // calm/3 now: the wand freezes the pond. The shipped garden moves to the
+  // newest build like every other room -- old links keep calm/2 forever.
+  expect(level.behaviourVersion).toBe(newestBuild("calm"));
   expect(level.exitX).toBeGreaterThanOrEqual(0);           // somewhere to get to
   expect(level.treasureCells.length).toBeGreaterThan(4);   // flowers to pick
   expect(level.fireCells.length).toBeGreaterThan(0);       // ponds to walk round

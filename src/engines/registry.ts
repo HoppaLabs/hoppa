@@ -22,9 +22,11 @@ import { RoamV8, ROAM_V8_BEHAVIOUR } from "./roam/v8.ts";
 import { SwimV1, SWIM_V1_BEHAVIOUR } from "./swim/v1.ts";
 import { SwimV2, SWIM_V2_BEHAVIOUR } from "./swim/v2.ts";
 import { SwimV3, SWIM_V3_BEHAVIOUR } from "./swim/v3.ts";
+import { SwimV4, SWIM_V4_BEHAVIOUR } from "./swim/v4.ts";
 import { RazeV1, RAZE_V1_BEHAVIOUR } from "./raze/v1.ts";
 import { CalmV1, CALM_V1_BEHAVIOUR } from "./calm/v1.ts";
 import { CalmV2, CALM_V2_BEHAVIOUR } from "./calm/v2.ts";
+import { CalmV3, CALM_V3_BEHAVIOUR } from "./calm/v3.ts";
 import { DashV1, DASH_V1_BEHAVIOUR } from "./dash/v1.ts";
 import { DashV2, DASH_V2_BEHAVIOUR } from "./dash/v2.ts";
 import { DashV3, DASH_V3_BEHAVIOUR } from "./dash/v3.ts";
@@ -217,6 +219,21 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
     `raze/${RAZE_V1_BEHAVIOUR}`,
     (level, creature) =>
       creature === undefined ? new RazeV1(level) : new RazeV1(level, creature),
+  ],
+  // calm/3 and swim/4: a wand freezes water. Asked for as "use the wand to
+  // freeze water", and it is the first answer either world has ever had to its
+  // own hazard -- a bucket is the wrong tool for a pond and a joke underwater.
+  // New builds rather than edits, because ice decides where you can stand and
+  // so it decides the hearts. See adr/0056.
+  [
+    `calm/${CALM_V3_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new CalmV3(level) : new CalmV3(level, creature),
+  ],
+  [
+    `swim/${SWIM_V4_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new SwimV4(level) : new SwimV4(level, creature),
   ],
 ]);
 

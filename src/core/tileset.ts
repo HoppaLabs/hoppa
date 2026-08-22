@@ -25,7 +25,7 @@
 // into static tiles would be a step backwards.
 
 import { GRID_H, GRID_W } from "./grid.ts";
-import { TILE_FIRE } from "./tiles.ts";
+import { TILE_FIRE, TILE_FROZEN } from "./tiles.ts";
 import { PALETTE } from "./palette.ts";
 import { SPRITE_W } from "./sprite.ts";
 
@@ -522,20 +522,54 @@ export const POND_W = 8;
  * The decision is "where does the shoreline go", and a decision you cannot run
  * a test against is a decision nobody is checking.
  */
-export function sidesOf(tiles: Uint8Array, x: number, y: number, tile: number): number {
-  const same = (cx: number, cy: number): boolean =>
-    cx >= 0 && cx < GRID_W && cy >= 0 && cy < GRID_H
-    && (tiles[cy * GRID_W + cx] as number) === tile;
+export function sidesOf(tiles: Uint8Array, x: number, y: number, tile: number, also = tile): number {
+  const same = (cx: number, cy: number): boolean => {
+    if (cx < 0 || cx >= GRID_W || cy < 0 || cy >= GRID_H) return false;
+    const at = tiles[cy * GRID_W + cx] as number;
+    return at === tile || at === also;
+  };
   return (same(x, y - 1) ? 0 : POND_N)
     | (same(x + 1, y) ? 0 : POND_E)
     | (same(x, y + 1) ? 0 : POND_S)
     | (same(x - 1, y) ? 0 : POND_W);
 }
 
-/** ...for water, which is what asked for it first. */
+/**
+ * ...for water, which is what asked for it first.
+ *
+ * Frozen water counts as water. A wand freezes a pond one wave at a time and
+ * the ice wears off, so a pool is very often part ice and part water -- and if
+ * the two did not recognise each other, a shoreline would appear down the
+ * middle of a pond that has not moved. What joins up is the BODY of water,
+ * whatever state each cell of it is in.
+ *
+ * Through sidesOf rather than beside it. It was written out again here, and
+ * check:mutants found that within the hour: breaking sidesOf's neighbour walk
+ * stopped failing anything, because the pond test had quietly moved onto the
+ * copy and the roads were the only thing left using the original.
+ */
 export function openSides(tiles: Uint8Array, x: number, y: number): number {
-  return sidesOf(tiles, x, y, TILE_FIRE);
+  return sidesOf(tiles, x, y, TILE_FIRE, TILE_FROZEN);
 }
+
+/**
+ * The ramp ice is drawn in, whatever it froze over.
+ *
+ * One ramp for every world, unlike everything else in this file, and that is
+ * deliberate: a pond, the sea and a bank of urchins look nothing alike, but
+ * frozen they are all ice, and a child has to read "I can walk on that" at a
+ * glance in a world they may never have seen before. The SHAPE still comes
+ * from the world -- ice takes the shape of what it froze -- and only the
+ * colours are shared.
+ *
+ * The pond ramp's own order, lightened all the way through: 1 is the body of
+ * the pool (which is nearly all of it -- the middle of a pool is a flat slab
+ * and the body colour is the whole read), 3 is the shoreline, 5 the sparkle.
+ * Rendered against grass and against the reef's navy before it went in: a
+ * deep-blue pool and a pale one are the difference, and it has to be visible
+ * at a glance from across the room.
+ */
+export const ICE_SUB: Ramp = [11, 10, 9, 4, 5];
 
 const POND_CACHE = new Map<number, Pattern>();
 

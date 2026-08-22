@@ -133,11 +133,11 @@ export interface PackLevel {
 
 const roam = (seed: string) => `hoppa/1 roam seed=${seed} tiles=0 behaviour=8`;
 const dash = (seed: string) => `hoppa/1 dash seed=${seed} tiles=0 behaviour=8`;
-const swim = (seed: string) => `hoppa/1 swim seed=${seed} tiles=0 behaviour=3`;
-const calm = (seed: string) => `hoppa/1 calm seed=${seed} tiles=0 behaviour=2`;
+const swim = (seed: string) => `hoppa/1 swim seed=${seed} tiles=0 behaviour=4`;
+const calm = (seed: string) => `hoppa/1 calm seed=${seed} tiles=0 behaviour=3`;
 // The beach is the garden's engine drawn somewhere else: same rules, tiles=5.
 // See FIRST_SKIN in src/core/tileset.ts.
-const beach = (seed: string) => `hoppa/1 calm seed=${seed} tiles=5 behaviour=2`;
+const beach = (seed: string) => `hoppa/1 calm seed=${seed} tiles=5 behaviour=3`;
 // The city is its own GAME as well as its own world: raze/1 is the adventure
 // game where a strong creature brings a building down. A new engine id rather
 // than roam/9, so no cave level changes -- see src/engines/raze/v1.ts.

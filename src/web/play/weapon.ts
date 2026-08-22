@@ -18,15 +18,23 @@
 // browser: the decision is one line, and a decision you cannot run a test
 // against is a decision nobody is checking.
 
-export type WeaponArt = "sword" | "wand" | "trident" | "laser";
+export type WeaponArt = "sword" | "wand" | "trident" | "laser" | "coldlaser";
 
 /** What to draw for this creature's weapon, in this game. */
 export function weaponArt(weapon: string, engine: string): WeaponArt {
+  // The city hands out lasers, and it goes FIRST -- before the wand -- because
+  // a wand is the one thing that looks sillier in a jaeger's hand than a
+  // broadsword does. Reported exactly that way: "it's weird for a jaeger to
+  // have a wand, so maybe we have a blue laser instead of a wand?"
+  //
+  // So the CHOICE still decides what the weapon DOES, and the world decides
+  // what it looks like doing it: a sword becomes a hot beam that cuts, a wand
+  // a cold blue one that freezes. Which is, if anything, more legible than the
+  // sword and the wand were -- a child can see at a glance which one they are
+  // holding, and the colour says what it will do.
+  if (engine === "raze") return weapon === "wand" ? "coldlaser" : "laser";
   if (weapon === "wand") return "wand";
   if (engine === "swim") return "trident";
-  // A jaeger does not swing a sword at a kaiju. Same rule as the trident, one
-  // world along: "the robot needs a laser instead of a sword".
-  if (engine === "raze") return "laser";
   return "sword";
 }
 
@@ -35,5 +43,9 @@ export function weaponSays(art: WeaponArt): string {
   if (art === "wand") return "wave your wand";
   if (art === "trident") return "jab your trident";
   if (art === "laser") return "fire your laser";
+  // Not "fire your laser": it does what the wand does -- it freezes things --
+  // and a child reading the button aloud has to be told which of the two they
+  // picked, because the colour is the only other clue.
+  if (art === "coldlaser") return "fire your freeze ray";
   return "swing your sword";
 }

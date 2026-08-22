@@ -46,24 +46,40 @@ function make(behaviour: number, who: (typeof PRESETS)[number]): Swimmer {
   return engineFor(parseLevel(swept(behaviour)), who) as unknown as Swimmer;
 }
 
-const NEWEST = newestBuild("swim");
+/**
+ * THREE, written down, not `newestBuild("swim")`.
+ *
+ * It was the latter, and that is a test that silently changes what it tests:
+ * the day swim/4 landed, every case in this file would have quietly moved off
+ * swim/3 and onto a build with different rules, leaving swim/3 -- which every
+ * reef link sent before that day pins -- covered by nothing at all.
+ *
+ * A file named for a build tests that build forever.
+ */
+const V3 = 3;
 
-test("the newest swim is the one this file is about", () => {
-  // If a swim/4 ever lands, this file must be pointed at it or extended --
-  // which is the failure that let swim/3's currents go untested at all.
-  expect(NEWEST).toBe(3);
+test("swim/3 is still routed, and is no longer the newest", () => {
+  // This guard did its job. It read `NEWEST === 3` and said "if a swim/4 ever
+  // lands, this file must be pointed at it or extended" -- and when swim/4
+  // landed it went red on the same commit. swim/4 has test/swim-v4.test.ts.
+  //
+  // What this file tests is swim/3, forever: a link that pinned it has to keep
+  // playing the game it was beaten under, so these are not tests of "the
+  // current rules" and must not be re-pointed at whatever is newest.
+  expect(newestBuild("swim")).toBe(4);
   expect(knownBuilds()).toContain("swim/3");
+  expect(V3).toBe(3);
 });
 
 test("a current still carries you on the newest build", () => {
-  const engine = make(NEWEST, PRESETS[1] as (typeof PRESETS)[number]);
+  const engine = make(V3, PRESETS[1] as (typeof PRESETS)[number]);
   // Into the flow first: a cell holds one glyph, so the start is never itself
   // a current and every swim level begins by stepping into the water.
   for (let tick = 0; tick < 20; tick++) engine.step(HELD_RIGHT);
   const from = engine.where().x;
   for (let tick = 0; tick < 30; tick++) engine.step(HELD_NONE);
   const carried = (engine.where().x - from) / ONE;
-  console.log(`\n  swim/${NEWEST}, one second of doing nothing in a current: carried ${carried.toFixed(2)} cells`);
+  console.log(`\n  swim/${V3}, one second of doing nothing in a current: carried ${carried.toFixed(2)} cells`);
   expect(carried).toBeGreaterThan(0.5);
 });
 
@@ -73,7 +89,7 @@ test("strength still beats a current and speed still does not", () => {
   // fastest one through a current; if this inverts, the engine has lost the
   // thing it was built for.
   const upstream = (who: (typeof PRESETS)[number]) => {
-    const engine = make(NEWEST, who);
+    const engine = make(V3, who);
     for (let tick = 0; tick < 20; tick++) engine.step(HELD_RIGHT);
     const from = engine.where().x;
     for (let tick = 0; tick < 300; tick++) engine.step(HELD_LEFT);
@@ -86,7 +102,7 @@ test("strength still beats a current and speed still does not", () => {
 });
 
 test("there is no air, and nothing takes a heart for taking your time", () => {
-  const engine = make(NEWEST, PRESETS[1] as (typeof PRESETS)[number]);
+  const engine = make(V3, PRESETS[1] as (typeof PRESETS)[number]);
   expect(engine.breath).toBeUndefined();
   const hearts = engine.health().max;
   // Two full minutes of doing nothing at all.

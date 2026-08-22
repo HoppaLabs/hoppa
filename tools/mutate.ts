@@ -32,6 +32,52 @@ interface Mutation {
 
 const MUTATIONS: readonly Mutation[] = [
   {
+    // The point of calm/3. Ice that is not in the hash is state a replay can
+    // disagree about, and a garden link is only worth anything because the
+    // proof replays cold.
+    breaks: "frozen water never reaches the hash, so a proof stops proving",
+    file: "src/engines/calm/v3.ts",
+    find: "    for (let i = 0; i < this.ice.length; i = (i + 1) | 0) {\n      h = hashInt32(h, this.ice[i] as number);",
+    replace: "    for (let i = 0; i < 0; i = (i + 1) | 0) {\n      h = hashInt32(h, this.ice[i] as number);",
+  },
+  {
+    // A wand that freezes for ever is a bucket, and the trade goes away.
+    breaks: "ice never wears off, so a wand becomes a bucket",
+    file: "src/engines/calm/v3.ts",
+    find: "      if (left > 0) this.ice[i] = (left - 1) | 0;",
+    replace: "      if (left > 0) this.ice[i] = left | 0;",
+  },
+  {
+    // A sword must get nothing. That is the trade, the same shape as "a wand
+    // never kills".
+    breaks: "a sword freezes water too, so the wand has no job again",
+    file: "src/engines/swim/v4.ts",
+    find: '  if (creature.weapon !== "wand") return 0;',
+    replace: "  if (false) return 0;",
+  },
+  {
+    // One cell at a time means standing in the water to reach the next one.
+    breaks: "only the cell in front freezes, so crossing costs a heart a square",
+    file: "src/engines/calm/v3.ts",
+    find: "        if (next < 0 || reached[next] === 1) continue;",
+    replace: "        if (true) continue;",
+  },
+  {
+    // The garden's pond is SOLID, so ice is a bridge rather than a painkiller.
+    // Without this the freeze does nothing at all in the garden.
+    breaks: "frozen ponds stay solid, so the garden's wand does nothing",
+    file: "src/engines/calm/v3.ts",
+    find: "        && this.alight(pondX, pondY)) return false;",
+    replace: "        && true) return false;",
+  },
+  {
+    // Reported: "it's weird for a jaeger to have a wand".
+    breaks: "the jaeger goes back to waving a wand at a kaiju",
+    file: "src/web/play/weapon.ts",
+    find: '  if (engine === "raze") return weapon === "wand" ? "coldlaser" : "laser";',
+    replace: '  if (engine === "raze" && weapon !== "wand") return "laser";',
+  },
+  {
     // The bug itself: a condition that named one engine, while four more
     // builds doused and showed no button.
     breaks: "the bucket goes back to being roam's alone, and four builds lose it",
@@ -127,7 +173,7 @@ const MUTATIONS: readonly Mutation[] = [
   {
     breaks: "the city hands the jaeger a sword to fight a kaiju with",
     file: "src/web/play/weapon.ts",
-    find: '  if (engine === "raze") return "laser";',
+    find: '  if (engine === "raze") return weapon === "wand" ? "coldlaser" : "laser";',
     replace: '  if (engine === "raze") return "sword";',
   },
 

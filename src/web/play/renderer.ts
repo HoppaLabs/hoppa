@@ -13,12 +13,14 @@ import { CASTS, ENEMIES } from "../../core/enemies.ts";
 import {
   ROAD_CAR, WALL_KINDS,
   TILE_PX, flipPattern, inkOf, tilesetFor, turnPattern,
+  ICE_SUB,
   type Pattern, type Ramp, type Tileset,
   openSides, sidesOf,
 } from "../../core/tileset.ts";
 import {
   TILE_ACTOR,
   TILE_FLOW,
+  TILE_FROZEN,
   TILE_GUARD_REELING,
   TILE_FIRE,
   TILE_LADDER,
@@ -48,6 +50,8 @@ const COLOUR: Record<number, string> = {
   // Only ever seen if a tileset stamp fails to build. Orange, because whatever
   // else goes wrong, "this square hurts" must survive it.
   [TILE_FIRE]: "#ff9f3d",
+  // Ice, for the frame before the stamps exist.
+  [TILE_FROZEN]: "#b6dcff",
 };
 
 /**
@@ -1183,6 +1187,15 @@ export class GridRenderer {
   private flames: HTMLCanvasElement[] = [];
   /** One pond per set of open sides, where the world's hazard is water. */
   private readonly ponds = new Map<number, HTMLCanvasElement>();
+  /**
+   * ...and the same shapes in ice, for the cells a wand has frozen.
+   *
+   * Keyed the same way and built at the same time, so the paint loop only ever
+   * looks one up. Where the hazard is not water-shaped -- a bank of urchins --
+   * there is one entry under 0, because a frozen urchin does not need to join
+   * up with the urchin beside it.
+   */
+  private readonly ices = new Map<number, HTMLCanvasElement>();
   /** One road per set of joined sides plus a car bit, where the floor is a street. */
   private readonly roads = new Map<number, HTMLCanvasElement>();
   /** One stamp per KIND of building, where a wall is a tower. */
@@ -1384,6 +1397,24 @@ export class GridRenderer {
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         paintPattern(ctx, set.fireFor(open), set.fireSub, set, t);
         this.ponds.set(open, canvas);
+      }
+    }
+
+    // Ice: the same shapes, in the one ramp every world shares. See ICE_SUB.
+    this.ices.clear();
+    {
+      const shapes: Array<readonly [number, Pattern]> = set.fireFor !== undefined
+        ? Array.from({ length: 16 }, (_, open) => [open, (set.fireFor as (o: number) => Pattern)(open)] as const)
+        : [[0, set.fire] as const];
+      for (const [key, shape] of shapes) {
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(t * dpr));
+        canvas.height = Math.max(1, Math.round(t * dpr));
+        const ctx = canvas.getContext("2d");
+        if (ctx === null) continue;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        paintPattern(ctx, shape, ICE_SUB, set, t);
+        this.ices.set(key, canvas);
       }
     }
 
@@ -1921,7 +1952,8 @@ export class GridRenderer {
       // does; a beam leaves the muzzle in one direction and that direction is
       // the one you are facing. Given the arc it looked like a lightsabre,
       // which is a different thing to be holding.
-      const angle = art === "laser" ? base : base - sweep / 2 + sweep * done;
+      const beam = art === "laser" || art === "coldlaser";
+      const angle = beam ? base : base - sweep / 2 + sweep * done;
 
       // The blade is shortest at the extremes of the arc and longest through
       // the middle, the way an actual swing looks.
@@ -1962,7 +1994,7 @@ export class GridRenderer {
         ctx.beginPath();
         ctx.arc(hilt + len, 0, star * 0.45, 0, Math.PI * 2);
         ctx.fill();
-      } else if (art === "laser") {
+      } else if (beam) {
         // A bolt, not a blade: a hot white core inside a wider coloured glow,
         // a flare at the muzzle, and the whole thing at full length from the
         // first frame. It fades over the swing rather than retracting, because
@@ -1970,14 +2002,23 @@ export class GridRenderer {
         const fade = 1 - done * 0.65;
         const core = Math.max(1.5, thick * 0.4);
         const reachOut = px(reach) * 0.95;
-        ctx.fillStyle = `rgba(255,95,77,${(0.30 * fade).toFixed(3)})`;
+        // Two beams out of one drawing. Hot for the sword's laser, COLD for
+        // the wand's -- and the colour is the whole signal, because the two do
+        // completely different things and look identical in every other
+        // respect. Blue freezes; orange cuts. The white core is shared: every
+        // beam anybody has ever drawn is white in the middle.
+        const cold = art === "coldlaser";
+        const halo = cold ? "111,178,240" : "255,95,77";
+        const glow = cold ? "95,224,210" : "255,159,61";
+        const flare = cold ? "182,220,255" : "255,233,163";
+        ctx.fillStyle = `rgba(${halo},${(0.30 * fade).toFixed(3)})`;
         ctx.fillRect(hilt, -thick * 1.6, reachOut, thick * 3.2);
-        ctx.fillStyle = `rgba(255,159,61,${(0.75 * fade).toFixed(3)})`;
+        ctx.fillStyle = `rgba(${glow},${(0.75 * fade).toFixed(3)})`;
         ctx.fillRect(hilt, -core * 1.8, reachOut, core * 3.6);
         ctx.fillStyle = `rgba(255,255,255,${fade.toFixed(3)})`;
         ctx.fillRect(hilt, -core / 2, reachOut, core);
         // The muzzle flare, and a bright dot where the beam lands.
-        ctx.fillStyle = `rgba(255,233,163,${(0.9 * fade).toFixed(3)})`;
+        ctx.fillStyle = `rgba(${flare},${(0.9 * fade).toFixed(3)})`;
         ctx.beginPath();
         ctx.arc(hilt, 0, Math.max(2, thick * 0.9 * fade), 0, Math.PI * 2);
         ctx.fill();
@@ -2185,6 +2226,23 @@ export class GridRenderer {
           const rungs = this.stamps?.get(TILE_LADDER);
           if (floor !== undefined) ctx.drawImage(floor, x * t, y * t, t, t);
           if (rungs !== undefined) ctx.drawImage(rungs, x * t, y * t, t, t);
+          continue;
+        }
+
+        // Ice, where a wand has been waved at the water. Drawn before fire
+        // because it is the same body of water in a different state, and it
+        // reads off the same joined-up sides -- see openSides(), which counts
+        // frozen water as water so a half-frozen pond has no seam down it.
+        if (tile === TILE_FROZEN) {
+          const floor = this.floorAt(tiles, x, y);
+          if (floor !== undefined) ctx.drawImage(floor, x * t, y * t, t, t);
+          const sheet = this.ices.get(this.ices.size > 1 ? openSides(tiles, x, y) : 0);
+          if (sheet !== undefined) {
+            ctx.drawImage(sheet, x * t, y * t, t, t);
+          } else {
+            ctx.fillStyle = COLOUR[TILE_FROZEN] as string;
+            ctx.fillRect(x * t, y * t, t, t);
+          }
           continue;
         }
 

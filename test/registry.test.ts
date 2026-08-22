@@ -33,6 +33,11 @@ test("every build ships: retiring one would break every link that pinned it", ()
     // down. A new ENGINE rather than roam/9, so no adventure level changes
     // and no cosmetic choice decides the rules. See src/engines/raze/v1.ts.
     "raze/1",
+    // calm/3 and swim/4: a wand freezes water. The first answer either world
+    // has ever had to its own hazard -- a bucket is the wrong tool for a pond
+    // and a joke underwater. New builds, because ice decides where you can
+    // stand and so it decides the hearts. See adr/0056.
+    "calm/3", "swim/4",
   ]);
 });
 

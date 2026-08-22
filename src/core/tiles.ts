@@ -36,6 +36,20 @@ export const TILE_FIRE = 10;
  * quarter of the 16-tile budget saying something the level already knows.
  */
 export const TILE_FLOW = 11;
+/**
+ * Water a wand has frozen over.
+ *
+ * Its own index rather than TILE_FLOOR, and that is the whole point of it: a
+ * frozen pond is walkable RIGHT NOW and will not be in a moment, and a child
+ * crossing one has to be able to see the difference between ice and ground.
+ * A doused fire is permanent and renders as floor; this is temporary and must
+ * not.
+ *
+ * Same hard rules as TILE_FIRE. One index, drawn as whatever that world's water
+ * looks like when it goes solid -- ice on a pond, ice on the sea, ice over a
+ * bank of urchins -- and the engine emitting it knows none of that.
+ */
+export const TILE_FROZEN = 12;
 
 // Grows as engines gain tiles; capped at 16 per engine.
-export const TILE_COUNT = 12;
+export const TILE_COUNT = 13;
