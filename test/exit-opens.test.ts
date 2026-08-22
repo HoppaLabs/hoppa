@@ -26,10 +26,19 @@ function room(engine: string, version: number, tiles: number): string {
     const line = rows[row] as string;
     rows[row] = line.slice(0, x) + ch + line.slice(x + 1);
   };
-  // You, a gem one step to your right, and the way out in the far corner.
-  put(1, 2, "@");
-  put(1, 3, "$");
-  put(GRID_H - 2, GRID_W - 2, ">");
+  // You, a gem one step to your right, and the way out along the same floor.
+  //
+  // ON THE FLOOR, not up in the rim. This used to write into the top border
+  // row, which is fine in a game seen from above and nonsense in one seen from
+  // the side: the creature falls away from the gem the instant the level
+  // starts. It passed anyway until dash/9, because up to dash/8 a step was
+  // full speed on the frame you pressed, so it crossed the cell before gravity
+  // got hold of it. Acceleration took that accident away, which is the test
+  // being wrong rather than the physics.
+  const floor = GRID_H - 1;   // the last playable row, just above the bottom wall
+  put(floor, 2, "@");
+  put(floor, 3, "$");
+  put(floor, GRID_W - 2, ">");
   return rows.join("\n") + "\n";
 }
 

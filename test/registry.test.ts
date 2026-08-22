@@ -38,6 +38,10 @@ test("every build ships: retiring one would break every link that pinned it", ()
     // and a joke underwater. New builds, because ice decides where you can
     // stand and so it decides the hearts. See adr/0056.
     "calm/3", "swim/4",
+    // dash/9: weight. Acceleration and friction, a jump you can cut short, a
+    // moment of grace after a ledge, and a jump asked for early still landing.
+    // Reported as "it feels like moving a cursor". See adr/0058.
+    "dash/9",
   ]);
 });
 

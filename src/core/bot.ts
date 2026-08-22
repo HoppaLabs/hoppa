@@ -532,6 +532,39 @@ function playFromTheSide(
   // person does: you do not change your mind halfway over a hole.
   let flightWay = 0;
 
+  /**
+   * Whether the jump button was down last tick, so the bot can LET GO of it.
+   *
+   * From dash/9 a jump is armed by the press rather than by the button being
+   * down -- which is what makes "hold it for a high jump, tap it for a hop"
+   * mean anything, and what stops a held button bouncing you for ever. The bot
+   * held it every tick it wanted to be jumping, so from dash/9 it jumped once
+   * and then never again: "up and over" and "mind the spikes" both went from
+   * beaten-by-everybody to beaten-by-half. That is not the physics being wrong,
+   * it is the bot not playing the game the way a person does. A person taps.
+   */
+  let jumpedLastTick = false;
+
+  /**
+   * Ticks left of a jump the bot is holding the button down for.
+   *
+   * From dash/9 the jump has two heights: hold the button and you get the full
+   * push, let go on the way up and the rise is cut short. That is the single
+   * most-used control in a game of this shape and it did nothing at all until
+   * now -- but it means a bot that TAPS jump only ever hops.
+   *
+   * Which is exactly what happened, and it took three wrong guesses to find:
+   * the bot stopped beating two of the three shipped rooms, and both the air
+   * control and the jump edge were blamed and changed before anybody measured
+   * anything. Walking and jump height turned out to be within seven percent of
+   * dash/8. The bot was hopping.
+   *
+   * Nine ticks is a full-height jump with a little to spare. A person holds the
+   * button until they are going where they meant to go.
+   */
+  const JUMP_HOLD = 9;
+  let jumpHold = 0;
+
   for (let tick = 0; tick < cap; tick++) {
     if (engine.currentStatus() !== STATUS_PLAYING) break;
     const tiles = engine.render();
@@ -677,6 +710,23 @@ function playFromTheSide(
     // Still nowhere? Jump. Covers a step up and a ledge that walking will not
     // clear.
     if (stalled > 8) held |= HELD_ACT;
+
+    // Jump like a person: press, HOLD for the height, then let go before the
+    // next one. From dash/9 the press arms the jump and the hold decides how
+    // high it goes, so a bot that taps can only hop and a bot that never lets
+    // go can only jump once.
+    {
+      const wants = (held & HELD_ACT) !== 0;
+      held = (held & ~HELD_ACT) | 0;
+      if (jumpHold > 0) {
+        held |= HELD_ACT;
+        jumpHold = (jumpHold - 1) | 0;
+      } else if (wants && !jumpedLastTick) {
+        held |= HELD_ACT;
+        jumpHold = JUMP_HOLD - 1;
+      }
+      jumpedLastTick = (held & HELD_ACT) !== 0;
+    }
 
     log.push(held);
     engine.step(held);

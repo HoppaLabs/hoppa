@@ -444,6 +444,59 @@ const MUTATIONS: readonly Mutation[] = [
     find: "    h = hashInt32(h, this.collected);",
     replace: "    h = hashInt32(h, this.collected);\n    h = hashInt32(h, this.level.tilesetId);",
   },
+  {
+    // dash/9 exists because dash/8 moved at full speed on the tick the button
+    // went down and stopped dead on the tick it came up. That is the "moving a
+    // cursor" the whole build was asked to fix, so it is the first thing worth
+    // checking a test would notice coming back.
+    breaks: "the platformer goes back to instant full speed (no weight)",
+    file: "src/engines/dash/v9.ts",
+    find: "      this.vx = towards(this.vx, (this.run * dx) | 0, push);",
+    replace: "      this.vx = ((this.run * dx) | 0);",
+  },
+  {
+    // The other half of the same defect: letting go should coast, not brake.
+    breaks: "letting go stops dead instead of sliding",
+    file: "src/engines/dash/v9.ts",
+    find: "      this.vx = towards(this.vx, 0, drag);",
+    replace: "      this.vx = 0;",
+  },
+  {
+    // Coyote time that never expires is worse than none: you can jump from
+    // anywhere in mid-air for the rest of the fall, which is a double jump
+    // nobody asked for and quietly makes every level easier.
+    breaks: "coyote time never runs out, so you can jump in mid-air",
+    file: "src/engines/dash/v9.ts",
+    find: "    else if (this.coyote > 0) this.coyote = (this.coyote - 1) | 0;",
+    replace: "    else if (this.coyote > 0) this.coyote = this.coyote | 0;",
+  },
+  {
+    // Arming the buffer on the button being DOWN rather than on the press
+    // means holding jump re-arms it every tick: you bounce for ever.
+    breaks: "holding jump re-arms the buffer, so you bounce for ever",
+    file: "src/engines/dash/v9.ts",
+    find: "    if (jumpDown && !this.jumpWasDown) this.buffered = BUFFER_TICKS;",
+    replace: "    if (jumpDown) this.buffered = BUFFER_TICKS;",
+  },
+  {
+    // The jump cut must only touch a jump the player asked for. Applied to
+    // every upward move it also clips the bounce off an enemy's head, taking
+    // the reward away from the risk.
+    breaks: "the jump cut also clips bounces the player did not ask for",
+    file: "src/engines/dash/v9.ts",
+    find: "    if (this.jumping) {\n      if (this.vy >= 0) this.jumping = false;",
+    replace: "    if (true) {\n      if (this.vy >= 0) this.jumping = false;",
+  },
+  {
+    // A fall is stepped in body-wide slices so nothing tunnels through a thin
+    // floor. Throwing away a slice that does not fit leaves you standing a
+    // third of a cell above the floor, sinking into it over the next ten ticks
+    // with `grounded` flickering on and off all the way down.
+    breaks: "landing stops short of the floor and then sinks into it",
+    file: "src/engines/dash/v9.ts",
+    find: "          if (this.fits(this.x, settled)) this.y = settled;",
+    replace: "          if (false) this.y = settled;",
+  },
 ];
 
 /**

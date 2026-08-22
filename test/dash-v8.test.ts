@@ -28,7 +28,18 @@ type Watchable = {
 const WHO = PRESETS[0] as (typeof PRESETS)[number];
 
 /** A level as the editor hands it over, with one enemy painted in. */
-function drawn(glyph: string, x: number, y: number, version = newestBuild("dash")): Watchable {
+/**
+ * EIGHT, written down, not `newestBuild("dash")`.
+ *
+ * A file named for a build tests that build for ever: a link that pinned
+ * dash/8 has to keep playing the game it was beaten under. Written the other
+ * way, the day dash/9 landed every case in here would have quietly moved onto
+ * a build with different physics and left dash/8 covered by nothing. Caught
+ * once already in test/swim-v3.test.ts.
+ */
+const V8 = 8;
+
+function drawn(glyph: string, x: number, y: number, version = V8): Watchable {
   let draft = blankDraft("dash", version);
   draft = paint(draft, x, y, glyph as Glyph).draft;
   return engineFor(parseLevel(draftToText(draft)), WHO) as unknown as Watchable;
@@ -87,7 +98,7 @@ test("nothing leaves the grid, whatever a child deletes", () => {
   // A room with its floor scraped out is a level the advice already refuses to
   // call playable -- but it must not put an enemy through the bottom of the
   // world on the way to being told so.
-  let draft = blankDraft("dash", newestBuild("dash"));
+  let draft = blankDraft("dash", V8);
   for (let x = 1; x < GRID_W - 1; x = (x + 1) | 0) {
     draft = paint(draft, x, GRID_H - 1, "." as Glyph).draft;
   }
@@ -116,5 +127,8 @@ test("every dash build still routes", () => {
   const dash = knownBuilds().filter((build) => build.startsWith("dash/"));
   expect(dash).toContain("dash/7");
   expect(dash).toContain("dash/8");
-  expect(newestBuild("dash")).toBe(8);
+  // dash/9 is what a new level is drawn under now -- see test/dash-v9.test.ts.
+  // Nothing ever leaves: dash/8's links still find dash/8.
+  expect(newestBuild("dash")).toBe(9);
+  expect(dash).toContain("dash/9");
 });

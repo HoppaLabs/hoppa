@@ -35,6 +35,7 @@ import { DashV5, DASH_V5_BEHAVIOUR } from "./dash/v5.ts";
 import { DashV6, DASH_V6_BEHAVIOUR } from "./dash/v6.ts";
 import { DashV7, DASH_V7_BEHAVIOUR } from "./dash/v7.ts";
 import { DashV8, DASH_V8_BEHAVIOUR } from "./dash/v8.ts";
+import { DashV9, DASH_V9_BEHAVIOUR } from "./dash/v9.ts";
 import type { Engine } from "./types.ts";
 
 export class UnknownBehaviourError extends Error {}
@@ -234,6 +235,16 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
     `swim/${SWIM_V4_BEHAVIOUR}`,
     (level, creature) =>
       creature === undefined ? new SwimV4(level) : new SwimV4(level, creature),
+  ],
+  // dash/9: weight. Acceleration and friction, a jump you can cut short, a
+  // moment of grace after a ledge, and a jump asked for early still landing.
+  // Up to dash/8 a step was `x += run * direction` -- reported as "it feels
+  // like moving a cursor". All four are authoritative, so it is a new build and
+  // dash/8 keeps working for ever. See adr/0058.
+  [
+    `dash/${DASH_V9_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new DashV9(level) : new DashV9(level, creature),
   ],
 ]);
 

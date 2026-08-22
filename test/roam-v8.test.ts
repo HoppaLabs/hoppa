@@ -175,5 +175,6 @@ test("which fires are out is real state, so a level still replays", () => {
 
 test("a new top-down level is drawn with water in it", () => {
   expect(newestBuild("roam")).toBe(8);
-  expect(newestBuild("dash")).toBe(8);   // spikes still do not go out; dash/8 is the falling enemy
+  // dash/9 is the newest now: weight. Spikes still do not go out.
+  expect(newestBuild("dash")).toBe(9);
 });
