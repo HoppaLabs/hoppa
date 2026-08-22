@@ -32,6 +32,40 @@ interface Mutation {
 
 const MUTATIONS: readonly Mutation[] = [
   {
+    // The whole point of the editor's send button. If the code the bot played
+    // is not compared with the code on the paper, the button stays open across
+    // an edit and a child sends a room nothing has ever been through.
+    breaks: "a proof of one room counts as a proof of the room it became",
+    file: "src/web/level/sendable.ts",
+    find: "  return run.code === code;",
+    replace: "  return true;",
+  },
+  {
+    // The narrower half: autoplay that could NOT finish must not open it.
+    breaks: "a bot that failed to get out still opens the send button",
+    file: "src/web/level/sendable.ts",
+    find: "  if (!run.won && !run.place) return false;",
+    replace: "  if (false) return false;",
+  },
+  {
+    // Reported: the unbeaten wording read as a warning rather than an
+    // invitation. Swapping it back is a silent regression -- nothing crashes,
+    // the link still works, and the message is wrong in WhatsApp.
+    breaks: "a level you designed goes out advertising that nobody has beaten it",
+    file: "src/web/invite.ts",
+    find: "    ? `Try playing this level I designed: ${invite.name}`",
+    replace: "    ? `Play my level: ${invite.name} -- I have not done it yet!`",
+  },
+  {
+    // The order of the four ways to send. The share sheet has to come first:
+    // when the clipboard went first and failed silently, nothing appeared on
+    // screen AND the old link stayed on the clipboard.
+    breaks: "the clipboard is tried before the phone's own share sheet",
+    file: "src/web/send.ts",
+    find: '  if (typeof navigator.share === "function") {',
+    replace: "  if (false) {",
+  },
+  {
     // The whole risk of raze/1 in one edit. A smashed building is state; state
     // that is not hashed is state a replay can disagree about, and a shared
     // level is only worth anything because the proof replays cold.

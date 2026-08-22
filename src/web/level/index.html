@@ -229,6 +229,17 @@
   #says.good { color: var(--open); }
   #play { background: var(--open); color: var(--bg); font-weight: 600; border: 0; }
   #play:disabled { background: var(--key); color: var(--ink); }
+  #sendit { border-color: var(--gold); color: var(--gold); }
+  #sendit[hidden] { display: none; }
+  /* The link itself may end up in here, and a level code is 200 characters of
+     base64 with no spaces in it. Break it anywhere rather than push the page
+     sideways. */
+  #sent {
+    font-size: 11px; color: var(--ink); text-align: center; max-width: 38ch;
+    overflow-wrap: anywhere;
+  }
+  #sent[hidden] { display: none; }
+  #sent.bad { color: var(--bad); }
   .hint { font-size: 11px; color: var(--ink); text-align: center; max-width: 38ch; }
   /* A question that stops the world goes over the middle of it. Inline, under
      the thumbnails, it was below the fold on a phone and easy to miss. */
@@ -301,8 +312,14 @@
 
     <div class="row">
       <button id="play">play it</button>
+      <!-- Hidden until a bot has been through THIS room and got out. Not a
+           lock on drawing: a level you cannot finish is still yours to draw,
+           play and keep. It is the one honest claim the editor can make about
+           a room the child has not played -- see src/web/level/sendable.ts. -->
+      <button id="sendit" hidden>send it</button>
       <button id="clear">start over</button>
     </div>
+    <div id="sent" hidden></div>
 
     <!-- Last, and on purpose. Nine thumbnails is the tallest thing on this
          page and it is the one thing you use ONCE, before you have drawn

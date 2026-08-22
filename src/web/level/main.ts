@@ -30,7 +30,10 @@ import {
 import { adviceFor } from "../../core/advice.ts";
 import { newestBuild } from "../../core/builds.ts";
 import { decodeLevel, encodeLevel } from "../../core/codec.ts";
-import { slugify } from "../play/link.ts";
+import { linkFor, slugify } from "../play/link.ts";
+import { sendLink } from "../send.ts";
+import { inviteText } from "../invite.ts";
+import { canSend, type BotRun } from "./sendable.ts";
 import { GridRenderer, tileChip } from "../play/renderer.ts";
 import { RUBBER_ICON } from "../icons.ts";
 import { GAMES, TOOLS, enemyArtFor, labelFor } from "./palette.ts";
@@ -107,6 +110,8 @@ const nameBox = document.getElementById("name") as HTMLInputElement;
 const playButton = document.getElementById("play") as HTMLButtonElement;
 const clearButton = document.getElementById("clear") as HTMLButtonElement;
 const watchButton = document.getElementById("watch") as HTMLButtonElement;
+const sendButton = document.getElementById("sendit") as HTMLButtonElement;
+const sentLine = document.getElementById("sent") as HTMLElement;
 
 const renderer = new GridRenderer(paper);
 const tiles = new Uint8Array(GRID_W * GRID_H);
@@ -797,7 +802,64 @@ function review(): void {
   // obviously broken, in words they can act on" -- the words, not a lock.
   playButton.disabled = false;
   paintTools();
+  paintSendGate();
 }
+
+/**
+ * The last room a bot got through, and the room it was.
+ *
+ * Null until "auto play" finishes something. Never cleared by hand: the code
+ * it carries IS the clearing mechanism, so drawing one more wall closes the
+ * button without anybody remembering to. See ./sendable.ts.
+ */
+let botRun: BotRun | null = null;
+
+function paintSendGate(): void {
+  const open = canSend(botRun, draftToText(draft));
+  sendButton.hidden = !open;
+  // The message belongs to the level it was said about. Once the room has
+  // moved on, "link copied" is about a link to somewhere else.
+  if (!open) sentLine.hidden = true;
+}
+
+/** Where the game lives, from where the editor lives: one directory up. */
+function gameBase(): string {
+  const path = window.location.pathname.replace(/[^/]*$/, "").replace(/[^/]+\/$/, "");
+  return `${window.location.origin}${path}`;
+}
+
+sendButton.addEventListener("click", () => {
+  const title = nameBox.value.trim() === "" ? "my level" : nameBox.value.trim();
+  let url: string;
+  try {
+    url = linkFor(parseLevel(draftToText(draft)), title, gameBase());
+  } catch {
+    sentLine.className = "bad";
+    sentLine.textContent = "this level will not fit in a link";
+    sentLine.hidden = false;
+    return;
+  }
+  void sendLink({
+    url,
+    // Always unbeaten by the child at this end -- the whole point of the
+    // button is that they have not played it. A bot has, which is what let
+    // the button appear, but a bot's run is not theirs to boast about.
+    text: inviteText({
+      sendingBack: false,
+      mine: true,
+      beaten: false,
+      score: 0,
+      unit: "s",
+      name: title,
+    }),
+    copied: "link copied \u2014 send it to a friend",
+    say: (words: string, bad = false): void => {
+      sentLine.className = bad ? "bad" : "";
+      sentLine.textContent = words;
+      sentLine.hidden = false;
+    },
+  });
+});
 
 function store(): void {
   saveDraft(draft, nameBox.value);
@@ -905,6 +967,10 @@ watchButton.addEventListener("click", () => {
               ? `beaten in ${attempt.seconds}s, ${attempt.treasure} treasure, ${attempt.hearts} hearts left`
               : `could not finish it -- ${attempt.why}`;
           says.className = attempt.won || attempt.place ? "good" : "bad";
+          // What the bot just proved, and about which room. This is the only
+          // thing that opens the send button.
+          botRun = { code: draftToText(draft), won: attempt.won, place: attempt.place };
+          paintSendGate();
           stopWatching();
         }
       }, realtime ? 33 : 110);
