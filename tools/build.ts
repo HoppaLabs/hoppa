@@ -3,7 +3,7 @@
 
 import { rm, mkdir } from "node:fs/promises";
 import { hashBytes, hashHex, hashInit } from "../src/core/hash.ts";
-import { iconPng } from "./icon.ts";
+import { faviconPng, iconPng } from "./icon.ts";
 
 const OUT = "dist";
 
@@ -20,6 +20,9 @@ const SHELL_FIXED = [
   "icon-180.png",
   "icon-192.png",
   "icon-512.png",
+  // The tab icon, and the one a shared link carries. In the shell so a link
+  // opened with the radio off still has it.
+  "icon-32.png",
 ];
 
 // What a phone needs to keep the game on a home screen, which is the one place
@@ -103,6 +106,9 @@ export async function build(): Promise<string[]> {
   for (const side of [180, 192, 512]) {
     await Bun.write(`${OUT}/icon-${side}.png`, iconPng(side));
   }
+  // ...and the jaeger, for the tab and for whatever a phone shows beside a
+  // pasted link. See faviconPng().
+  await Bun.write(`${OUT}/icon-32.png`, faviconPng());
   await Bun.write(`${OUT}/manifest.webmanifest`, `${JSON.stringify(MANIFEST, null, 2)}\n`);
 
   // The worker is built last, because its version is a hash OF everything
