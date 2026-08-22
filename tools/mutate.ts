@@ -32,6 +32,20 @@ interface Mutation {
 
 const MUTATIONS: readonly Mutation[] = [
   {
+    // Reported as "the seagulls are moving in the wrong direction". A sprite
+    // drawn facing left, in a renderer that mirrors for left, walks backwards
+    // for its whole life.
+    //
+    // The row picked matters: this one carries the BEAK, which is the landmark
+    // test/facing-art.test.ts measures. The first version of this mutation
+    // flipped an outline row instead and sailed straight through -- a mutation
+    // that cannot break the thing the test looks at is not a mutation.
+    breaks: "the gull goes back to being drawn facing the wrong way",
+    file: "src/core/enemies.ts",
+    find: '    "...6444444444556",',
+    replace: '    "6554444444446...",',
+  },
+  {
     // A tower every cell is not a castle, it is a fence -- and it erases the
     // shape the child drew.
     breaks: "a straight run of wall becomes a row of turrets",
