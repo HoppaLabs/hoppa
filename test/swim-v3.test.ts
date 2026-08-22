@@ -66,7 +66,12 @@ test("swim/3 is still routed, and is no longer the newest", () => {
   // What this file tests is swim/3, forever: a link that pinned it has to keep
   // playing the game it was beaten under, so these are not tests of "the
   // current rules" and must not be re-pointed at whatever is newest.
-  expect(newestBuild("swim")).toBe(4);
+  //
+  // The assertion itself is now "no longer the newest" rather than a version
+  // number. It went red a second time when swim/5 landed, which is the guard
+  // working -- but the fact worth guarding is that swim/3 has been superseded
+  // and still routes, and that does not change again with every build.
+  expect(newestBuild("swim")).toBeGreaterThan(3);
   expect(knownBuilds()).toContain("swim/3");
   expect(V3).toBe(3);
 });

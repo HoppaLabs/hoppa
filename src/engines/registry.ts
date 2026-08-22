@@ -20,6 +20,9 @@ import { RoamV6, ROAM_V6_BEHAVIOUR } from "./roam/v6.ts";
 import { RoamV7, ROAM_V7_BEHAVIOUR } from "./roam/v7.ts";
 import { RoamV8, ROAM_V8_BEHAVIOUR } from "./roam/v8.ts";
 import { RoamV9, ROAM_V9_BEHAVIOUR } from "./roam/v9.ts";
+import { CalmV4, CALM_V4_BEHAVIOUR } from "./calm/v4.ts";
+import { RazeV2, RAZE_V2_BEHAVIOUR } from "./raze/v2.ts";
+import { SwimV5, SWIM_V5_BEHAVIOUR } from "./swim/v5.ts";
 import { SwimV1, SWIM_V1_BEHAVIOUR } from "./swim/v1.ts";
 import { SwimV2, SWIM_V2_BEHAVIOUR } from "./swim/v2.ts";
 import { SwimV3, SWIM_V3_BEHAVIOUR } from "./swim/v3.ts";
@@ -256,6 +259,28 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
     `roam/${ROAM_V9_BEHAVIOUR}`,
     (level, creature) =>
       creature === undefined ? new RoamV9(level) : new RoamV9(level, creature),
+  ],
+  // calm/4 and raze/2: the same movement again, in the garden and the city.
+  // A garden is nearly all gaps between hedges and a city is nearly all street
+  // corners, so both feel the doorway assist more than the caves do.
+  [
+    `calm/${CALM_V4_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new CalmV4(level) : new CalmV4(level, creature),
+  ],
+  [
+    `raze/${RAZE_V2_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new RazeV2(level) : new RazeV2(level, creature),
+  ],
+  // swim/5: the reef already had momentum -- it is the one build nobody meant
+  // by "moving a cursor" -- so this is only the three things it shared with the
+  // rest: diagonals that are not 41% faster, a gap in the rock you are nearly
+  // lined up with, and a swing you asked for slightly early.
+  [
+    `swim/${SWIM_V5_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new SwimV5(level) : new SwimV5(level, creature),
   ],
 ]);
 

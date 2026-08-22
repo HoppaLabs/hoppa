@@ -48,6 +48,14 @@ test("every build ships: retiring one would break every link that pinned it", ()
     // asked slightly early, and a hit that throws you rather than teleporting
     // you. See adr/0059.
     "roam/9",
+    // calm/4 and raze/2: the same movement in the garden and the city. A garden
+    // is nearly all gaps between hedges and a city is nearly all street
+    // corners, so both feel the doorway assist more than the caves do.
+    "calm/4", "raze/2",
+    // swim/5: the reef already had momentum, so this is only the three things
+    // it shared with the rest -- diagonals, the gap in the rock you nearly
+    // lined up with, and the swing you asked for slightly early.
+    "swim/5",
   ]);
 });
 

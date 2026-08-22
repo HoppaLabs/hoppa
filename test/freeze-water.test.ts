@@ -99,11 +99,34 @@ function wave(game: Player): void {
   game.step(HELD_NONE);
 }
 
-const WORLDS = ["calm", "swim"] as const;
+/**
+ * Every build the wand freezes on: the one that introduced it, and the newest.
+ *
+ * BOTH, and that is not belt-and-braces. This list used to be just the engine
+ * names, with the version defaulting to `newestBuild()` -- so the day calm/4
+ * and swim/5 landed, four mutations in `calm/v3.ts` and `swim/v4.ts` started
+ * SURVIVING. Those builds are still routed for every link that pinned them.
+ * Nothing about them had changed; the tests had quietly walked away.
+ *
+ * Same lesson as roam/8's guards, the same afternoon. Moving forward is not
+ * allowed to take the cover off what was left behind.
+ */
+const WORLDS = [
+  { engine: "calm", version: 3 },
+  { engine: "calm", version: newestBuild("calm") },
+  { engine: "swim", version: 4 },
+  { engine: "swim", version: newestBuild("swim") },
+] as const;
+
+const GARDENS = WORLDS.filter((w) => w.engine === "calm");
+const REEFS = WORLDS.filter((w) => w.engine === "swim");
 
 test("both new builds are routed, and the old ones never left", () => {
-  expect(newestBuild("calm")).toBe(3);
-  expect(newestBuild("swim")).toBe(4);
+  // Freezing arrived in calm/3 and swim/4 and has been carried forward since,
+  // so these are floors rather than fixed numbers: calm/4 kept the wand and
+  // added a body. What must never change is that the OLD builds still route.
+  expect(newestBuild("calm")).toBeGreaterThanOrEqual(3);
+  expect(newestBuild("swim")).toBeGreaterThanOrEqual(4);
   for (const build of ["calm/1", "calm/2", "calm/3", "swim/1", "swim/2", "swim/3", "swim/4"]) {
     expect({ build, routed: knownBuilds().includes(build) }).toEqual({ build, routed: true });
   }
@@ -114,31 +137,31 @@ test("one wave turns the WHOLE pond to ice, and leaves the other pond alone", ()
   // the water to reach the next one -- which is not a way across, it is a
   // slower way of drowning. And flood-filled through touching water only, or
   // the wand would be a bucket with extra steps.
-  for (const engine of WORLDS) {
-    const game = start(twoPonds(engine), WANDER);
-    expect({ engine, ...counts(game) }).toEqual({ engine, fire: 5, ice: 0 });
+  for (const { engine, version } of WORLDS) {
+    const game = start(twoPonds(engine, version), WANDER);
+    expect({ engine, version, ...counts(game) }).toEqual({ engine, version, fire: 5, ice: 0 });
     wave(game);
-    expect({ engine, ...counts(game) }).toEqual({ engine, fire: 2, ice: 3 });
+    expect({ engine, version, ...counts(game) }).toEqual({ engine, version, fire: 2, ice: 3 });
   }
 });
 
 test("...and it wears off, which is what makes it a wand and not a bucket", () => {
-  for (const engine of WORLDS) {
-    const game = start(twoPonds(engine), WANDER);
+  for (const { engine, version } of WORLDS) {
+    const game = start(twoPonds(engine, version), WANDER);
     wave(game);
-    expect({ engine, iced: counts(game).ice }).toEqual({ engine, iced: 3 });
+    expect({ engine, version, iced: counts(game).ice }).toEqual({ engine, version, iced: 3 });
     // Three seconds at no pips, and this creature has none in FORCE.
     for (let i = 0; i < 200; i = (i + 1) | 0) game.step(HELD_NONE);
-    expect({ engine, ...counts(game) }).toEqual({ engine, fire: 5, ice: 0 });
+    expect({ engine, version, ...counts(game) }).toEqual({ engine, version, fire: 5, ice: 0 });
   }
 });
 
 test("a sword freezes nothing at all, and that is the trade", () => {
   // The same shape as "a wand never kills": not a shortcoming, a trade.
-  for (const engine of WORLDS) {
-    const game = start(twoPonds(engine), SWINGER);
+  for (const { engine, version } of WORLDS) {
+    const game = start(twoPonds(engine, version), SWINGER);
     for (let i = 0; i < 5; i = (i + 1) | 0) wave(game);
-    expect({ engine, ...counts(game) }).toEqual({ engine, fire: 5, ice: 0 });
+    expect({ engine, version, ...counts(game) }).toEqual({ engine, version, fire: 5, ice: 0 });
   }
 });
 
@@ -146,31 +169,37 @@ test("in the garden the ice is a BRIDGE, because a pond there is solid", () => {
   // Two worlds, two different problems, one verb. calm makes water solid --
   // you walk round a pond or over a plank -- so ice is a way across rather
   // than a way to stop being hurt.
-  const stuck = start(crossing("calm"), WANDER);
-  for (let i = 0; i < 60; i = (i + 1) | 0) stuck.step(HELD_RIGHT);
-  expect(toCell(stuck.where().x)).toBe(7);   // hard against the water, all day
+  for (const { version } of GARDENS) {
+    const stuck = start(crossing("calm", version), WANDER);
+    for (let i = 0; i < 90; i = (i + 1) | 0) stuck.step(HELD_RIGHT);
+    // Hard against the water, all day.
+    expect({ version, cell: toCell(stuck.where().x) }).toEqual({ version, cell: 7 });
 
-  const over = start(crossing("calm"), WANDER);
-  for (let i = 0; i < 30; i = (i + 1) | 0) over.step(HELD_RIGHT);
-  over.step(HELD_ACT);
-  for (let i = 0; i < 60; i = (i + 1) | 0) over.step(HELD_RIGHT);
-  expect(toCell(over.where().x)).toBeGreaterThan(12);
-  expect(over.health().hp).toBe(over.health().max);   // and it cost nothing
+    const over = start(crossing("calm", version), WANDER);
+    for (let i = 0; i < 40; i = (i + 1) | 0) over.step(HELD_RIGHT);
+    over.step(HELD_ACT);
+    for (let i = 0; i < 90; i = (i + 1) | 0) over.step(HELD_RIGHT);
+    expect({ version, past: toCell(over.where().x) > 12 }).toEqual({ version, past: true });
+    // And it cost nothing.
+    expect({ version, hp: over.health().hp }).toEqual({ version, hp: over.health().max });
+  }
 });
 
 test("...and on the reef it is a HELMET: the urchins stop biting", () => {
   // swim lets you swim straight over a bank of urchins and charges you a heart
   // for it. Ice is the answer to the hurt rather than to the wall.
-  const bare = start(crossing("swim"), WANDER);
-  const full = bare.health().max;
-  for (let i = 0; i < 120; i = (i + 1) | 0) bare.step(HELD_RIGHT);
-  expect(bare.health().hp).toBeLessThan(full);
+  for (const { version } of REEFS) {
+    const bare = start(crossing("swim", version), WANDER);
+    const full = bare.health().max;
+    for (let i = 0; i < 120; i = (i + 1) | 0) bare.step(HELD_RIGHT);
+    expect({ version, hurt: bare.health().hp < full }).toEqual({ version, hurt: true });
 
-  const iced = start(crossing("swim"), WANDER);
-  for (let i = 0; i < 20; i = (i + 1) | 0) iced.step(HELD_RIGHT);
-  iced.step(HELD_ACT);
-  for (let i = 0; i < 120; i = (i + 1) | 0) iced.step(HELD_RIGHT);
-  expect(iced.health().hp).toBe(full);
+    const iced = start(crossing("swim", version), WANDER);
+    for (let i = 0; i < 20; i = (i + 1) | 0) iced.step(HELD_RIGHT);
+    iced.step(HELD_ACT);
+    for (let i = 0; i < 120; i = (i + 1) | 0) iced.step(HELD_RIGHT);
+    expect({ version, hp: iced.health().hp }).toEqual({ version, hp: full });
+  }
 });
 
 test("the ice is in the hash, or a shared level would not replay", () => {
@@ -190,16 +219,16 @@ test("the ice is in the hash, or a shared level would not replay", () => {
   // out the swing, so `swing` and `pour` are back to zero in both, and the ONLY
   // thing left that can differ is the ice.
   const AFTER_SWING = 40;
-  for (const engine of WORLDS) {
-    const iced = start(twoPonds(engine), WANDER);
-    const bare = start(twoPonds(engine), SWINGER);
+  for (const { engine, version } of WORLDS) {
+    const iced = start(twoPonds(engine, version), WANDER);
+    const bare = start(twoPonds(engine, version), SWINGER);
     iced.step(HELD_ACT);
     bare.step(HELD_ACT);
     for (let i = 0; i < AFTER_SWING; i = (i + 1) | 0) { iced.step(HELD_NONE); bare.step(HELD_NONE); }
-    expect({ engine, ice: counts(iced).ice }).toEqual({ engine, ice: 3 });
-    expect({ engine, ice: counts(bare).ice }).toEqual({ engine, ice: 0 });
-    expect({ engine, same: iced.stateHash() === bare.stateHash() })
-      .toEqual({ engine, same: false });
+    expect({ engine, version, ice: counts(iced).ice }).toEqual({ engine, version, ice: 3 });
+    expect({ engine, version, ice: counts(bare).ice }).toEqual({ engine, version, ice: 0 });
+    expect({ engine, version, same: iced.stateHash() === bare.stateHash() })
+      .toEqual({ engine, version, same: false });
   }
 });
 
@@ -208,15 +237,15 @@ test("...and the control: once it thaws, those same two runs agree again", () =>
   // wand and a sword that nobody intended to hash. If the only thing that
   // separated them was the ice, then outliving the ice has to bring them back
   // together -- and it does, exactly.
-  for (const engine of WORLDS) {
-    const iced = start(twoPonds(engine), WANDER);
-    const bare = start(twoPonds(engine), SWINGER);
+  for (const { engine, version } of WORLDS) {
+    const iced = start(twoPonds(engine, version), WANDER);
+    const bare = start(twoPonds(engine, version), SWINGER);
     iced.step(HELD_ACT);
     bare.step(HELD_ACT);
     for (let i = 0; i < 300; i = (i + 1) | 0) { iced.step(HELD_NONE); bare.step(HELD_NONE); }
-    expect({ engine, ice: counts(iced).ice }).toEqual({ engine, ice: 0 });
-    expect({ engine, same: iced.stateHash() === bare.stateHash() })
-      .toEqual({ engine, same: true });
+    expect({ engine, version, ice: counts(iced).ice }).toEqual({ engine, version, ice: 0 });
+    expect({ engine, version, same: iced.stateHash() === bare.stateHash() })
+      .toEqual({ engine, version, same: true });
   }
 });
 

@@ -560,6 +560,56 @@ const MUTATIONS: readonly Mutation[] = [
     find: "      this.stun = STUN_TICKS;",
     replace: "      this.stun = 0;",
   },
+  // calm/4, raze/2 and swim/5 are COPIES of roam/9's movement, because hard
+  // rule 3 forbids editing a shipped build. Three copies is three chances for
+  // one of them to drift, and a test that only ever exercises roam would not
+  // notice. So each copy gets its own mutation.
+  {
+    breaks: "the garden goes back to instant full speed",
+    file: "src/engines/calm/v4.ts",
+    find: "      : towards(this.vx, wantX, pushFor(this.vx, wantX, accel));",
+    replace: "      : (wantX | 0);",
+  },
+  {
+    breaks: "a gap between the garden's hedges stops you dead again",
+    file: "src/engines/calm/v4.ts",
+    find: "        const step = straightX ? alignStep(this.y) : 0;",
+    replace: "        const step = 0;",
+  },
+  {
+    breaks: "the city goes back to instant full speed",
+    file: "src/engines/raze/v2.ts",
+    find: "      : towards(this.vx, wantX, pushFor(this.vx, wantX, accel));",
+    replace: "      : (wantX | 0);",
+  },
+  {
+    breaks: "a hit in the city stops throwing you",
+    file: "src/engines/raze/v2.ts",
+    find: "      this.vx = knock.vx;\n      this.vy = knock.vy;",
+    replace: "      this.vx = 0;\n      this.vy = 0;",
+  },
+  {
+    // The reef's own diagonal fix: the cap is per axis, so without cutting it
+    // when both are held, two buttons buy 41% more speed than one.
+    breaks: "swimming diagonally is a 41% speed boost again",
+    file: "src/engines/swim/v5.ts",
+    find: "    const cap = dx !== 0 && dy !== 0 ? (Math.imul(full, DIAGONAL) >> 8) | 0 : full;",
+    replace: "    const cap = full;",
+  },
+  {
+    breaks: "a gap in the reef's rock stops you dead again",
+    file: "src/engines/swim/v5.ts",
+    find: "        const step = straightX ? alignStep(this.y) : 0;",
+    replace: "        const step = 0;",
+  },
+  {
+    // swim/5's whole promise is that the WATER is untouched. A build that
+    // quietly changed the drift would still pass every corner test here.
+    breaks: "the reef's drift changes, so swimming stops feeling like water",
+    file: "src/engines/swim/v5.ts",
+    find: "    this.vx = pushed(this.vx, dx, cap);",
+    replace: "    this.vx = pushed(this.vx, dx, (cap / 2) | 0);",
+  },
 ];
 
 /**
