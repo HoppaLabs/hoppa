@@ -46,6 +46,8 @@ import { weaponArt, weaponSays } from "./weapon.ts";
 import { goOffline } from "../offline.ts";
 import { holdStill } from "../nozoom.ts";
 import { paintLogo } from "../logo.ts";
+import { bucketHelps, hasWater } from "./water.ts";
+import { tilesetFor } from "../../core/tileset.ts";
 import { sendLink } from "../send.ts";
 import { inviteText } from "../invite.ts";
 import { AIR_QUIET, breathPips, breathWarning, type Breath } from "./breath.ts";
@@ -1081,23 +1083,15 @@ function paintActionButton(): void {
   // on: a button that can never do anything is worse than no button at all.
   const bucket = document.getElementById("water") as HTMLButtonElement | null;
   if (bucket !== null) {
-    const wet = hasWater(level.engine, level.behaviourVersion) && level.fireCells.length > 0;
+    // Three questions, and the button needs all three: does this BUILD douse,
+    // is a bucket the right tool for what this WORLD draws, and is there
+    // anything here to pour it on.
+    const wet = hasWater(level.engine, level.behaviourVersion)
+      && bucketHelps(tilesetFor(level.engine === "dash", level.engine, level.tilesetId).hazard)
+      && level.fireCells.length > 0;
     bucket.hidden = !wet;
     if (wet) bucket.innerHTML = WATER_ICON;
   }
-}
-
-/**
- * The first build from above that carries water.
- *
- * A level pinned to roam/7 or earlier has no bucket, because the person who
- * beat it did not have one -- hard rule 3. Asking the version rather than
- * asking the engine is what keeps an old link honest.
- */
-const FIRST_WATERED_ROAM = 8;
-
-function hasWater(engine: string, version: number): boolean {
-  return engine === "roam" && version >= FIRST_WATERED_ROAM;
 }
 
 /**

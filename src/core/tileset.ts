@@ -207,6 +207,9 @@ const STONE_TOP: Pattern = [
   "1111111111111111",
 ];
 
+/** What a world's still hazard actually is. Presentation only. */
+export type Hazard = "fire" | "spikes" | "urchins" | "water";
+
 export interface Tileset {
   readonly id: number;
   readonly name: string;
@@ -229,6 +232,25 @@ export interface Tileset {
    * not a thing a ladder is made of.
    */
   readonly ladderSub: Ramp;
+  /**
+   * WHAT the still hazard is, in words.
+   *
+   * The engines call it fire and always will -- TILE_FIRE is the index, it is
+   * in every shipped log, and no engine may be told what a world looks like
+   * (hard rule 4). But a world draws it as whatever that world has: a flame in
+   * a cave and a street, a rank of metal spikes in the side-on game, a bank of
+   * urchins on a reef, a pond on a lawn and the sea on a beach. Two of the six
+   * are actually fire.
+   *
+   * Written down because something outside the drawing needs to know. A bucket
+   * of water is a sensible answer to a flame and a silly one to a pond, and the
+   * play page has no other way to tell them apart -- see src/web/play/water.ts.
+   *
+   * Required, not optional, and that is the point: a new world cannot be added
+   * without somebody saying what its hazard is. The bug this replaces was
+   * exactly a condition that named one engine and silently excluded the rest.
+   */
+  readonly hazard: Hazard;
   /** The hazard that does not move: a flame below ground, spikes above it. */
   readonly fire: Pattern;
   /**
@@ -723,6 +745,7 @@ const SPIKES: Pattern = [
 export const UNDERGROUND: Tileset = {
   id: 1,
   name: "underground",
+  hazard: "fire",
   // Darkest first: pit, mortar, shadow, face, lit edge.
   sub: [0, 1, 2, 3, 4],
   wall: STONE,
@@ -743,6 +766,7 @@ export const UNDERGROUND: Tileset = {
 export const OUTSIDE: Tileset = {
   id: 2,
   name: "outside",
+  hazard: "spikes",
   // Four steps of grass, then three of the soil under it.
   sub: [18, 19, 20, 21, 22, 49, 50, 51],
   wall: EARTH,
@@ -776,6 +800,7 @@ export const OUTSIDE: Tileset = {
 export const REEF: Tileset = {
   id: 3,
   name: "reef",
+  hazard: "urchins",
   // Three steps of algae over four of the rock it is growing on: teal down
   // into navy. Sand would have been the obvious floor and it is wrong -- pale
   // sand against pale water leaves nothing to read the shape against.
@@ -820,6 +845,7 @@ export const REEF: Tileset = {
 export const GARDEN: Tileset = {
   id: 4,
   name: "garden",
+  hazard: "water",
   // Four steps of leaf: the dark between the clumps, the mass, the lit dome,
   // and one specular where the sun catches the top of a big one.
   //
@@ -973,6 +999,7 @@ const BOARDWALK: Pattern = [
 export const BEACH: Tileset = {
   id: 5,
   name: "beach",
+  hazard: "water",
   // 1-6 are sand, darkest to a shell's white. 7-9 are the palm's greens, and
   // they live on the end of the terrain ramp rather than in one of their own,
   // because a palm is the only green thing here and a ramp per tile is how
@@ -1232,6 +1259,7 @@ const FIRE_ESCAPE: Pattern = [
 export const CITY: Tileset = {
   id: 6,
   name: "city",
+  hazard: "fire",
   // 1-5 are tarmac up to pale concrete; 6 is a lit window and 7 is white.
   // 1-5 are tarmac up to pale concrete, 6 is a lit window, and 7-9 belong to
   // the CAR: a light red for its lamps and the roof highlight, and two reds

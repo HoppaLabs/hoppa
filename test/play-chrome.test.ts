@@ -110,8 +110,12 @@ test("the action button is under the resting thumb, in every game", () => {
   // ...and with only one button there is no diagonal to sit on, so it takes
   // the middle of the cluster, level with the pad.
   expect(html).toContain("#pad.one #wait { left: 50%; top: 50%;");
-  // ...and with only one, the second circle is not drawn at all.
-  expect(html).toContain("#pad.one #swing, #pad.one #water { display: none; }");
+  // ...and with only one ACTION button, the second circle is not drawn at all.
+  // The bucket is not an action button and must not be swept up in that: it
+  // was, and so it was never once visible in any game. It sits in the corner
+  // the centred action button leaves free. See test/pad.test.ts.
+  expect(html).toContain("#pad.one #swing { display: none; }");
+  expect(html).toContain("#pad.one #water { top: 0; right: 0; }");
   expect(main.includes('pad.classList.toggle("one", !separate);')).toBe(true);
 });
 

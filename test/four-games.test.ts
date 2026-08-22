@@ -109,8 +109,12 @@ test("the pad offers what the game has, and nothing it does not", async () => {
   // Jump: side-on with gravity only. Swimming is from the side and nothing in
   // it falls, so it has no jump.
   expect(play).toContain('const jumping = level.engine === "dash";');
-  // The bucket: top-down, and only where there is a fire to put out.
-  expect(play).toContain('return engine === "roam" && version >= FIRST_WATERED_ROAM;');
+  // The bucket: a build that douses, a world where water is the right answer,
+  // and a level with something to pour it on. It used to ask only whether the
+  // engine was roam, which excluded the four builds that copied the mechanism.
+  // See test/water.test.ts, which asks the ENGINES rather than the condition.
+  expect(play).toContain("hasWater(level.engine, level.behaviourVersion)");
+  expect(play).toContain("bucketHelps(tilesetFor(");
   // And a garden has no action button at all -- no weapon, nothing jumps, and
   // playing with a bunny is done by walking into it. A SWORD in a cosy place
   // says the game wants something of you that it does not.

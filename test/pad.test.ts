@@ -77,11 +77,27 @@ test("hiding a button actually hides it", () => {
   expect(html).not.toContain("#swing[hidden], #water[hidden], #wait[hidden] { display: none; }");
 });
 
-test("the bucket is a top-down thing, and only on a level that has a fire", () => {
+test("the bucket is offered where a bucket helps, and only then", () => {
   expect(html).toContain('<button id="water" aria-label="pour water" hidden>');
-  // Never in the side-on game: the same hazard is drawn there as metal spikes,
-  // and pouring water on a spike does nothing to a spike.
-  expect(play).toContain('return engine === "roam" && version >= FIRST_WATERED_ROAM;');
-  // And never on a level with nothing to pour it on.
+  // Three questions, and it needs all three: does this BUILD douse, is water
+  // the right answer to what this WORLD draws, and is there anything here to
+  // pour it on. The first used to be `engine === "roam"`, which excluded four
+  // builds that douse; the second did not exist, which is why enabling them
+  // put a bucket on a lawn. See test/water.test.ts.
+  expect(play).toContain("hasWater(level.engine, level.behaviourVersion)");
+  expect(play).toContain("bucketHelps(tilesetFor(");
   expect(play).toContain("level.fireCells.length > 0");
+});
+
+test("...and the pad no longer hides it in the games that have it", () => {
+  // The whole reason this was reachable to report. `#pad.one` means ONE ACTION
+  // button, which every top-down game is -- and it swept the bucket up with
+  // the weapon, so the bucket has never once been visible: not in roam/8,
+  // which was built because a child asked for it, nor in the three engines
+  // that copied it since.
+  expect(html).toContain("#pad.one #swing { display: none; }");
+  expect(html).not.toContain("#pad.one #swing, #pad.one #water { display: none; }");
+  // ...and it has somewhere of its own to sit when the action button takes
+  // the middle, or the fix is two buttons on top of each other.
+  expect(html).toContain("#pad.one #water { top: 0; right: 0; }");
 });

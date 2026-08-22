@@ -32,6 +32,29 @@ interface Mutation {
 
 const MUTATIONS: readonly Mutation[] = [
   {
+    // The bug itself: a condition that named one engine, while four more
+    // builds doused and showed no button.
+    breaks: "the bucket goes back to being roam's alone, and four builds lose it",
+    file: "src/web/play/water.ts",
+    find: "  calm: 1,",
+    replace: "",
+  },
+  {
+    // ...and the other half, which hid it even in roam. The bucket is not an
+    // action button and `#pad.one` must not sweep it up.
+    breaks: "the pad hides the bucket again, so no game has ever had one",
+    file: "src/web/play/index.html",
+    find: "  #pad.one #swing { display: none; }",
+    replace: "  #pad.one #swing, #pad.one #water { display: none; }",
+  },
+  {
+    // Turning it on everywhere put a bucket of water on a lawn.
+    breaks: "a bucket is offered on a pond, the sea and a bank of urchins",
+    file: "src/web/play/water.ts",
+    find: '  return hazard === "fire";',
+    replace: "  return true;",
+  },
+  {
     // Reported as "a yellow creature": the icon beside a shared link was the
     // starter, and a link in WhatsApp is how this game travels.
     breaks: "the shared-link icon goes back to being somebody else's creature",

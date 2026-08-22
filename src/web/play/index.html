@@ -211,8 +211,26 @@
      is not beatable on a phone. */
   #wait.word { font-size: 11px; letter-spacing: .1em; color: var(--ink); }
   /* With only one action button there is no diagonal to sit on, so it takes
-     the middle of the cluster: level with the pad, still under the thumb. */
-  #pad.one #swing, #pad.one #water { display: none; }
+     the middle of the cluster: level with the pad, still under the thumb.
+
+     The BUCKET is not an action button and must not be swept up in that.
+     It was, from the day it arrived, and the consequence is the biggest thing
+     this file has hidden: the bucket has never once been visible. roam/8 was
+     built because a child asked for "a water bucket to put out the fires";
+     calm, swim and raze each copied the mechanism; and all four shipped with
+     `display: none` over the only way to reach it. It surfaced from the far
+     end -- "can the wand put out fires, or at least make them cooler so they
+     don't hurt?" -- asked by somebody who had a bucket the whole time.
+
+     `hidden` is what hides it now, which is what `hidden` is for: the button
+     is offered exactly when this build douses and this level has a fire in it.
+     One action button in the middle, the bucket up in the corner, and they do
+     not reach each other. */
+  #pad.one #swing { display: none; }
+  /* Clear of the centred action button: further out and further up than the
+     weapon sits, because the middle of the cluster is occupied here and the
+     corner is not. */
+  #pad.one #water { top: 0; right: 0; }
   #pad.one #wait { left: 50%; top: 50%; bottom: auto; transform: translate(-50%, -50%); }
   #pad.one #wait:active, #pad.one #wait.lit {
     transform: translate(-50%, -50%) translateY(2px);
