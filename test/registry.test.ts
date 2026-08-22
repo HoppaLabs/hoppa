@@ -42,6 +42,12 @@ test("every build ships: retiring one would break every link that pinned it", ()
     // moment of grace after a ledge, and a jump asked for early still landing.
     // Reported as "it feels like moving a cursor". See adr/0058.
     "dash/9",
+    // roam/9: the same finding, from above. Acceleration and friction,
+    // diagonals that are not 41% faster than straight lines, a shove round a
+    // corner when you are nearly lined up with a gap, a swing remembered if you
+    // asked slightly early, and a hit that throws you rather than teleporting
+    // you. See adr/0059.
+    "roam/9",
   ]);
 });
 

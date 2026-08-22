@@ -3,7 +3,7 @@ import { parseLevel } from "../src/core/level.ts";
 import { engineFor, knownBuilds } from "../src/engines/registry.ts";
 import { PRESETS } from "../src/core/creature.ts";
 import { HELD_DOWN, HELD_RIGHT, HELD_SWING, HELD_UP, STATUS_PLAYING } from "../src/engines/types.ts";
-import { TILE_FIRE } from "../src/core/tiles.ts";
+import { TILE_FIRE, TILE_GUARD } from "../src/core/tiles.ts";
 import { POUR_TICKS } from "../src/engines/roam/v8.ts";
 import { newestBuild } from "../src/core/builds.ts";
 
@@ -174,7 +174,37 @@ test("which fires are out is real state, so a level still replays", () => {
 });
 
 test("a new top-down level is drawn with water in it", () => {
-  expect(newestBuild("roam")).toBe(8);
+  // roam/8 brought the bucket; roam/9 kept it and gave the creature a body.
+  expect(newestBuild("roam")).toBeGreaterThanOrEqual(8);
   // dash/9 is the newest now: weight. Spikes still do not go out.
   expect(newestBuild("dash")).toBe(9);
+});
+
+test("roam/8's guards still walk, now that no shipped room is on roam/8", () => {
+  // This test exists because a MUTATION started surviving. "Enemies stop
+  // moving at all" -- the day-17 bug -- had been caught for weeks by the pack
+  // rooms being beaten by the bot. Re-pinning the pack to roam/9 quietly took
+  // that cover away, and roam/8 is still routed for every link that pinned it.
+  //
+  // Retiring a build from the pack is not retiring it from the game.
+  const room = [
+    "hoppa/1 roam seed=walk tiles=0 behaviour=8",
+    "########################",
+    "#@....G...............>#",
+    ...Array.from({ length: 11 }, () => "#......................#"),
+    "########################",
+  ].join("\n");
+  const engine = engineFor(parseLevel(room), who) as unknown as {
+    step(held: number): number;
+    render(): Uint8Array;
+  };
+  const guardAt = (): number => [...engine.render()].indexOf(TILE_GUARD);
+  const wasAt = guardAt();
+  expect(wasAt).toBeGreaterThan(0);
+  let moved = false;
+  for (let tick = 0; tick < 60 && !moved; tick = (tick + 1) | 0) {
+    engine.step(0);
+    if (guardAt() !== wasAt) moved = true;
+  }
+  expect(moved).toBe(true);
 });

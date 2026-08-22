@@ -107,9 +107,10 @@ test("v7 replays identically three times over", () => {
   expect(new Set(hashes).size).toBe(1);
 });
 
-test("all eight roam builds route, because retiring one breaks every link", () => {
+test("all nine roam builds route, because retiring one breaks every link", () => {
   expect(knownBuilds().filter((b) => b.startsWith("roam/"))).toEqual([
     "roam/1", "roam/2", "roam/3", "roam/4", "roam/5", "roam/6", "roam/7", "roam/8",
+    "roam/9",
   ]);
   const engine = engineFor(parseLevel(room(7)), made);
   expect(engine.behaviourVersion).toBe(7);

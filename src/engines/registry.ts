@@ -19,6 +19,7 @@ import { RoamV5, ROAM_V5_BEHAVIOUR } from "./roam/v5.ts";
 import { RoamV6, ROAM_V6_BEHAVIOUR } from "./roam/v6.ts";
 import { RoamV7, ROAM_V7_BEHAVIOUR } from "./roam/v7.ts";
 import { RoamV8, ROAM_V8_BEHAVIOUR } from "./roam/v8.ts";
+import { RoamV9, ROAM_V9_BEHAVIOUR } from "./roam/v9.ts";
 import { SwimV1, SWIM_V1_BEHAVIOUR } from "./swim/v1.ts";
 import { SwimV2, SWIM_V2_BEHAVIOUR } from "./swim/v2.ts";
 import { SwimV3, SWIM_V3_BEHAVIOUR } from "./swim/v3.ts";
@@ -245,6 +246,16 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
     `dash/${DASH_V9_BEHAVIOUR}`,
     (level, creature) =>
       creature === undefined ? new DashV9(level) : new DashV9(level, creature),
+  ],
+  // v9: the creature gets a body. Acceleration and friction, diagonals that are
+  // not 41% faster than straight lines, a shove round a corner when you are
+  // nearly lined up with a gap, a swing remembered if you asked slightly early,
+  // and a hit that throws you rather than teleporting you. "It feels like
+  // moving a cursor" -- it did, and this is why it does not any more.
+  [
+    `roam/${ROAM_V9_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new RoamV9(level) : new RoamV9(level, creature),
   ],
 ]);
 

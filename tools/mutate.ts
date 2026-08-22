@@ -497,6 +497,69 @@ const MUTATIONS: readonly Mutation[] = [
     find: "          if (this.fits(this.x, settled)) this.y = settled;",
     replace: "          if (false) this.y = settled;",
   },
+  {
+    // The top-down half of "it feels like moving a cursor": position assigned
+    // straight from the button, with nothing in between.
+    breaks: "the top-down game goes back to instant full speed",
+    file: "src/engines/roam/v9.ts",
+    find: "      : towards(this.vx, wantX, pushFor(this.vx, wantX, accel));",
+    replace: "      : (wantX | 0);",
+  },
+  {
+    breaks: "letting go from above stops dead instead of coasting",
+    file: "src/engines/roam/v9.ts",
+    find: "      ? towards(this.vx, 0, drag)",
+    replace: "      ? 0",
+  },
+  {
+    // Holding two buttons used to move you the full speed on BOTH axes: 41%
+    // faster across the room than any straight line. Every player finds it
+    // within a minute and then never walks straight again, and every room's
+    // difficulty was tuned against a speed nobody was using.
+    breaks: "a diagonal is a 41% speed boost again",
+    file: "src/core/steer.ts",
+    find: "export const DIAGONAL = 181;",
+    replace: "export const DIAGONAL = 256;",
+  },
+  {
+    // A body clears a one-cell door with 32 subcells to spare and nothing on
+    // screen says whether you are inside that window. Without the assist you
+    // simply stop, with the gap visibly right there.
+    breaks: "a doorway you are nearly lined up with stops you dead again",
+    file: "src/engines/roam/v9.ts",
+    find: "        const step = straightX ? alignStep(this.y) : 0;",
+    replace: "        const step = 0;",
+  },
+  {
+    // The assist has to ask whether being lined up would OPEN the way. Without
+    // that test it shuffles you about at every wall you lean on.
+    breaks: "the corner assist shuffles you about at a wall with no door in it",
+    file: "src/engines/roam/v9.ts",
+    find: "        if (worthSlipping(step) && this.fits(nx, middleOf(this.y)) && this.fits(this.x, ny)) {",
+    replace: "        if (worthSlipping(step) && this.fits(this.x, ny)) {",
+  },
+  {
+    // A press that lands inside the last swing used to be dropped on the
+    // floor, which is felt as the game ignoring you rather than as being early.
+    breaks: "a swing asked for during the last one is dropped again",
+    file: "src/core/steer.ts",
+    find: "  if (down && !wasDown) return SWING_BUFFER_TICKS;",
+    replace: "  if (down) return SWING_BUFFER_TICKS;",
+  },
+  {
+    // A hit that moves you two cells in one tick reads as a glitch, not as
+    // being thrown.
+    breaks: "a hit stops throwing you and just takes a heart",
+    file: "src/engines/roam/v9.ts",
+    find: "      this.vx = knock.vx;\n      this.vy = knock.vy;",
+    replace: "      this.vx = 0;\n      this.vy = 0;",
+  },
+  {
+    breaks: "a hit leaves you in full control, so it never lands",
+    file: "src/engines/roam/v9.ts",
+    find: "      this.stun = STUN_TICKS;",
+    replace: "      this.stun = 0;",
+  },
 ];
 
 /**

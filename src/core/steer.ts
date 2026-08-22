@@ -21,7 +21,7 @@
 // builds to be the only readers -- so a later tweak in here can never reach
 // roam/8 or calm/3 by accident.
 
-import { ONE, abs, clamp, fraction, towards } from "./fixed";
+import { ONE, abs, clamp, fraction, sign, towards } from "./fixed.ts";
 
 /**
  * Ticks to reach full speed, near enough. Creature speeds run 20 to 50
@@ -122,6 +122,11 @@ export function alignStep(position: number): number {
   return towards(0, off, SLIP);
 }
 
+/** The middle of the row or column a position is in. */
+export function middleOf(position: number): number {
+  return ((position | 0) - fraction(position) + (ONE >> 1)) | 0;
+}
+
 /**
  * Is a nudge of this size worth trying at all?
  *
@@ -143,27 +148,51 @@ export function worthSlipping(step: number): boolean {
  */
 export const STUN_TICKS = 5;
 
-/** How hard a hit shoves, in subcells per tick, before drag eats it. */
-export const KNOCK_SPEED = 46;
+/**
+ * How hard a hit shoves, in subcells per tick, before drag eats it.
+ *
+ * Twice the fastest creature's walking speed, which sounds enormous and is
+ * over in a third of a second: drag takes it back at the same rate it takes
+ * back a walk, so the whole slide is about two cells. That is deliberately the
+ * same distance the engines used to TELEPORT you on a hit -- the destination is
+ * not the change here, the travelling is.
+ */
+export const KNOCK_SPEED = 96;
 
 /**
  * The shove away from whatever hit you, as a velocity on each axis.
  *
- * Straight along the dominant axis rather than truly away: a top-down room is
- * a grid of corridors, and a diagonal shove is far more likely to plant you in
- * a wall -- where the shove is silently eaten and the hit reads as nothing
- * happening at all, which is the thing this is here to fix.
+ * Away on both axes, normalised, so being caught on a corner throws you off
+ * the corner rather than along it. Each axis is applied separately by the
+ * mover, so a shove into a wall is simply eaten on that axis and the other
+ * half still happens.
+ *
+ * WHY A VELOCITY AND NOT A PLACE
+ *
+ * The engines used to move you two whole cells on the tick you were hit. It is
+ * the same destination and it reads completely differently: you do not see
+ * yourself thrown, you see yourself somewhere else, and a child watching it
+ * cannot tell whether they were hit or whether the game glitched. A hit has to
+ * be a thing that HAPPENS over several frames or it is just a number going
+ * down in the corner.
  */
 export function knockback(
   fromX: number, fromY: number, atX: number, atY: number,
 ): { readonly vx: number; readonly vy: number } {
-  const dx = (atX - fromX) | 0;
-  const dy = (atY - fromY) | 0;
-  if (abs(dx) >= abs(dy)) {
-    // Dead centre counts as a shove to the right rather than no shove at all.
-    return { vx: dx < 0 ? -KNOCK_SPEED : KNOCK_SPEED, vy: 0 };
+  const sx = sign((atX - fromX) | 0);
+  const sy = sign((atY - fromY) | 0);
+  // Dead centre -- exactly overlapping -- counts as a shove to the right
+  // rather than as no shove at all, so a hit is never silent.
+  if (sx === 0 && sy === 0) return { vx: KNOCK_SPEED, vy: 0 };
+  const vx = (sx * KNOCK_SPEED) | 0;
+  const vy = (sy * KNOCK_SPEED) | 0;
+  if (sx !== 0 && sy !== 0) {
+    return {
+      vx: (Math.imul(vx, DIAGONAL) >> 8) | 0,
+      vy: (Math.imul(vy, DIAGONAL) >> 8) | 0,
+    };
   }
-  return { vx: 0, vy: dy < 0 ? -KNOCK_SPEED : KNOCK_SPEED };
+  return { vx, vy };
 }
 
 /**
