@@ -32,6 +32,37 @@ interface Mutation {
 
 const MUTATIONS: readonly Mutation[] = [
   {
+    // A tower every cell is not a castle, it is a fence -- and it erases the
+    // shape the child drew.
+    breaks: "a straight run of wall becomes a row of turrets",
+    file: "src/core/tileset.ts",
+    find: "  return !(north && south) && !(east && west);",
+    replace: "  return true;",
+  },
+  {
+    // "Single cells should be turrets" -- the lone case, which is the whole of
+    // a small fort.
+    breaks: "a wall cell standing on its own stops being a turret",
+    file: "src/core/tileset.ts",
+    find: "  if (walls === 0) return true;",
+    replace: "  if (walls === 0) return false;",
+  },
+  {
+    // Every palm on every beach becomes a sandcastle. Found by writing the
+    // sandcastles: the kinds path ran before the `alone` check.
+    breaks: "a lone wall stops being a palm, because the castles outrank it",
+    file: "src/web/play/renderer.ts",
+    find: "if (tile === TILE_WALL && !alone && this.towers.size > 0) {",
+    replace: "if (tile === TILE_WALL && this.towers.size > 0) {",
+  },
+  {
+    // All castle everywhere is a wall of battlements with no beach left in it.
+    breaks: "every beach wall is a sandcastle, so a drawn shape stops reading",
+    file: "src/core/tileset.ts",
+    find: "const CASTLE_KINDS: readonly Pattern[] = [DUNE, CASTLE_WALL, CASTLE_DOOR, CASTLE_LOW];",
+    replace: "const CASTLE_KINDS: readonly Pattern[] = [CASTLE_WALL, CASTLE_WALL, CASTLE_DOOR, CASTLE_LOW];",
+  },
+  {
     // The Easter egg fires by accident. Touching the top row happens constantly
     // in ordinary play, and a child yanked out of a friend's level has not
     // found a secret, they have found a crash.

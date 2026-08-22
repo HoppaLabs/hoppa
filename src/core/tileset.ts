@@ -282,6 +282,13 @@ export interface Tileset {
    */
   readonly wallKinds?: (kind: number) => Pattern;
   /**
+   * ...and the drawing for a wall cell that is a CORNER or stands alone.
+   *
+   * Not a kind: which one you get is not a matter of taste scattered by a hash,
+   * it is a fact about the shape the child drew. See isTurret().
+   */
+  readonly wallCorner?: Pattern;
+  /**
    * A ramp for the hazard alone.
    *
    * It is a different MATERIAL from the terrain, and it borrowed the terrain's
@@ -1030,6 +1037,149 @@ const BOARDWALK: Pattern = [
   "2222222222222222",
 ];
 
+/**
+ * A sandcastle, for the beach.
+ *
+ * "Could we add sandcastles to the beach? So kids can build a fort etc?"
+ *
+ * Which is a question about what a WALL is on a beach. A child on the beach
+ * draws walls already -- that is how you make a room -- and until now every one
+ * of them came out a dune. Now three walls in four come out battlemented, so a
+ * blob of drawn wall is a fort and a line of it is a rampart. It costs the wire
+ * format nothing at all: the level says "wall" and which castle stands there is
+ * worked out from the cell's own coordinates. See kindAt().
+ *
+ * Kind 0 stays the DUNE, deliberately. All castle everywhere is a wall of
+ * battlements with no beach left in it, and a quarter of it sand keeps the
+ * shape of the thing a child drew readable. A wall with nothing beside it is
+ * still a palm -- that rule outranks these, and the renderer checks it first.
+ *
+ * Drawn against the dune before they went in: the dune is mottled mid-sand, so
+ * a castle has to be FLAT and BRIGHT to read as built rather than piled. 4 is
+ * the lit face, 5 the cap on a merlon, 2 the joints and the sand behind, 1 the
+ * shadow it sits in.
+ */
+const CASTLE_WALL: Pattern = [
+    "4442224442224442",
+    "3332223332223332",
+    "2333332333332333",
+    "2333332333332333",
+    "2333332333332333",
+    "2222222222222222",
+    "3332333332333332",
+    "3332333332333332",
+    "3332333332333332",
+    "2222222222222222",
+    "2333332333332333",
+    "2333332333332333",
+    "2333332333332333",
+    "2222222222222222",
+    "3332333332333332",
+    "1111111111111111",
+];
+
+/** ...and the same wall with a way into it. */
+const CASTLE_DOOR: Pattern = [
+    "4442224442224442",
+    "3332223332223332",
+    "2333332333332333",
+    "2333332333332333",
+    "2333332333332333",
+    "2222222222222222",
+    "3332333332333332",
+    "3332333332333332",
+    "3332331111333332",
+    "2222211111122222",
+    "2333312222132333",
+    "2333312222132333",
+    "2333312222132333",
+    "2222212222122222",
+    "3332312222133332",
+    "1111111111111111",
+];
+
+/** ...and a lower rampart, so a run of wall is not all one height. */
+const CASTLE_LOW: Pattern = [
+    "2222222222222222",
+    "2222222222222222",
+    "2222222222222222",
+    "2222222222222222",
+    "2222222222222222",
+    "4442224442224442",
+    "3332223332223332",
+    "2333332333332333",
+    "2333332333332333",
+    "2333332333332333",
+    "2222222222222222",
+    "3332333332333332",
+    "3332333332333332",
+    "3332333332333332",
+    "2222222222222222",
+    "1111111111111111",
+];
+
+/**
+ * A corner turret, for a wall cell that is the end of something.
+ *
+ * "Corner cells should be whole turrets" and "single cells should be turrets",
+ * which is how a castle is actually shaped: battlements run along the walls and
+ * a tower stands at every corner. It is also how a child draws one.
+ *
+ * Read off the NEIGHBOURS, so it costs the wire format nothing: a wall cell
+ * with no wall beside it, or with exactly two that meet at a right angle, is a
+ * corner. Two opposite neighbours is a straight run and stays wall.
+ */
+const TURRET: Pattern = [
+    "2222222222222222",
+    "2442244224422442",
+    "2442244224422442",
+    "2442244224422442",
+    "2111111111111112",
+    "2443333333333322",
+    "2443333333333322",
+    "2443333333333322",
+    "2442222222222222",
+    "2443333333333322",
+    "2443333333333322",
+    "2443333333333322",
+    "2442222222222222",
+    "2443333333333322",
+    "2443333333333322",
+    "2111111111111112",
+];
+
+/**
+ * Is this wall cell a corner or a lone tower?
+ *
+ * `open` is the sidesOf() bitmask: a bit SET means that side is not wall. So a
+ * neighbour exists where the bit is clear.
+ *
+ * Out here with the shapes rather than in the renderer, because "which cells
+ * are corners" is a decision and a decision you cannot run a test against is a
+ * decision nobody is checking.
+ */
+export function isTurret(open: number): boolean {
+  const north = (open & POND_N) === 0;
+  const east = (open & POND_E) === 0;
+  const south = (open & POND_S) === 0;
+  const west = (open & POND_W) === 0;
+  const walls = (north ? 1 : 0) + (east ? 1 : 0) + (south ? 1 : 0) + (west ? 1 : 0);
+  // On its own: a single tower, which is the whole of a small fort.
+  if (walls === 0) return true;
+  if (walls !== 2) return false;
+  // Two neighbours: a corner if they meet at a right angle, a run if they face
+  // each other. A run of wall with a tower every cell is not a castle, it is a
+  // fence.
+  return !(north && south) && !(east && west);
+}
+
+const CASTLE_KINDS: readonly Pattern[] = [DUNE, CASTLE_WALL, CASTLE_DOOR, CASTLE_LOW];
+
+/** Which sandcastle stands on a beach cell. Kind 0 is plain dune. */
+export function castleFor(kind: number): Pattern {
+  return CASTLE_KINDS[kind & (WALL_KINDS - 1)] as Pattern;
+}
+
 export const BEACH: Tileset = {
   id: 5,
   name: "beach",
@@ -1040,6 +1190,10 @@ export const BEACH: Tileset = {
   // you end up with nine of them.
   sub: [25, 26, 27, 28, 29, 5, 18, 20, 22],
   wall: DUNE,
+  // ...and three walls in four are a sandcastle. See castleFor().
+  wallKinds: castleFor,
+  // ...with a tower on every corner, and a tower where one stands alone.
+  wallCorner: TURRET,
   // One on its own is a palm. Same rule as the garden's tree: a wall cell with
   // no wall beside it, which costs the wire format nothing at all.
   tree: PALM,

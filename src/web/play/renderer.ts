@@ -14,6 +14,7 @@ import {
   ROAD_CAR, WALL_KINDS,
   TILE_PX, flipPattern, inkOf, tilesetFor, turnPattern,
   ICE_SUB,
+  isTurret,
   type Pattern, type Ramp, type Tileset,
   openSides, sidesOf,
 } from "../../core/tileset.ts";
@@ -1149,6 +1150,8 @@ export class GridRenderer {
    * It is a second DRAWING of the same tile, chosen by what is next to it.
    */
   private static readonly WALL_TOP = -1;
+  /** ...and the corner tower, where a world has one. See isTurret(). */
+  private static readonly TURRET = -3;
   /** A wall cell with no wall beside it. In the garden, that is a tree. */
   private static readonly LONE_WALL = -2;
   private stampedAt = -1;
@@ -1310,6 +1313,7 @@ export class GridRenderer {
     const patterns: ReadonlyArray<readonly [number, Pattern, Ramp]> = [
       [TILE_WALL, set.wall, set.sub],
       [GridRenderer.WALL_TOP, set.wallTop ?? set.wall, set.sub],
+      [GridRenderer.TURRET, set.wallCorner ?? set.wallTop ?? set.wall, set.sub],
       [GridRenderer.LONE_WALL, set.tree ?? set.wall, set.sub],
       [TILE_FLOOR, set.floor, set.sub],
       [TILE_LADDER, set.ladder, set.ladderSub],
@@ -2329,7 +2333,28 @@ export class GridRenderer {
           && this.wallsAround(tiles, x, y) === 0;
         // A wall, in a world that has more than one kind of them. Same idea as
         // the road below: the cell picks its own, from where it is.
-        if (tile === TILE_WALL && this.towers.size > 0) {
+        // A corner, or a wall cell standing on its own: a whole tower, in a
+        // world that has one. Read off the neighbours rather than a hash --
+        // which castle you get is a matter of taste, but which cells are
+        // CORNERS is a fact about the shape the child drew.
+        //
+        // Ahead of the kinds and ahead of the lone-wall rule both. On the
+        // beach that is what "single cells should be turrets" asks for, and it
+        // is why a lone wall there is a tower now rather than a palm.
+        if (tile === TILE_WALL && this.tiles().wallCorner !== undefined
+          && isTurret(sidesOf(tiles, x, y, TILE_WALL))) {
+          const tower = this.stamps?.get(GridRenderer.TURRET);
+          if (tower !== undefined) {
+            ctx.drawImage(tower, x * t, y * t, t, t);
+            continue;
+          }
+        }
+
+        // A wall with nothing beside it is that world's LONE thing -- a tree, a
+        // palm -- and that rule outranks the kinds. Without this check the
+        // beach's palms all became sandcastles the moment the beach gained
+        // sandcastles, which is not what "one on its own is a palm" means.
+        if (tile === TILE_WALL && !alone && this.towers.size > 0) {
           const building = this.towers.get(this.kindAt(x, y));
           if (building !== undefined) {
             ctx.drawImage(building, x * t, y * t, t, t);
