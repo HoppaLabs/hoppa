@@ -47,6 +47,8 @@ import { goOffline } from "../offline.ts";
 import { holdStill } from "../nozoom.ts";
 import { paintLogo } from "../logo.ts";
 import { bucketHelps, hasWater } from "./water.ts";
+import { SURFACE_ROW, Surfacer, above, surfaceSays } from "./surface.ts";
+import { ONE } from "../../core/fixed.ts";
 import { tilesetFor } from "../../core/tileset.ts";
 import { sendLink } from "../send.ts";
 import { inviteText } from "../invite.ts";
@@ -948,9 +950,60 @@ renderer.setFlowArt(flowArtMap(level));
   paint();
 
   if (moving !== null) {
-    loop = new Loop(moving, buttons, paint, finished, (held) => recorder.push(held));
+    loop = new Loop(moving, buttons, paint, finished, (held) => {
+      recorder.push(held);
+      watchTheSurface(held);
+    });
     loop.start();
   }
+}
+
+
+// --- breaking the surface ---------------------------------------------------
+
+/**
+ * The Easter egg: swim up hard at the top of the reef and you come out on the
+ * beach; push up at the top of the beach and you come out in the city.
+ *
+ * Not a win and not a loss -- you have escaped, and the room above starts as a
+ * fresh game with the same creature. That is what makes this cost nothing: no
+ * engine is told, no status is invented, nothing reaches stateHash(), and every
+ * reef and beach link ever sent gains it without being re-shared. See
+ * ./surface.ts for the rule and for why the push has to be held.
+ */
+const surfacer = new Surfacer();
+
+/** The bundled room above this world, ready to navigate to. */
+function roomAbove(): { slug: string; code: string; says: string } | null {
+  const world = tilesetFor(level.engine === "dash", level.engine, level.tilesetId).name;
+  const name = above(world);
+  if (name === null) return null;
+  for (const room of PACK) {
+    if (room.name === name) return { slug: room.slug, code: room.code, says: surfaceSays(world) };
+  }
+  return null;
+}
+
+/** True once the page has committed to leaving, so it commits only once. */
+let surfacing = false;
+
+function watchTheSurface(held: number): void {
+  if (surfacing || moving === null) return;
+  const up = roomAbove();
+  if (up === null) return;
+  const at = (moving as Moving).where();
+  const atTop = Math.floor(at.y / ONE) <= SURFACE_ROW;
+  if (!surfacer.push(atTop, (held & HELD_UP) !== 0)) return;
+
+  // Said before it happens, and left on screen while the page turns over. A
+  // level that vanishes without a word is a crash; a level that says what it
+  // did is a secret.
+  surfacing = true;
+  if (loop !== null) loop.stop();
+  said.textContent = `${up.says} \u2014 hold on...`;
+  window.setTimeout(() => {
+    window.location.hash = `#p/${up.slug}/${up.code}`;
+  }, 900);
 }
 
 // --- the stable -------------------------------------------------------------
@@ -1588,7 +1641,10 @@ resize();
 // not wait for a first press. This is the whole difference from the turn-based
 // builds, so it must not be left to reset() to switch on.
 if (moving !== null) {
-  loop = new Loop(moving, buttons, paint, finished, (held) => recorder.push(held));
+  loop = new Loop(moving, buttons, paint, finished, (held) => {
+    recorder.push(held);
+    watchTheSurface(held);
+  });
   loop.start();
 }
 

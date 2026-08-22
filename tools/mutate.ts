@@ -32,6 +32,23 @@ interface Mutation {
 
 const MUTATIONS: readonly Mutation[] = [
   {
+    // The Easter egg fires by accident. Touching the top row happens constantly
+    // in ordinary play, and a child yanked out of a friend's level has not
+    // found a secret, they have found a crash.
+    breaks: "the surface egg fires on a touch, not a push",
+    file: "src/web/play/surface.ts",
+    find: "    if (!atTop || !holdingUp) {",
+    replace: "    if (false) {",
+  },
+  {
+    // ...or the push accumulates across the whole level instead of being a
+    // held second at the surface.
+    breaks: "pushing at the surface adds up across a whole run",
+    file: "src/web/play/surface.ts",
+    find: "      this.held = 0;\n      return false;",
+    replace: "      return false;",
+  },
+  {
     // The point of calm/3. Ice that is not in the hash is state a replay can
     // disagree about, and a garden link is only worth anything because the
     // proof replays cold.
