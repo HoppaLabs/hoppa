@@ -241,16 +241,24 @@ export interface Tileset {
    */
   readonly fireFor?: (open: number) => Pattern;
   /**
-   * ...and the same for a WALL, where a run of them is one thing rather than
-   * many.
+   * ...and the same for the FLOOR, where it is a road and has to run somewhere.
    *
-   * Only the city sets it. A cave wall is a cave wall however many of them
-   * there are; a city block is a BUILDING, and a building with a parapet
-   * around every sixteen-pixel cell of it is not a building, it is a car park.
-   * Reported as "I don't like what the buildings look like when they are
-   * joined" -- which is the pond bug exactly, one tile along. See blockFor().
+   * Only the city sets it. A cave floor is the same floor everywhere; a street
+   * has a direction, and a tile cannot know its own direction without being
+   * told what is beside it. The key is the four sides plus a car bit -- see
+   * roadFor().
    */
-  readonly wallFor?: (open: number) => Pattern;
+  readonly floorFor?: (key: number) => Pattern;
+  /**
+   * ...and the same for a WALL, where one building is not every building.
+   *
+   * Only the city sets it. A cave wall is a cave wall however many there are;
+   * a city is towers, and a row of identical towers is wallpaper. The key is a
+   * KIND rather than a set of sides -- there is nothing to join up, only
+   * something to vary -- and the renderer picks it from the cell's own
+   * coordinates, so it costs the wire format nothing. See towerFor().
+   */
+  readonly wallKinds?: (kind: number) => Pattern;
   /**
    * A ramp for the hazard alone.
    *
@@ -850,6 +858,34 @@ export const GARDEN: Tileset = {
 };
 
 /**
+ * The city, seen from above. Asked for as a level where the player is a jaeger
+ * and the thing coming down the street is a kaiju.
+ *
+ * The second skin, and the same trick as the beach: this is the ADVENTURE
+ * game, drawn somewhere else. Rescuing people and getting them to an evac zone
+ * is what "pick the treasure up and the door opens" already is -- so the rules
+ * needed nothing, and the work is all in what a child sees.
+ */
+const STREET: Pattern = [
+  "1222222222222222",
+  "2222222222232222",
+  "2222322221222222",
+  "2212222223333322",
+  "2222222223333322",
+  "2222223222333222",
+  "2222122222222222",
+  "2222222222222223",
+  "2222222232222122",
+  "2322221222222222",
+  "2222222222222222",
+  "2213122222322221",
+  "2211122212222222",
+  "2122222222222222",
+  "2222222222223222",
+  "2222232222122222",
+];
+
+/**
  * The beach, seen from above. Asked for as "we have a request for beach
  * levels" -- and a beach is not a new GAME, it is the adventure game drawn
  * somewhere else.
@@ -962,70 +998,217 @@ export const BEACH: Tileset = {
 };
 
 /**
- * The city, seen from above. Asked for as a level where the player is a jaeger
- * and the thing coming down the street is a kaiju.
+ * A road, drawn for the way it actually runs.
  *
- * The second skin, and the same trick as the beach: this is the ADVENTURE
- * game, drawn somewhere else. Rescuing people and getting them to an evac zone
- * is what "pick the treasure up and the door opens" already is -- so the rules
- * needed nothing, and the work is all in what a child sees.
+ * "The background tiles need to look like roads, but they need to make
+ * directional sense" -- which a single tile cannot do, because a tile does not
+ * know which way the road goes. It can be told: the same neighbour read the
+ * ponds use, asking which sides carry on being road rather than which sides
+ * are water.
+ *
+ * So a cell with road above and below gets a dashed line running north-south,
+ * one with road on all four sides gets a junction with stop lines and no
+ * markings through the middle -- you do not paint a dashed line through a
+ * crossroads -- and one with road on two adjacent sides gets a corner. Kerbs
+ * go on the sides the road does NOT continue through, which is what makes a
+ * street read as a street rather than as a dark strip.
+ *
+ * `key` is `link | (car << 4)`: the four sides, plus a bit the renderer sets
+ * from the cell's own coordinates so that some tiles have a car on them and it
+ * is the same tiles every time. A car is only ever drawn on a straight -- one
+ * parked across a junction reads as a crash.
  */
-const STREET: Pattern = [
-  "1222222222222222",
-  "2222222222232222",
-  "2222322221222222",
-  "2212222223333322",
-  "2222222223333322",
-  "2222223222333222",
-  "2222122222222222",
-  "2222222222222223",
-  "2222222232222122",
-  "2322221222222222",
-  "2222222222222222",
-  "2213122222322221",
-  "2211122212222222",
-  "2122222222222222",
-  "2222222222223222",
-  "2222232222122222",
-];
+export const ROAD_N = 1;
+export const ROAD_E = 2;
+export const ROAD_S = 4;
+export const ROAD_W = 8;
+export const ROAD_CAR = 16;
 
-const BLOCK: Pattern = [
-  "4444444444444444",
-  "4323333332333331",
-  "4333233333323331",
-  "4334444333333231",
-  "4232222323333331",
-  "4331111333233331",
-  "4333323343332331",
-  "4333333244443321",
-  "4323333332333331",
-  "4333233334444431",
-  "4333332332222231",
-  "4231113321111131",
-  "4332333333233331",
-  "4333323333332331",
-  "4333333233333321",
-  "4111111111111111",
-];
+const ROAD_CACHE = new Map<number, Pattern>();
 
-const TOWER: Pattern = [
-  "....15511331....",
-  "...1455553341...",
-  "...1444444441...",
-  "..144444444441..",
-  ".13333333333331.",
-  ".13663366331131.",
-  ".13663366331131.",
-  ".13333333333331.",
-  ".13663366336631.",
-  ".13663366336631.",
-  ".13333333333331.",
-  ".13113366336631.",
-  ".13113366336631.",
-  ".13333333333331.",
-  ".13333333333331.",
-  "..111111111111..",
-];
+export function roadFor(key: number): Pattern {
+  const had = ROAD_CACHE.get(key);
+  if (had !== undefined) return had;
+
+  const W = TILE_PX;
+  const link = key & 15;
+  const rows: string[][] = [];
+  for (let y = 0; y < W; y++) rows.push(new Array<string>(W).fill("2"));
+  const put = (x: number, y: number, ink: string): void => {
+    if (x < 0 || y < 0 || x >= W || y >= W) return;
+    (rows[y] as string[])[x] = ink;
+  };
+
+  // Kerbs, on every side the road stops at: a lit lip and a dark gutter.
+  for (let i = 0; i < W; i = (i + 1) | 0) {
+    if ((link & ROAD_N) === 0) { put(i, 0, "4"); put(i, 1, "1"); }
+    if ((link & ROAD_S) === 0) { put(i, W - 1, "4"); put(i, W - 2, "1"); }
+    if ((link & ROAD_W) === 0) { put(0, i, "4"); put(1, i, "1"); }
+    if ((link & ROAD_E) === 0) { put(W - 1, i, "4"); put(W - 2, i, "1"); }
+  }
+
+  const ns = (link & (ROAD_N | ROAD_S)) !== 0;
+  const ew = (link & (ROAD_E | ROAD_W)) !== 0;
+  const straightNS = ns && !ew;
+  const straightEW = ew && !ns;
+
+  if (straightNS) {
+    for (let y = 0; y < W; y = (y + 1) | 0) {
+      if (y % 6 < 3) { put(7, y, "3"); put(8, y, "3"); }
+    }
+  } else if (straightEW) {
+    for (let x = 0; x < W; x = (x + 1) | 0) {
+      if (x % 6 < 3) { put(x, 7, "3"); put(x, 8, "3"); }
+    }
+  } else if (ns && ew) {
+    // A junction: stop lines on the approaches, and nothing through the middle.
+    if ((link & ROAD_N) !== 0) for (let x = 3; x < 13; x = (x + 1) | 0) put(x, 3, "3");
+    if ((link & ROAD_S) !== 0) for (let x = 3; x < 13; x = (x + 1) | 0) put(x, W - 4, "3");
+  }
+
+  // A drain, where there is a gutter to put one in.
+  if ((link & ROAD_E) === 0) { put(W - 2, 5, "1"); put(W - 2, 6, "1"); }
+
+  // A car, pointing the way the road goes.
+  //
+  // Written out as rows rather than as loops, because a car IS its details:
+  // bonnet, windscreen with a glint on it, a roof with a highlight down the
+  // middle, a rear window, a boot, four wheels standing proud of the body, two
+  // amber headlights at the front and two red lamps at the back. Every one of
+  // those is one or two pixels, and taking any of them out leaves a lozenge.
+  //
+  // Drawn facing NORTH and turned for the other axis -- see turnPattern(), the
+  // same way the current arrows are drawn once and rotated.
+  if ((key & ROAD_CAR) !== 0 && (straightNS || straightEW)) {
+    const car: readonly string[] = [
+      "................",
+      "................",
+      ".....111111.....",
+      ".....169961.....",
+      "....11999911....",
+      "....11911911....",   // windscreen
+      ".....195591.....",   // ...with the light catching it
+      ".....199991.....",
+      ".....197791.....",   // the roof highlight
+      ".....199991.....",
+      "....11911911....",   // rear window
+      "....11999911....",
+      ".....179971.....",   // two lamps at the back, not a light bar
+      ".....111111.....",
+      "................",
+      "................",
+    ];
+    const rows16 = straightNS ? car : turnPattern(car as unknown as Pattern);
+    for (let y = 0; y < W; y = (y + 1) | 0) {
+      const row = rows16[y] as string;
+      for (let x = 0; x < W; x = (x + 1) | 0) {
+        const ch = row[x] as string;
+        if (ch !== ".") put(x, y, ch);
+      }
+    }
+  }
+
+  const made = rows.map((row) => row.join("")) as unknown as Pattern;
+  ROAD_CACHE.set(key, made);
+  return made;
+}
+
+/**
+ * A tower, in four kinds.
+ *
+ * "Could we differ by kinds of skyscrapers to break it up a little, it can be
+ * random to conserve space" -- and random it is, in the only sense that costs
+ * nothing: the renderer hashes the CELL'S OWN COORDINATES and asks for that
+ * kind. Nothing is stored, nothing travels in a link, and the same city looks
+ * the same every time anybody opens it.
+ *
+ * Two bits, so four buildings:
+ *
+ *   bit 0   two floors of windows instead of three -- "maybe some with two
+ *           floors instead of 3", and a shorter block with more roof on it is
+ *           the single biggest thing that breaks up a row
+ *   bit 1   narrow, two windows across instead of three
+ *
+ * Which windows are lit comes off the same number, so the four are lit
+ * differently as well as shaped differently. A row of identical towers with
+ * identical lights is a wallpaper; a row where the lights disagree is a city.
+ */
+const TOWER_CACHE = new Map<number, Pattern>();
+
+export const WALL_KINDS = 4;
+
+export function towerFor(kind: number): Pattern {
+  const k = kind & (WALL_KINDS - 1);
+  const had = TOWER_CACHE.get(k);
+  if (had !== undefined) return had;
+
+  const W = TILE_PX;
+  const rows: string[][] = [];
+  for (let y = 0; y < W; y++) rows.push(new Array<string>(W).fill("."));
+  const put = (x: number, y: number, ink: string): void => {
+    if (x < 0 || y < 0 || x >= W || y >= W) return;
+    (rows[y] as string[])[x] = ink;
+  };
+  const box = (x0: number, y0: number, x1: number, y1: number, ink: string): void => {
+    for (let y = y0; y <= y1; y = (y + 1) | 0) {
+      for (let x = x0; x <= x1; x = (x + 1) | 0) put(x, y, ink);
+    }
+  };
+
+  const twoFloors = (k & 1) !== 0;
+  const narrow = (k & 2) !== 0;
+  const left = narrow ? 3 : 2;
+  const right = narrow ? 12 : 13;
+  // A shorter building has more roof showing, which is what makes it read as
+  // shorter rather than merely as one with fewer windows.
+  const top = twoFloors ? 5 : 3;
+
+  box(left, top + 1, right, W - 1, "3");
+  // The roof, looked down on: a pale cap set back from the face below it.
+  box(left + 1, top - 2, right - 1, top, "4");
+  box(left + 2, top - 2, right - 2, top - 1, "5");
+  // Two water tanks on a wide roof, one aerial on a narrow one.
+  if (narrow) {
+    box(7, top - 5, 8, top - 3, "4");
+    put(7, top - 6, "5");
+  } else {
+    box(left + 2, top - 4, left + 3, top - 3, "5");
+    box(right - 3, top - 4, right - 2, top - 3, "3");
+  }
+
+  // Windows: three across on a wide block, two on a narrow one, and three
+  // floors or two. Lit or dark from the kind, so no two agree.
+  const cols = narrow ? [5, 9] : [3, 7, 11];
+  const floors = twoFloors ? [top + 3, top + 7] : [top + 2, top + 5, top + 8];
+  for (let f = 0; f < floors.length; f = (f + 1) | 0) {
+    for (let c = 0; c < cols.length; c = (c + 1) | 0) {
+      const y = floors[f] as number;
+      const x = cols[c] as number;
+      const lit = ((f * 3 + c * 2 + k * 5) % 5) < 3;
+      box(x, y, x + 1, y + 1, lit ? "6" : "1");
+    }
+  }
+
+  // An outline, the same rule the garden's tree and the beach's palm use: one
+  // cell on its own is a silhouette and needs an edge.
+  for (let y = 0; y < W; y = (y + 1) | 0) {
+    for (let x = 0; x < W; x = (x + 1) | 0) {
+      if ((rows[y] as string[])[x] !== ".") continue;
+      for (const [dy, dx] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+        const ny = (y + dy) | 0;
+        const nx = (x + dx) | 0;
+        if (ny < 0 || nx < 0 || ny >= W || nx >= W) continue;
+        const near = (rows[ny] as string[])[nx] as string;
+        if (near !== "." && near !== "1") { put(x, y, "1"); break; }
+      }
+    }
+  }
+
+  const made = rows.map((row) => row.join("")) as unknown as Pattern;
+  TOWER_CACHE.set(k, made);
+  return made;
+}
+
 
 const FIRE_ESCAPE: Pattern = [
   "...4........4...",
@@ -1046,86 +1229,33 @@ const FIRE_ESCAPE: Pattern = [
   "...4........4...",
 ];
 
-/**
- * A city block, drawn for the sides that actually face a street.
- *
- * Same trick as pondFor(), and for the same reason: BLOCK has a parapet on all
- * four edges, so a five-by-three building came out as fifteen little roofs
- * with a kerb around each one. Reported as "I don't like what the buildings
- * look like when they are joined, what are they supposed to represent?" --
- * which is a fair question to ask of that picture.
- *
- * The lip goes only where the roof ends. Everything inside is gravel and plant
- * running straight through, so a run of cells is ONE building with one
- * roofline, and it costs the wire format nothing at all: the shape is read off
- * the neighbours, never stored.
- */
-const BLOCK_CACHE = new Map<number, Pattern>();
-
-export function blockFor(open: number): Pattern {
-  const had = BLOCK_CACHE.get(open);
-  if (had !== undefined) return had;
-
-  const W = TILE_PX;
-  const rows: string[][] = [];
-  for (let y = 0; y < W; y++) {
-    const row: string[] = [];
-    for (let x = 0; x < W; x++) {
-      // Gravel: the same field in every cell, so a big roof has one texture
-      // across it rather than a seam every sixteen pixels.
-      // Scattered by a HASH, not by a linear form. `(x * 5 + y * 11) % 11`
-      // puts its hits on a diagonal, which at this size reads as a barcode
-      // down the roof rather than as gravel.
-      const h = (Math.imul(x + 1, 73856093) ^ Math.imul(y + 1, 19349663)) >>> 0;
-      const v = h % 17;
-      row.push(v === 0 ? "2" : (v === 9 ? "4" : "3"));
-    }
-    rows.push(row);
-  }
-  const put = (x: number, y: number, ink: string): void => {
-    if (x < 0 || y < 0 || x >= W || y >= W) return;
-    (rows[y] as string[])[x] = ink;
-  };
-
-  // Plant on the roof, and ONLY on a cell with no side facing out -- the deep
-  // middle of a building. Drawn in every cell it tiled like wallpaper: the
-  // same two air handlers every sixteen pixels across a whole block. Kept to
-  // the interior, a building gets a line of plant down its middle and a clean
-  // roof at its edges, and the pattern never repeats where you can see both.
-  if (open === 0) {
-    for (const [x0, y0, w, h] of [[3, 4, 5, 3], [10, 9, 4, 3]] as const) {
-      for (let k = 0; k < h; k++) {
-        for (let x = x0; x < x0 + w; x++) put(x, y0 + k, k === 0 ? "4" : (k === h - 1 ? "1" : "2"));
-      }
-    }
-    put(6, 10, "1"); put(7, 10, "1"); put(6, 11, "1"); put(7, 11, "1");
-  }
-
-  // The parapet: a lit lip and a shadow inside it, on the sides facing out.
-  for (let i = 0; i < W; i++) {
-    if ((open & POND_N) !== 0) { put(i, 0, "4"); put(i, 1, "2"); }
-    if ((open & POND_S) !== 0) { put(i, W - 1, "1"); put(i, W - 2, "2"); }
-    if ((open & POND_W) !== 0) { put(0, i, "4"); put(1, i, "2"); }
-    if ((open & POND_E) !== 0) { put(W - 1, i, "1"); put(W - 2, i, "2"); }
-  }
-
-  const made = rows.map((row) => row.join("")) as unknown as Pattern;
-  BLOCK_CACHE.set(open, made);
-  return made;
-}
-
 export const CITY: Tileset = {
   id: 6,
   name: "city",
   // 1-5 are tarmac up to pale concrete; 6 is a lit window and 7 is white.
-  sub: [0, 1, 2, 3, 4, 28, 5],
-  wall: BLOCK,
-  // ...and a run of them is one building with one roofline. See blockFor().
-  wallFor: blockFor,
-  // One on its own is a tower. Same rule as the garden's tree and the beach's
-  // palm: a wall cell with no wall beside it, and it costs the format nothing.
-  tree: TOWER,
+  // 1-5 are tarmac up to pale concrete, 6 is a lit window, and 7-9 belong to
+  // the CAR: a light red for its lamps and the roof highlight, and two reds
+  // for its body. Slot 7 was white and no city pattern ever used it.
+  sub: [0, 1, 2, 3, 4, 28, 41, 38, 39],
+  // EVERY wall cell is a lit tower, joined or not.
+  //
+  // Two goes at a joined ROOF -- a parapet per cell, then a parapet only where
+  // the roof ends -- and neither read as a building: "the merge build sprites
+  // still don't look right, just keep them as the lit skyscrapers". Which is
+  // the right call. A city seen from above is towers, and a tower has an
+  // outline and its lights on; a flat roof at sixteen pixels is a grey square
+  // whichever way its kerb runs.
+  //
+  // So there is no wallFor here and no tree either: a run of these is a row of
+  // buildings, which is what a city block IS, and one on its own is the same
+  // drawing because it is the same thing.
+  wall: towerFor(0),
+  // ...and four kinds of it, picked from the cell's own coordinates so a row
+  // of buildings is a row of DIFFERENT buildings. See towerFor().
+  wallKinds: towerFor,
   floor: STREET,
+  // ...but every cell of it is drawn for the way the road runs. See roadFor().
+  floorFor: roadFor,
   // Nothing in the adventure game paints one, but a tileset without a ladder
   // draws a hole if a level from somewhere else ever carries one.
   ladder: FIRE_ESCAPE,

@@ -10,6 +10,7 @@ import { SPRITE_H, SPRITE_W, spriteIndex, type Sprite } from "../../core/sprite.
 import { ONE } from "../../core/fixed.ts";
 import { CASTS, ENEMIES } from "../../core/enemies.ts";
 import {
+  ROAD_CAR, WALL_KINDS,
   TILE_PX, flipPattern, inkOf, tilesetFor, turnPattern,
   type Pattern, type Ramp, type Tileset,
   openSides, sidesOf,
@@ -998,8 +999,45 @@ export class GridRenderer {
   private flames: HTMLCanvasElement[] = [];
   /** One pond per set of open sides, where the world's hazard is water. */
   private readonly ponds = new Map<number, HTMLCanvasElement>();
-  /** ...and one block per set of open sides, where a wall is a building. */
-  private readonly blocks = new Map<number, HTMLCanvasElement>();
+  /** One road per set of joined sides plus a car bit, where the floor is a street. */
+  private readonly roads = new Map<number, HTMLCanvasElement>();
+  /** One stamp per KIND of building, where a wall is a tower. */
+  private readonly towers = new Map<number, HTMLCanvasElement>();
+
+  /**
+   * Which of a world's buildings stands on this cell.
+   *
+   * From the cell's own coordinates, so it is the same building every time
+   * anybody opens the level and nothing about it has to be stored. The hash is
+   * the one the cars use: two odd multiplies and a xor, which scatters where
+   * `x + y` would put every third building in a diagonal stripe.
+   */
+  private kindAt(x: number, y: number): number {
+    const h = (Math.imul(x + 3, 0x9e3779b1) ^ Math.imul(y + 7, 0x85ebca6b)) >>> 0;
+    return (h >>> 5) % WALL_KINDS;
+  }
+
+  /**
+   * The floor stamp for THIS cell.
+   *
+   * Plain floor everywhere except a world whose floor is a road, where it is
+   * the piece that runs the way this bit of road runs. Everything that paints
+   * ground goes through here -- the open cells, and the base under a ladder, a
+   * fire and a gem -- because a gem sitting on a square of generic tarmac in
+   * the middle of a marked road is exactly the seam this is here to avoid.
+   */
+  private floorAt(tiles: Uint8Array, x: number, y: number): HTMLCanvasElement | undefined {
+    if (this.roads.size === 0) return this.stamps?.get(TILE_FLOOR);
+    // Which sides carry on being road: anything that is not a wall. Asked as
+    // "not a wall" rather than "is floor" because a cell with a gem or a guard
+    // standing on it is still road underneath.
+    const link = sidesOf(tiles, x, y, TILE_WALL);
+    // ...and whether this one has a car on it, from the cell's own position so
+    // that it is the same cells every time and no two neighbours agree.
+    const h = (Math.imul(x + 1, 0x27d4eb2d) ^ Math.imul(y + 1, 0x165667b1)) >>> 0;
+    const car = h % 7 === 0 ? ROAD_CAR : 0;
+    return this.roads.get(link | car) ?? this.stamps?.get(TILE_FLOOR);
+  }
 
   /**
    * Put the clouds up, behind everything.
@@ -1165,19 +1203,35 @@ export class GridRenderer {
       }
     }
 
-    // ...and a block the same way, where a wall is a building. See
-    // Tileset.wallFor.
-    this.blocks.clear();
-    if (set.wallFor !== undefined) {
-      for (let open = 0; open < 16; open = (open + 1) | 0) {
+    // ...and a road the same way, where the floor runs somewhere. Thirty-two
+    // rather than sixteen: the four sides, and a bit for whether this one has
+    // a car parked on it. See Tileset.floorFor.
+    this.roads.clear();
+    if (set.floorFor !== undefined) {
+      for (let key = 0; key < 32; key = (key + 1) | 0) {
         const canvas = document.createElement("canvas");
         canvas.width = Math.max(1, Math.round(t * dpr));
         canvas.height = Math.max(1, Math.round(t * dpr));
         const ctx = canvas.getContext("2d");
         if (ctx === null) continue;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        paintPattern(ctx, set.wallFor(open), set.sub, set, t);
-        this.blocks.set(open, canvas);
+        paintPattern(ctx, set.floorFor(key), set.sub, set, t);
+        this.roads.set(key, canvas);
+      }
+    }
+
+    // ...and one per kind of building, where a wall is a tower.
+    this.towers.clear();
+    if (set.wallKinds !== undefined) {
+      for (let kind = 0; kind < WALL_KINDS; kind = (kind + 1) | 0) {
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(t * dpr));
+        canvas.height = Math.max(1, Math.round(t * dpr));
+        const ctx = canvas.getContext("2d");
+        if (ctx === null) continue;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        paintPattern(ctx, set.wallKinds(kind), set.sub, set, t);
+        this.towers.set(kind, canvas);
       }
     }
 
@@ -1194,9 +1248,11 @@ export class GridRenderer {
    * It used to paint a flat colour, which matched when the floor WAS a flat
    * colour; against a tiled world it left every gem sitting on a pale square.
    */
-  private paintUnder(x: number, y: number): void {
+  private paintUnder(x: number, y: number, tiles?: Uint8Array): void {
     const t = this.scale;
-    const floor = this.stamps?.get(TILE_FLOOR);
+    const floor = tiles === undefined
+      ? this.stamps?.get(TILE_FLOOR)
+      : this.floorAt(tiles, x, y);
     if (floor === undefined) {
       this.ctx.fillStyle = this.ink(TILE_FLOOR);
       this.ctx.fillRect(x * t, y * t, t, t);
@@ -1669,7 +1725,12 @@ export class GridRenderer {
       const done = 1 - actor.swingLeft / actor.swingLength; // 0 -> 1 through the swing
       const base = (Math.PI / 2) * actor.facing - Math.PI / 2; // facing, in radians
       const sweep = (Math.PI * 5) / 6; // 150 degrees of arc
-      const angle = base - sweep / 2 + sweep * done;
+      const art = weaponArt(this.weapon, this.world);
+      // A LASER does not sweep. A blade travels through an arc because an arm
+      // does; a beam leaves the muzzle in one direction and that direction is
+      // the one you are facing. Given the arc it looked like a lightsabre,
+      // which is a different thing to be holding.
+      const angle = art === "laser" ? base : base - sweep / 2 + sweep * done;
 
       // The blade is shortest at the extremes of the arc and longest through
       // the middle, the way an actual swing looks.
@@ -1694,7 +1755,6 @@ export class GridRenderer {
       ctx.translate(cx, cy);
       ctx.rotate(angle);
 
-      const art = weaponArt(this.weapon, this.world);
       if (art === "wand") {
         // A wand is a short pale rod with the work happening at the tip: the
         // star is the swing, the way the blade is for a sword.
@@ -1710,6 +1770,28 @@ export class GridRenderer {
         ctx.fillStyle = "#ffffff";
         ctx.beginPath();
         ctx.arc(hilt + len, 0, star * 0.45, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (art === "laser") {
+        // A bolt, not a blade: a hot white core inside a wider coloured glow,
+        // a flare at the muzzle, and the whole thing at full length from the
+        // first frame. It fades over the swing rather than retracting, because
+        // a beam that shortens reads as a stick being pulled back in.
+        const fade = 1 - done * 0.65;
+        const core = Math.max(1.5, thick * 0.4);
+        const reachOut = px(reach) * 0.95;
+        ctx.fillStyle = `rgba(255,95,77,${(0.30 * fade).toFixed(3)})`;
+        ctx.fillRect(hilt, -thick * 1.6, reachOut, thick * 3.2);
+        ctx.fillStyle = `rgba(255,159,61,${(0.75 * fade).toFixed(3)})`;
+        ctx.fillRect(hilt, -core * 1.8, reachOut, core * 3.6);
+        ctx.fillStyle = `rgba(255,255,255,${fade.toFixed(3)})`;
+        ctx.fillRect(hilt, -core / 2, reachOut, core);
+        // The muzzle flare, and a bright dot where the beam lands.
+        ctx.fillStyle = `rgba(255,233,163,${(0.9 * fade).toFixed(3)})`;
+        ctx.beginPath();
+        ctx.arc(hilt, 0, Math.max(2, thick * 0.9 * fade), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(hilt + reachOut, 0, Math.max(2, thick * 0.7 * fade), 0, Math.PI * 2);
         ctx.fill();
       } else if (art === "trident") {
         // Three prongs on a shaft. Nobody swings a broadsword through water,
@@ -1908,7 +1990,7 @@ export class GridRenderer {
         // gaps, and through them you should see the ground of the room rather
         // than whatever is behind the whole world.
         if (tile === TILE_LADDER) {
-          const floor = this.stamps?.get(TILE_FLOOR);
+          const floor = this.floorAt(tiles, x, y);
           const rungs = this.stamps?.get(TILE_LADDER);
           if (floor !== undefined) ctx.drawImage(floor, x * t, y * t, t, t);
           if (rungs !== undefined) ctx.drawImage(rungs, x * t, y * t, t, t);
@@ -1919,7 +2001,7 @@ export class GridRenderer {
         // ladder does -- its shape has gaps, and a hazard cut out of the world
         // behind it reads as a hole rather than as a thing in the room.
         if (tile === TILE_FIRE) {
-          const floor = this.stamps?.get(TILE_FLOOR);
+          const floor = this.floorAt(tiles, x, y);
           // Water joins up. A pond's rim goes only where the water actually
           // ends, so any shape of pool is one body with one shoreline --
           // reported as "the ponds sprites should merge when joined to create
@@ -1959,7 +2041,7 @@ export class GridRenderer {
         // and the chevrons ride on top of it -- exactly as a ladder sits on
         // its floor. Cut out of nothing it would read as a hole.
         if (tile === TILE_FLOW) {
-          const floor = this.stamps?.get(TILE_FLOOR);
+          const floor = this.floorAt(tiles, x, y);
           if (floor !== undefined) ctx.drawImage(floor, x * t, y * t, t, t);
           const dir = this.flowArt?.get(y * GRID_W + x) ?? 1;
           const arrows = this.flows[dir] ?? this.flows[1];
@@ -1996,14 +2078,23 @@ export class GridRenderer {
         // why it costs the wire format nothing at all -- see Tileset.tree.
         const alone = tile === TILE_WALL && this.tiles().tree !== undefined
           && this.wallsAround(tiles, x, y) === 0;
-        // A run of walls is one building, with a parapet only where the roof
-        // actually ends. Same read as the ponds, one tile along: see
-        // blockFor() and the report that asked what a joined block was even
-        // supposed to be.
-        if (tile === TILE_WALL && !alone && this.blocks.size > 0) {
-          const roof = this.blocks.get(sidesOf(tiles, x, y, TILE_WALL));
-          if (roof !== undefined) {
-            ctx.drawImage(roof, x * t, y * t, t, t);
+        // A wall, in a world that has more than one kind of them. Same idea as
+        // the road below: the cell picks its own, from where it is.
+        if (tile === TILE_WALL && this.towers.size > 0) {
+          const building = this.towers.get(this.kindAt(x, y));
+          if (building !== undefined) {
+            ctx.drawImage(building, x * t, y * t, t, t);
+            continue;
+          }
+        }
+
+        // The floor is the one tile that can be a different DRAWING per cell:
+        // in a world whose floor is a road it runs whichever way the road
+        // runs. Everywhere else floorAt() hands back the one floor stamp.
+        if (tile === TILE_FLOOR) {
+          const ground = this.floorAt(tiles, x, y);
+          if (ground !== undefined) {
+            ctx.drawImage(ground, x * t, y * t, t, t);
             continue;
           }
         }

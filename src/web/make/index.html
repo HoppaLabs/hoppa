@@ -275,18 +275,16 @@
 <div id="gallery"></div>
 <div id="took"></div>
 
-<h2>what it swings</h2>
-<div id="weapons" role="group" aria-label="what your character swings"></div>
+<div id="weapons" role="group" aria-label="which weapon your character carries"></div>
 
 <!-- No heading: "you have 6 points to spend" already says what this is, and
      says it in words a child can act on. -->
 <div id="points">you have <b id="left">6</b> points to spend</div>
 <div id="stats"></div>
-<div class="hint">you cannot be both strong and fast</div>
 
 <div class="row">
   <span class="field">
-    <label for="name">what it is called</label>
+    <label for="name">your character name:</label>
     <input id="name" maxlength="12" value="Me" placeholder="give it a name">
   </span>
 </div>
@@ -297,15 +295,16 @@
       <path d="M8.5 18.5H21"/>
       <path d="M14.8 4.7 4.7 14.8a2 2 0 0 0 0 2.8l2.2 2.2a2 2 0 0 0 2.8 0L19.8 9.7a2 2 0 0 0 0-2.8l-2.2-2.2a2 2 0 0 0-2.8 0Z"/>
       <path d="M10 9.5 15 14.5"/>
-    </svg>rub it all out</button>
-  <button id="go">play as this</button>
+    </svg>clear</button>
+  <button id="go">play</button>
 </div>
 <div id="note"></div>
 
 <h2>start over</h2>
-<div class="hint">no undo &mdash; <b>copy the code first</b> if you might want it back</div>
+<div class="hint">gone for good &mdash; <b>copy the code first</b> if you
+     might want it back</div>
 <div class="row">
-  <button id="forget">forget this character</button>
+  <button id="forget">delete this character</button>
 </div>
 <div id="forgotten"></div>
 <div class="row"><a href="../">back to the game</a></div>

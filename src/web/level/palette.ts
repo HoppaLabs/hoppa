@@ -115,7 +115,7 @@ export const GAMES = [
   // the kaiju" -- which is what "pick the treasure up and the door opens"
   // already is, so the rules needed nothing and the work is all in what a
   // child sees. See docs/adr/0050.
-  { engine: "roam", label: "city", tiles: 6 },
+  { engine: "raze", label: "city", tiles: 6 },
 ] as const;
 
 /** The world a game is drawn in, by name -- which cast of creatures it holds. */

@@ -40,11 +40,16 @@ function armsReach(engine: string, build: number, sideOn: boolean): string {
  * something the reader has to know. See adr/0045.
  */
 const GAMES = [
-  { engine: "roam", version: newestBuild("roam"), sideOn: false, world: "underground", killable: true, ends: true },
-  { engine: "dash", version: newestBuild("dash"), sideOn: true, world: "outside", killable: true, ends: true },
-  { engine: "swim", version: newestBuild("swim"), sideOn: true, world: "reef", killable: true, ends: true },
-  { engine: "calm", version: 1, sideOn: false, world: "garden", killable: false, ends: false },
-  { engine: "calm", version: 2, sideOn: false, world: "garden", killable: true, ends: true },
+  { engine: "roam", version: newestBuild("roam"), tiles: 0, sideOn: false, world: "underground", killable: true, ends: true },
+  { engine: "dash", version: newestBuild("dash"), tiles: 0, sideOn: true, world: "outside", killable: true, ends: true },
+  { engine: "swim", version: newestBuild("swim"), tiles: 0, sideOn: true, world: "reef", killable: true, ends: true },
+  { engine: "calm", version: 1, tiles: 0, sideOn: false, world: "garden", killable: false, ends: false },
+  { engine: "calm", version: 2, tiles: 0, sideOn: false, world: "garden", killable: true, ends: true },
+  // raze/1: the adventure game where a strong creature brings a building
+  // down. Its own ENGINE, so the rules are carried as rules -- and the city
+  // it is drawn in is a skin, so its world is chosen by the level rather
+  // than by the engine. See src/engines/raze/v1.ts and adr/0052.
+  { engine: "raze", version: newestBuild("raze"), tiles: 6, sideOn: false, world: "city", killable: true, ends: true },
 ] as const;
 
 /** How a row names itself when a test prints or asserts on it. */
@@ -53,7 +58,9 @@ const nameOf = (game: (typeof GAMES)[number]) => `${game.engine}/${game.version}
 test("each game gets its own world, and its own cast living in it", () => {
   const rows: string[] = [];
   for (const game of GAMES) {
-    const world = tilesetFor(game.sideOn, game.engine);
+    // ...and in the world the LEVEL asks for, not just the engine's own: a
+    // skin is chosen per level, so a row has to say which one it means.
+    const world = tilesetFor(game.sideOn, game.engine, game.tiles);
     const cast = (CASTS[world.name] ?? ENEMIES).map((one) => one.name);
     rows.push(`  ${game.engine.padEnd(5)} -> ${world.name.padEnd(12)} ${cast.join(", ")}`);
     expect({ engine: game.engine, world: world.name })
@@ -64,7 +71,7 @@ test("each game gets its own world, and its own cast living in it", () => {
   // No two games share a cast: a bat underwater and a goblin on a lawn are the
   // bug this exists to stop coming back.
   const casts = GAMES.map((g) => (CASTS[g.world] ?? ENEMIES).map((o) => o.name).join());
-  expect(new Set(casts).size).toBe(3);   // roam and dash share the dungeon three
+  expect(new Set(casts).size).toBe(4);   // roam and dash share the dungeon three
 });
 
 test("only the games that are ABOUT fighting let you hurt anything", () => {

@@ -32,11 +32,33 @@ interface Mutation {
 
 const MUTATIONS: readonly Mutation[] = [
   {
-    breaks: "city blocks go back to a parapet per cell, so a building is fifteen roofs",
-    file: "src/core/tileset.ts",
-    find: "export function blockFor(open: number): Pattern {",
-    replace: "export function blockFor(open: number): Pattern {\n  open = POND_N | POND_E | POND_S | POND_W;",
+    // The whole risk of raze/1 in one edit. A smashed building is state; state
+    // that is not hashed is state a replay can disagree about, and a shared
+    // level is only worth anything because the proof replays cold.
+    breaks: "a smashed building never reaches the hash, so a proof stops proving",
+    file: "src/engines/raze/v1.ts",
+    find: "    for (let i = 0; i < this.razed.length; i = (i + 1) | 0) {\n      if (this.razed[i] === 0) continue;",
+    replace: "    for (let i = 0; i < this.razed.length; i = (i + 1) | 0) {\n      if (this.razed[i] === 0 || true) continue;",
   },
+  {
+    breaks: "any creature can level a building, so strength unlocks nothing again",
+    file: "src/engines/raze/v1.ts",
+    find: "export const SMASH_PIP = 4;",
+    replace: "export const SMASH_PIP = 0;",
+  },
+  {
+    breaks: "a smashed building never stops burning, so you can wall yourself in",
+    file: "src/engines/raze/v1.ts",
+    find: "      if (left > 0) this.ember[i] = (left - 1) | 0;",
+    replace: "      if (left > 0) this.ember[i] = left | 0;",
+  },
+  {
+    breaks: "the city hands the jaeger a sword to fight a kaiju with",
+    file: "src/web/play/weapon.ts",
+    find: '  if (engine === "raze") return "laser";',
+    replace: '  if (engine === "raze") return "sword";',
+  },
+
   {
     // The other half of the same line, and the one that shipped: `none` on a
     // body turns the page's own scrolling off with the pinch.
@@ -85,8 +107,8 @@ const MUTATIONS: readonly Mutation[] = [
   {
     breaks: "the underwater weapon goes back to a sword",
     file: "src/web/play/weapon.ts",
-    find: '  return engine === "swim" ? "trident" : "sword";',
-    replace: '  return "sword";',
+    find: '  if (engine === "swim") return "trident";',
+    replace: '  if (engine === "swim") return "sword";',
   },
   {
     breaks: "a wand turns into a trident underwater, so the picture lies about what it does",

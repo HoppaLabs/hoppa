@@ -29,6 +29,10 @@ test("every build ships: retiring one would break every link that pinned it", ()
     // added. What matters is that nothing ever LEAVES.
     "roam/6", "roam/7", "dash/6", "dash/7", "roam/8", "swim/1", "swim/2", "calm/1",
     "swim/3", "dash/8", "calm/2",
+    // raze/1: the adventure game where a strong creature brings a building
+    // down. A new ENGINE rather than roam/9, so no adventure level changes
+    // and no cosmetic choice decides the rules. See src/engines/raze/v1.ts.
+    "raze/1",
   ]);
 });
 

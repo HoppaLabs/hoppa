@@ -312,7 +312,7 @@ function refuses(candidate: typeof level, creature: Creature): string | null {
 /**
  * "Edit character" has to remember which level you were on.
  *
- * The drawing page sends you back to `../` when you tap "play as this", which
+ * The drawing page sends you back to `../` when you tap play, which
  * drops the fragment -- and the fragment IS the level. So you went off to give
  * your creature another point, came back, and were playing the built-in level
  * instead of the one you were in the middle of.

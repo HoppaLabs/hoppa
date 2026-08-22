@@ -101,6 +101,6 @@ export const PACK: readonly PackLevel[] = [
     slug: "the-city",
     name: "the city",
     teaches: "get the people to the evac zone, and mind the kaiju",
-    code: "ESIYACOpWf___wAAA3re43re63re4wAAA3vW43vW43vW4wAAA1ve61ve4wAAA____uDImpDiEyFaPaRilKKDWteeQcb0dED3",
+    code: "EWBYACOpWf___wAAA3re43re63re4wAAA3vW43vW43vW4wAAA1ve61ve4wAAA____uDImpDiEyFaPaRilKKDWteeQcb0dECF",
   },
 ];

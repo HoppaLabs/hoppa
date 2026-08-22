@@ -350,7 +350,7 @@ function paintStats(): void {
 });
 
 /**
- * Where "play as this" goes.
+ * Where the play button goes.
  *
  * Normally back to the play page, which loads the built-in level. But if you
  * came here from a level -- the play page hands the level over in the link --
@@ -365,7 +365,7 @@ function paintStats(): void {
 /**
  * Keep what is on the page, continuously.
  *
- * It used to be saved in ONE place: the "play as this" button. Everything else
+ * It used to be saved in ONE place: the play button. Everything else
  * -- every stroke, every colour, every pip, the name, the weapon -- lived in a
  * variable and nowhere else, so a child who drew for ten minutes and then
  * pressed the browser's back button lost all of it. Reported exactly that way:
@@ -474,8 +474,14 @@ function paintWeapons(): void {
     const button = document.createElement("button");
     button.className = choice === weapon ? "on" : "";
     button.setAttribute("aria-pressed", choice === weapon ? "true" : "false");
+    // "weapon", not "sword". The choice is still sword-or-wand underneath and
+    // the code still carries it, but a sword is only what it LOOKS like in
+    // some of the worlds now -- underwater it is a trident and in the city it
+    // is a laser. A button that says sword next to a level that draws a laser
+    // is a button that lies. See src/web/play/weapon.ts.
+    const says = choice === "sword" ? "weapon" : choice;
     button.innerHTML =
-      `${WEAPON_ART[choice]}<span>${choice}</span>` +
+      `${WEAPON_ART[choice]}<span>${says}</span>` +
       `<span class="says">${WEAPON_SAYS[choice]}</span>`;
     button.addEventListener("click", () => {
       weapon = choice;
@@ -575,7 +581,7 @@ forget.addEventListener("click", () => {
   if (!armed) {
     armed = true;
     forget.classList.add("sure");
-    forget.textContent = "tap again to forget it";
+    forget.textContent = "tap again to delete it";
     forgotten.textContent = "the code above is the only copy — last chance to keep it";
     return;
   }
@@ -589,7 +595,7 @@ forget.addEventListener("click", () => {
 
   armed = false;
   forget.classList.remove("sure");
-  forget.textContent = "forget this character";
+  forget.textContent = "delete this character";
   forgotten.textContent = "gone — this is a blank one";
 
   paintInks();

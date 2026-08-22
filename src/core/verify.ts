@@ -15,7 +15,7 @@ import { reachableFrom } from "./reach.ts";
 export const MAX_TREASURE = 8;
 
 /** Engines whose enemies derive a patrol from the corridor they stand in. */
-const CORRIDOR_PATROL_ENGINES: readonly string[] = ["delve", "roam"];
+const CORRIDOR_PATROL_ENGINES: readonly string[] = ["delve", "roam", "raze"];
 
 export function usesCorridorPatrols(engine: string): boolean {
   return CORRIDOR_PATROL_ENGINES.includes(engine);

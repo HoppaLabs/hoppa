@@ -22,6 +22,7 @@ import { RoamV8, ROAM_V8_BEHAVIOUR } from "./roam/v8.ts";
 import { SwimV1, SWIM_V1_BEHAVIOUR } from "./swim/v1.ts";
 import { SwimV2, SWIM_V2_BEHAVIOUR } from "./swim/v2.ts";
 import { SwimV3, SWIM_V3_BEHAVIOUR } from "./swim/v3.ts";
+import { RazeV1, RAZE_V1_BEHAVIOUR } from "./raze/v1.ts";
 import { CalmV1, CALM_V1_BEHAVIOUR } from "./calm/v1.ts";
 import { CalmV2, CALM_V2_BEHAVIOUR } from "./calm/v2.ts";
 import { DashV1, DASH_V1_BEHAVIOUR } from "./dash/v1.ts";
@@ -207,6 +208,15 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
     `calm/${CALM_V2_BEHAVIOUR}`,
     (level, creature) =>
       creature === undefined ? new CalmV2(level) : new CalmV2(level, creature),
+  ],
+  // raze/1: the adventure game where a strong creature can bring a building
+  // down. A new engine id rather than roam/9, so no existing adventure level
+  // changes and no COSMETIC choice decides the rules. See the file's header
+  // and docs/adr/0052.
+  [
+    `raze/${RAZE_V1_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new RazeV1(level) : new RazeV1(level, creature),
   ],
 ]);
 

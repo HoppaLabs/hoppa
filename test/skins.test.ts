@@ -131,7 +131,13 @@ test("the city ships a room, and it is drawn as a city", () => {
   expect(room).toBeDefined();
   const level = decodeLevel(room!.code);
   expect(level.tilesetId).toBe(CITY.id);
-  expect(level.engine).toBe("roam");
+  // ...and it is its own GAME as well as its own world. The city is the one
+  // place where a skin and an engine arrived together: raze/1 is the adventure
+  // game where a strong creature brings a building down, and the city is what
+  // that game is drawn as. Neither decides the other -- a raze level with no
+  // skin is a cave you can smash, and a roam level with tiles=6 is a city you
+  // cannot. See src/engines/raze/v1.ts.
+  expect(level.engine).toBe("raze");
   expect(tilesetFor(false, level.engine, level.tilesetId).name).toBe(CITY.name);
 });
 

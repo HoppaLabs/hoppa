@@ -138,8 +138,10 @@ const calm = (seed: string) => `hoppa/1 calm seed=${seed} tiles=0 behaviour=2`;
 // The beach is the garden's engine drawn somewhere else: same rules, tiles=5.
 // See FIRST_SKIN in src/core/tileset.ts.
 const beach = (seed: string) => `hoppa/1 calm seed=${seed} tiles=5 behaviour=2`;
-// The city is the ADVENTURE game drawn downtown: same rules, tiles=6.
-const city = (seed: string) => `hoppa/1 roam seed=${seed} tiles=6 behaviour=8`;
+// The city is its own GAME as well as its own world: raze/1 is the adventure
+// game where a strong creature brings a building down. A new engine id rather
+// than roam/9, so no cave level changes -- see src/engines/raze/v1.ts.
+const city = (seed: string) => `hoppa/1 raze seed=${seed} tiles=6 behaviour=1`;
 
 /* -------------------------------------------------------------------------- */
 

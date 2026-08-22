@@ -45,7 +45,11 @@ import {
 export const CODEC_VERSION = 1;
 
 /** Index is the wire value. Append only -- never reorder, never remove. */
-export const ENGINE_IDS: readonly string[] = ["delve", "shove", "roam", "dash", "swim", "calm"];
+// APPEND ONLY. An index is what a link carries, so moving a name moves every
+// level ever encoded to a different game.
+export const ENGINE_IDS: readonly string[] = [
+  "delve", "shove", "roam", "dash", "swim", "calm", "raze",
+];
 // "shove" at 1 is a slot the spec reserved for a block-pushing game and never
 // filled. It stays where it is: the index IS the wire value, so closing the
 // gap would silently repoint every link ever made.

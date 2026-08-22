@@ -12,8 +12,8 @@
 
 import { expect, test } from "bun:test";
 import {
-  CITY, GARDEN, POND_E, POND_N, POND_S, POND_W, REEF, UNDERGROUND,
-  blockFor, openSides, pondFor, sidesOf,
+  GARDEN, POND_E, POND_N, POND_S, POND_W, REEF, UNDERGROUND,
+  openSides, pondFor, sidesOf,
 } from "../src/core/tileset.ts";
 import { GRID_H, GRID_W } from "../src/core/grid.ts";
 import { TILE_FIRE, TILE_FLOOR, TILE_WALL } from "../src/core/tiles.ts";
@@ -117,7 +117,7 @@ test("only water counts as water: a bridge over a pond breaks the surface", () =
   expect(openSides(tiles, 5, 5) & POND_E).not.toBe(0);
 });
 
-// --- and the same read, one tile along: a run of walls is one building ------
+// --- and the same read, asked about a different tile -------------------------
 
 /** A grid of floor with walls at the given cells. */
 function terrace(...cells: readonly (readonly [number, number])[]): Uint8Array {
@@ -125,42 +125,6 @@ function terrace(...cells: readonly (readonly [number, number])[]): Uint8Array {
   for (const [x, y] of cells) tiles[y * GRID_W + x] = TILE_WALL;
   return tiles;
 }
-
-test("a city block's parapet goes only where the roof ends", () => {
-  // "I don't like what the buildings look like when they are joined, what are
-  // they supposed to represent?" -- a fair question of a five-by-three block
-  // drawn as fifteen little roofs with a kerb around each one. It is the pond
-  // bug exactly, one tile along.
-  const alone = blockFor(POND_N | POND_E | POND_S | POND_W);
-  const inside = blockFor(0);
-  // A lone cell has a lit lip on its north edge; a deep interior cell has none.
-  expect((alone[0] as string)[8]).toBe("4");
-  expect((inside[0] as string)[8]).not.toBe("4");
-  // ...and no cell of a joined roof carries an edge on a side facing more roof.
-  const middle = blockFor(POND_N);
-  expect((middle[0] as string)[8]).toBe("4");
-  expect((middle[15] as string)[8]).not.toBe("1");
-});
-
-test("all sixteen roofs are the right shape, and each is its own drawing", () => {
-  const seen = new Set<string>();
-  for (let open = 0; open < 16; open++) {
-    const made = blockFor(open);
-    expect(made).toHaveLength(16);
-    for (const row of made) expect(row).toHaveLength(16);
-    seen.add(made.join("|"));
-  }
-  expect(seen.size).toBe(16);
-});
-
-test("only the world whose walls are BUILDINGS joins them up", () => {
-  // A cave wall is a cave wall however many there are. A city block is one
-  // building, and that is the whole difference.
-  expect(CITY.wallFor).toBeDefined();
-  expect(GARDEN.wallFor).toBeUndefined();
-  expect(UNDERGROUND.wallFor).toBeUndefined();
-  expect(REEF.wallFor).toBeUndefined();
-});
 
 test("sidesOf reads whichever tile it is asked about", () => {
   // openSides() is this with the water baked in; the roofs needed the same

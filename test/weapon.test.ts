@@ -9,10 +9,14 @@ import { expect, test } from "bun:test";
 import { weaponArt, weaponSays } from "../src/web/play/weapon.ts";
 import { ENGINE_IDS } from "../src/core/codec.ts";
 
-test("a sword is a trident underwater and a sword everywhere else", () => {
+test("a sword follows the world it is swung in", () => {
+  // Two worlds overrule the drawing, and both for the same reason: nobody
+  // swings a broadsword through water, and a jaeger does not fight a kaiju
+  // with one either. Everywhere else a sword is a sword.
   expect(weaponArt("sword", "swim")).toBe("trident");
+  expect(weaponArt("sword", "raze")).toBe("laser");
   for (const engine of ENGINE_IDS) {
-    if (engine === "swim") continue;
+    if (engine === "swim" || engine === "raze") continue;
     expect({ engine, art: weaponArt("sword", engine) }).toEqual({ engine, art: "sword" });
   }
 });
@@ -27,6 +31,7 @@ test("a wand stays a wand, including underwater", () => {
 
 test("the button says what it does, for anyone reading the screen aloud", () => {
   expect(weaponSays(weaponArt("sword", "swim"))).toBe("jab your trident");
+  expect(weaponSays(weaponArt("sword", "raze"))).toBe("fire your laser");
   expect(weaponSays(weaponArt("sword", "roam"))).toBe("swing your sword");
   expect(weaponSays(weaponArt("wand", "swim"))).toBe("wave your wand");
 });
