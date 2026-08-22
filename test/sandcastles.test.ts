@@ -19,22 +19,32 @@ import {
 
 const TILE = 16;
 
-test("a quarter of the beach's walls are still plain dune", () => {
-  // On purpose. All castle everywhere is a wall of battlements with no beach
-  // left in it, and a quarter of it sand keeps the SHAPE of the thing a child
-  // drew readable.
-  expect(castleFor(0)).toBe(BEACH.wall);
-  for (let kind = 1; kind < WALL_KINDS; kind = (kind + 1) | 0) {
+test("no wall a child drew inside the room comes out as plain sand", () => {
+  // It used to be one kind in four, on the argument that a quarter of it sand
+  // keeps the shape readable. That was written when a beach's walls were
+  // mostly its BORDER. Now the border is dune by rule and the walls inside are
+  // the things somebody built -- and a mottled sand cell in the middle of a
+  // battlemented wall does not read as variety, it reads as a breach.
+  for (let kind = 0; kind < WALL_KINDS; kind = (kind + 1) | 0) {
     expect({ kind, dune: castleFor(kind) === BEACH.wall }).toEqual({ kind, dune: false });
   }
+  // ...and the dune has not gone anywhere: it is what the rim is made of.
+  expect(BEACH.wall).toBeDefined();
+  expect(BEACH.rim).toBe("sea");
 });
 
-test("the three castles are three different drawings", () => {
+test("there are three castles, and every kind lands on one of them", () => {
   const seen = new Set<string>();
   for (let kind = 0; kind < WALL_KINDS; kind = (kind + 1) | 0) {
     seen.add(castleFor(kind).join("|"));
   }
-  expect(seen.size).toBe(WALL_KINDS);
+  // Three drawings, four kinds: the fourth comes round to the first.
+  expect(seen.size).toBe(3);
+  expect(castleFor(3)).toEqual(castleFor(0));
+  // A kind from anywhere still lands on a real drawing rather than undefined.
+  for (const kind of [0, 1, 2, 3, 7, 99]) {
+    expect({ kind, drawn: castleFor(kind).length }).toEqual({ kind, drawn: 16 });
+  }
 });
 
 test("a wall is opaque, so every castle fills its tile edge to edge", () => {

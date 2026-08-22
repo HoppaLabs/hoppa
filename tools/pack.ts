@@ -748,40 +748,58 @@ function theGarden(): string {
 function theBeach(): string {
   const room = new Room().border();
 
-  // THE SEA IS A BAY, not a shoreline, and that is arithmetic rather than
-  // taste: water is an ENTITY and the wire format holds ten of them. A strip
-  // along the whole bottom edge came to forty-four cells and would not encode.
+  // THE SEA IS ALONG THE BOTTOM, and it costs nothing.
   //
-  // Ten cells laid as a bay works better anyway. One body of it -- the tiles
-  // join up by reading their neighbours, so this comes out as one piece of
-  // water with one shoreline rather than as a row of puddles. See pondFor().
-  room.line(8, 11, 14, 11, "^");
-  room.line(9, 12, 13, 12, "^");
+  // It used to be a bay of ten cells, and there is a good reason it was: water
+  // is an ENTITY and the wire format holds ten of them, so a strip along the
+  // whole bottom edge came to forty-four cells and would not encode.
+  //
+  // The rim solves it. A beach draws its bottom edge as sea whether or not
+  // anybody paints one -- see Tileset.rim -- so the shoreline is free, and the
+  // ten entities can be spent on water that reaches UP the beach instead of on
+  // the line that was always going to be there. Painted water in the row above
+  // the edge joins it into one body with one shoreline (see openSides).
+  room.line(9, 12, 14, 12, "^");
+  room.line(11, 11, 13, 11, "^");
 
   // A jetty out over it. In the garden the plank tile is a bridge across a
-  // pond; here it is the one way to stand out on the water, and it costs two
-  // cells of sea, which is two entities back.
-  room.line(11, 10, 11, 12, "H");
+  // pond; here it is the one way to stand out on the water.
+  room.line(12, 10, 12, 12, "H");
 
-  // Palms up on the dry sand, standing apart -- a lone wall cell is drawn as a
-  // canopy, and two together are a dune instead.
-  room.put(4, 2, WALL).put(8, 3, WALL).put(15, 2, WALL).put(20, 4, WALL);
+  // TWO LITTLE CASTLES, which is what a beach is for.
+  //
+  // Asked for exactly: "not surrounded by sandcastle walls, they should be
+  // little castles inside with walls around them". A ring of wall is a castle
+  // -- the corners come out as turrets and the runs between them as
+  // battlements, all read off the shape (see isTurret and castleFor) -- so a
+  // rectangle with a hollow middle is a keep with a courtyard in it, and it
+  // costs the wire format nothing beyond the wall cells themselves.
+  //
+  // A way in on each, because a castle you cannot get into is a block of sand.
+  room.box(3, 4, 7, 7, WALL);
+  room.put(5, 7, OPEN);
+  room.box(16, 3, 20, 6, WALL);
+  room.put(18, 6, OPEN);
+  // Hollow them out: box() fills, and a castle is a wall with a yard inside.
+  for (let x = 4; x <= 6; x++) for (let y = 5; y <= 6; y++) room.put(x, y, OPEN);
+  for (let x = 17; x <= 19; x++) for (let y = 4; y <= 5; y++) room.put(x, y, OPEN);
 
-  // Two banks of dune, the only thing here you cannot see over.
-  room.box(2, 5, 5, 6, WALL);
-  room.box(17, 6, 20, 7, WALL);
+  // Two lone towers out on the sand, away from the castles. A wall cell with
+  // nothing beside it comes out as a whole turret -- asked for as "single cells
+  // should be turrets" -- so one cell is the smallest castle there is.
+  room.put(10, 2, WALL).put(21, 9, WALL);
 
-  // Shells: along the waterline where you find them, one out at the end of the
-  // jetty, and two up in the dry sand behind the dunes.
-  room.put(3, 9, "$").put(7, 10, "$").put(16, 10, "$").put(20, 9, "$");
-  room.put(11, 9, "$");
-  room.put(3, 3, "$").put(21, 2, "$");
+  // Shells: one in each courtyard, so both castles are worth going into, and
+  // the rest along the waterline where you find them.
+  room.put(5, 6, "$").put(18, 5, "$");
+  room.put(3, 10, "$").put(7, 11, "$").put(16, 10, "$").put(20, 11, "$");
+  room.put(12, 9, "$");
 
-  // A gull and a jellyfish, and neither will ever come after you: on calm/2
-  // the glyph decides what a thing DOES. Gulls up on the sand where gulls
-  // stand about, the jellyfish at the water's edge.
-  room.put(6, 4, "B").put(18, 3, "B");
-  room.put(15, 10, "D");
+  // A gull and a jellyfish, and neither will ever come after you: on calm the
+  // glyph decides what a thing DOES. Gulls up on the sand where gulls stand
+  // about, the jellyfish at the water's edge.
+  room.put(9, 2, "B").put(14, 4, "B");
+  room.put(15, 11, "D");
 
   // ONE crab, and it hunts. Down by the water between the far shells and the
   // way out, which is what makes the weapon worth carrying.
@@ -791,6 +809,7 @@ function theBeach(): string {
   room.put(22, 1, ">");
   return room.text(beach("bbbb"));
 }
+
 
 /**
  * The city. Rescue the people, get them to the evac zone, and there is a kaiju

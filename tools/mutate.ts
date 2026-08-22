@@ -32,6 +32,23 @@ interface Mutation {
 
 const MUTATIONS: readonly Mutation[] = [
   {
+    // "Not surrounded by sandcastle walls." The edge of the room is not a
+    // thing anybody built, and a ring of castles round it drowns out the
+    // shapes a child actually drew.
+    breaks: "the beach is walled in by sandcastles again",
+    file: "src/core/tileset.ts",
+    find: '  rim: "sea",',
+    replace: "",
+  },
+  {
+    // A bay drawn down to the shore grows a shoreline between itself and the
+    // sea it runs into.
+    breaks: "painted water no longer joins the sea along the bottom",
+    file: "src/core/tileset.ts",
+    find: "  if (seaRim && y === GRID_H - 2) return open & ~POND_S;",
+    replace: "  if (false) return open & ~POND_S;",
+  },
+  {
     // Reported as "the seagulls are moving in the wrong direction". A sprite
     // drawn facing left, in a renderer that mirrors for left, walks backwards
     // for its whole life.
@@ -70,11 +87,15 @@ const MUTATIONS: readonly Mutation[] = [
     replace: "if (tile === TILE_WALL && this.towers.size > 0) {",
   },
   {
-    // All castle everywhere is a wall of battlements with no beach left in it.
-    breaks: "every beach wall is a sandcastle, so a drawn shape stops reading",
+    // Replaces "every beach wall is a sandcastle", which described a defect
+    // that became the DESIGN: with the rim drawn as terrain, the walls inside
+    // are the things a child built and a mottled sand cell among them reads as
+    // a breach rather than as variety. What must not come back is a castle
+    // kind that is not a castle.
+    breaks: "a wall a child drew inside the room comes out as plain sand again",
     file: "src/core/tileset.ts",
-    find: "const CASTLE_KINDS: readonly Pattern[] = [DUNE, CASTLE_WALL, CASTLE_DOOR, CASTLE_LOW];",
-    replace: "const CASTLE_KINDS: readonly Pattern[] = [CASTLE_WALL, CASTLE_WALL, CASTLE_DOOR, CASTLE_LOW];",
+    find: "const CASTLE_KINDS: readonly Pattern[] = [CASTLE_WALL, CASTLE_DOOR, CASTLE_LOW];",
+    replace: "const CASTLE_KINDS: readonly Pattern[] = [DUNE, CASTLE_DOOR, CASTLE_LOW];",
   },
   {
     // The Easter egg fires by accident. Touching the top row happens constantly

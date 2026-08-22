@@ -15,6 +15,8 @@ import {
   TILE_PX, flipPattern, inkOf, tilesetFor, turnPattern,
   ICE_SUB,
   isTurret,
+  onRim,
+  seaSides,
   type Pattern, type Ramp, type Tileset,
   openSides, sidesOf,
 } from "../../core/tileset.ts";
@@ -2240,7 +2242,7 @@ export class GridRenderer {
         if (tile === TILE_FROZEN) {
           const floor = this.floorAt(tiles, x, y);
           if (floor !== undefined) ctx.drawImage(floor, x * t, y * t, t, t);
-          const sheet = this.ices.get(this.ices.size > 1 ? openSides(tiles, x, y) : 0);
+          const sheet = this.ices.get(this.ices.size > 1 ? openSides(tiles, x, y, this.tiles().rim === "sea") : 0);
           if (sheet !== undefined) {
             ctx.drawImage(sheet, x * t, y * t, t, t);
           } else {
@@ -2263,7 +2265,7 @@ export class GridRenderer {
           // Read off the NEIGHBOURING TILES, the same way a lone wall becomes
           // a tree, so it costs the wire format nothing.
           if (this.ponds.size > 0) {
-            const pool = this.ponds.get(openSides(tiles, x, y));
+            const pool = this.ponds.get(openSides(tiles, x, y, this.tiles().rim === "sea"));
             if (floor !== undefined) ctx.drawImage(floor, x * t, y * t, t, t);
             if (pool !== undefined) {
               ctx.drawImage(pool, x * t, y * t, t, t);
@@ -2333,6 +2335,27 @@ export class GridRenderer {
           && this.wallsAround(tiles, x, y) === 0;
         // A wall, in a world that has more than one kind of them. Same idea as
         // the road below: the cell picks its own, from where it is.
+        // The edge of the room comes first, in a world that says its rim is
+        // made of something else. A sandcastle is a thing you BUILD, and a
+        // ring of them round the whole level says the opposite -- so the
+        // bottom edge of a beach is sea and the other three are plain dune,
+        // whatever the kinds and the corners would otherwise have made of
+        // them. See Tileset.rim.
+        if (tile === TILE_WALL && this.tiles().rim === "sea" && onRim(x, y)) {
+          if (y === GRID_H - 1) {
+            const water = this.ponds.get(seaSides(x));
+            if (water !== undefined) {
+              ctx.drawImage(water, x * t, y * t, t, t);
+              continue;
+            }
+          }
+          const sand = this.stamps?.get(TILE_WALL);
+          if (sand !== undefined) {
+            ctx.drawImage(sand, x * t, y * t, t, t);
+            continue;
+          }
+        }
+
         // A corner, or a wall cell standing on its own: a whole tower, in a
         // world that has one. Read off the neighbours rather than a hash --
         // which castle you get is a matter of taste, but which cells are

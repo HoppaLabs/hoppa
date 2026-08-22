@@ -289,6 +289,21 @@ export interface Tileset {
    */
   readonly wallCorner?: Pattern;
   /**
+   * What the outer ring is made of, where it is not the same stuff as the
+   * walls a child drew inside it.
+   *
+   * "The beach levels should have the sea at the bottom, and not surrounded by
+   * sandcastle walls, they should be little castles inside with walls around
+   * them" -- which is a distinction worth having in general: the edge of the
+   * world is not a thing anybody BUILT. A castle is something you make on the
+   * sand, and a ring of them round the whole room says the opposite.
+   *
+   * "sea" means the bottom edge is water and the other three are plain
+   * terrain. Only the beach asks for it; a city's edge being more city is
+   * right, and a cave's edge being more rock is right.
+   */
+  readonly rim?: "sea";
+  /**
    * A ramp for the hazard alone.
    *
    * It is a different MATERIAL from the terrain, and it borrowed the terrain's
@@ -555,8 +570,35 @@ export function sidesOf(tiles: Uint8Array, x: number, y: number, tile: number, a
  * stopped failing anything, because the pond test had quietly moved onto the
  * copy and the roads were the only thing left using the original.
  */
-export function openSides(tiles: Uint8Array, x: number, y: number): number {
-  return sidesOf(tiles, x, y, TILE_FIRE, TILE_FROZEN);
+export function openSides(tiles: Uint8Array, x: number, y: number, seaRim = false): number {
+  const open = sidesOf(tiles, x, y, TILE_FIRE, TILE_FROZEN);
+  // ...and where the bottom edge of the room IS the sea (Tileset.rim), water
+  // painted just above it is the same water. Without this a child who draws a
+  // bay down to the shore gets a shoreline drawn BETWEEN their bay and the sea
+  // it obviously runs into -- a seam across one body of water.
+  if (seaRim && y === GRID_H - 2) return open & ~POND_S;
+  return open;
+}
+
+/** The outer ring of the grid: the edge of the world, not a thing anybody built. */
+export function onRim(x: number, y: number): boolean {
+  return x === 0 || y === 0 || x === GRID_W - 1 || y === GRID_H - 1;
+}
+
+/**
+ * Which sides of a bottom-edge sea cell are open, so it draws a shoreline.
+ *
+ * The sea runs along the bottom, so the only side that ends is the one facing
+ * up the beach -- and at the two bottom corners, the side facing out of the
+ * room as well. Fed to the same pondFor() stamps the painted water already
+ * uses, so a child who paints sea just above the edge gets one body of water
+ * with one shoreline rather than two pools with a seam between them.
+ */
+export function seaSides(x: number): number {
+  let open = POND_N;
+  if (x === 0) open |= POND_W;
+  if (x === GRID_W - 1) open |= POND_E;
+  return open;
 }
 
 /**
@@ -1173,11 +1215,23 @@ export function isTurret(open: number): boolean {
   return !(north && south) && !(east && west);
 }
 
-const CASTLE_KINDS: readonly Pattern[] = [DUNE, CASTLE_WALL, CASTLE_DOOR, CASTLE_LOW];
+/**
+ * No plain dune among them any more.
+ *
+ * It was one kind in four, on the argument that a quarter of it sand keeps the
+ * shape a child drew readable. That was written when a beach's walls were
+ * mostly its border. Now the border is dune by rule (Tileset.rim) and the walls
+ * INSIDE are the things somebody built -- and a mottled sand cell in the middle
+ * of a battlemented wall does not read as variety, it reads as a BREACH. Seen
+ * immediately once the first two castles went up.
+ */
+const CASTLE_KINDS: readonly Pattern[] = [CASTLE_WALL, CASTLE_DOOR, CASTLE_LOW];
 
-/** Which sandcastle stands on a beach cell. Kind 0 is plain dune. */
+/** Which sandcastle stands on a beach cell. */
 export function castleFor(kind: number): Pattern {
-  return CASTLE_KINDS[kind & (WALL_KINDS - 1)] as Pattern;
+  // Modulo rather than a mask: there are three of these and the renderer hands
+  // out four kinds, so the fourth comes round to the first.
+  return CASTLE_KINDS[((kind % CASTLE_KINDS.length) + CASTLE_KINDS.length) % CASTLE_KINDS.length] as Pattern;
 }
 
 export const BEACH: Tileset = {
@@ -1194,6 +1248,9 @@ export const BEACH: Tileset = {
   wallKinds: castleFor,
   // ...with a tower on every corner, and a tower where one stands alone.
   wallCorner: TURRET,
+  // ...but never round the edge of the room: the sea is along the bottom and
+  // the other three sides are dune. See Tileset.rim.
+  rim: "sea",
   // One on its own is a palm. Same rule as the garden's tree: a wall cell with
   // no wall beside it, which costs the wire format nothing at all.
   tree: PALM,

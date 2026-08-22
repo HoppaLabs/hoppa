@@ -95,7 +95,7 @@ export const PACK: readonly PackLevel[] = [
     slug: "the-beach",
     name: "the beach",
     teaches: "pick the shells up, mind the crab, keep out of the sea",
-    code: "EVDUACA4HwekJBIgwsGiNEAiBwQgdCYj4mI6Q6Q6Q6Q6UHcNAXEiolptpxp2J7qAItUzV_6BuISIyJSKSKyLSUyVSWSWzXmHEHEFoBc",
+    code: "EVDUACA4HwekMCFiPCgiKOBAIiBA4EAiIEDiAiIiA8I6Q2QAOkOkOlB0DQFxRSSqcieagCh6jiHNN1gbi-icislMlUlclsl035hxBxBSAJM",
   },
   {
     slug: "the-city",
