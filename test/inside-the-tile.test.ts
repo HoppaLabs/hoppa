@@ -54,7 +54,7 @@ function touches(frame: readonly string[]): string[] {
 const RENDERER = "src/web/play/renderer.ts";
 
 // The objects: things that stand ON the floor, drawn over it.
-const OBJECTS = ["GEM_FRAMES", "FLOWER_FRAMES", "SHELL_FRAMES", "PERSON_FRAMES", "CHEST_SHUT", "CHEST_OPEN"];
+const OBJECTS = ["GEM_FRAMES", "FLOWER_FRAMES", "SHELL_FRAMES", "PERSON_FRAMES", "CHEST_SHUT", "CHEST_OPEN", "GARDEN_DOOR_SHUT", "GARDEN_DOOR_OPEN"];
 
 test("every object has air down each side of its tile", () => {
   for (const name of OBJECTS) {

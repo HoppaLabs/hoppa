@@ -64,7 +64,7 @@ export const TOOLS: readonly Tool[] = [
   // only one there was: that build has no win, so it drew a door and never
   // opened it, and the tool was a button that did nothing. calm/2 was asked for
   // WITH a way out, and a new garden is drawn under calm/2. See adr/0045.
-  { glyph: GLYPH_EXIT, label: "door / exit", names: { city: "evac zone", reef: "sea chest", beach: "sea chest" } },
+  { glyph: GLYPH_EXIT, label: "door / exit", names: { city: "evac zone", reef: "sea chest", beach: "sea chest", garden: "garden door" } },
   { glyph: GLYPH_TREASURE, label: "treasure", names: { garden: "flowers", beach: "shells", city: "people" }, limit: 8 },
   // Three enemies, one tool each. They walk, chase and die exactly alike --
   // what changes is what a child sees walking towards them, which at nine

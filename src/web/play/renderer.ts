@@ -7,6 +7,7 @@ import { GRID_H, GRID_W } from "../../core/grid.ts";
 import { weaponArt } from "./weapon.ts";
 import { colourFor } from "../../core/palette.ts";
 import { SPRITE_H, SPRITE_W, spriteIndex, type Sprite } from "../../core/sprite.ts";
+import { Facing } from "./facing.ts";
 import { ONE } from "../../core/fixed.ts";
 import { CASTS, ENEMIES } from "../../core/enemies.ts";
 import {
@@ -331,6 +332,74 @@ const CHEST_OPEN: Pattern = [
   "..11........11..",
 ];
 
+/**
+ * A garden door.
+ *
+ * "The garden can have an exit, a cute wooden door actually." It has been able
+ * to since calm/2 (adr/0045); what it drew was the DUNGEON's door -- padlocked
+ * oak, set into a stone frame -- standing on a lawn. Same mistake the reef had
+ * before it got a chest, and the same fix: the way out of a world should look
+ * like a way out OF THAT WORLD.
+ *
+ * Arched, honey-coloured, with a fanlight and a brass knob. The fanlight is
+ * ONE pane and that is not a detail: it was drawn first as two, and two pale
+ * rectangles side by side above a body do not read as a window at sixteen
+ * pixels -- they read as EYES, and the door read as a creature. Looked at on a
+ * green background before it went in, which is the only reason anybody knows.
+ *
+ * 1 outline, 2 the shadowed side and the plank seams, 3 the wood, 4 the lit
+ * side, 5 brass, 6 its shine, 7 the glass.
+ */
+const GARDEN_DOOR_SHUT: Pattern = [
+  "................",
+  "................",
+  "......1111......",
+  "....11333311....",
+  "...1333333331...",
+  "..141111111121..",
+  "..147777777721..",
+  "..147777777721..",
+  "..141111111121..",
+  "..143323332321..",
+  "..143323332321..",
+  "..143323332551..",
+  "..143323332651..",
+  "..143323332321..",
+  "..143323332321..",
+  "..111111111111..",
+];
+
+/**
+ * ...and swung back, with the light coming through it.
+ *
+ * Warm rather than green. Drawn green first -- the way out of a garden opens
+ * onto more garden -- and against grass it read as a hole with grass in it.
+ * The point of the open state is that a child can see across the room that the
+ * way out is open, so it is sunlight: gold on the one background it has to
+ * stand out from.
+ *
+ * 1 outline, 2 and 3 the leaf seen edge-on, 4 the shade just inside, 5 the
+ * light, 6 the floor you walk out onto.
+ */
+const GARDEN_DOOR_OPEN: Pattern = [
+  "................",
+  "................",
+  "......1111......",
+  "....11444411....",
+  "...1314444441...",
+  "..123144444441..",
+  "..123144444441..",
+  "..123144444441..",
+  "..123155555551..",
+  "..123155555551..",
+  "..123155555551..",
+  "..123155555551..",
+  "..123166666661..",
+  "..123166666661..",
+  "..123166666661..",
+  "..111111111111..",
+];
+
 const DOOR_SHUT: readonly Pattern[] = [[
   "................",
   ".11111111111111.",
@@ -396,6 +465,8 @@ const DOOR_BY_WORLD: Record<string, { shut: Pattern; open: Pattern }> = {
   // ...and the same chest up on the sand, where a sailor's trunk belongs just
   // as much: "we can use the sea chest on the beach levels as well".
   beach: { shut: CHEST_SHUT, open: CHEST_OPEN },
+  // ...and the garden, which had been drawing the dungeon's door on a lawn.
+  garden: { shut: GARDEN_DOOR_SHUT, open: GARDEN_DOOR_OPEN },
 };
 
 const DOOR_INKS_BY_WORLD: Record<string, Record<string, readonly string[]>> = {
@@ -416,17 +487,23 @@ const DOOR_INKS_BY_WORLD: Record<string, Record<string, readonly string[]>> = {
     shut: ["#2a1a0d", "#6b350c", "#a35314", "#d87a1f", "#a37c14", "#d8ab1f"],
     open: ["#2a1a0d", "#6b350c", "#a35314", "#d87a1f", "#ffc23d", "#ffe9a3"],
   },
+  garden: {
+    // Honey wood, brass, and one pane of glass.
+    shut: ["#3a2412", "#7a4a1f", "#b8762f", "#e0a25c", "#a37c14", "#ffc23d", "#cfe9f7"],
+    // The leaf, then the sunlight through the gap. See GARDEN_DOOR_OPEN.
+    open: ["#3a2412", "#5c3a18", "#8a5a28", "#8a6a1c", "#ffc23d", "#ffe9a3"],
+  },
 };
 
 /** The drawing this world's way out uses, in the state it is in. */
-function doorShape(world: string, open: boolean): Pattern {
+export function doorShape(world: string, open: boolean): Pattern {
   const own = DOOR_BY_WORLD[world];
   if (own !== undefined) return open ? own.open : own.shut;
   return (open ? DOOR_OPEN[0] : DOOR_SHUT[0]) as Pattern;
 }
 
 /** ...and its colours. */
-function doorInks(world: string, open: boolean): readonly string[] {
+export function doorInks(world: string, open: boolean): readonly string[] {
   const own = DOOR_INKS_BY_WORLD[world];
   const key = open ? "open" : "shut";
   return (own?.[key] ?? DOOR_INKS[key]) as readonly string[];
@@ -691,8 +768,32 @@ function gemShapes(world: string): readonly Pattern[] {
  * nothing about the READING changes -- only that it lands on the creature
  * instead of on a square of water behind it.
  */
-export const CHASE_TINT = "#ff8a3d";
-export const CHASE_MIX = 0.28;
+/**
+ * A creature that has noticed you is drawn with its OUTLINE alight.
+ *
+ * It used to be 28% of #ff8a3d mixed through every ink, and reported: "the
+ * shark ... seems to go browner for some reason". It did. Orange through a
+ * slate-blue body and a near-black rim is brown twice over -- #0b0f14 came out
+ * at rgb(79,49,31), which is milk chocolate, and the rim is a good third of the
+ * pixels at sixteen across. The tint was drawn against a green goblin, where
+ * warmer reads as angrier, and never looked at against anything cold.
+ *
+ * So the body is left exactly alone and only the rim changes. It reads at a
+ * glance on every cast in the game, it cannot muddy a colour scheme it was not
+ * designed against, and a shark still looks like a shark.
+ *
+ * Ink 5 is the outline in every cast, by construction rather than by luck:
+ * tools/enemies.ts writes the digit 6 on every edge pixel at emit time. See
+ * test/inside-the-tile.ts.
+ */
+export const CHASE_RIM = "#ff4d2e";
+export const OUTLINE_INK = 5;
+
+/** The same creature, lit up. Presentation only; no engine is told. */
+export function chaseInks(inks: readonly string[]): readonly string[] {
+  if (inks.length <= OUTLINE_INK) return inks;
+  return inks.map((ink, at) => (at === OUTLINE_INK ? CHASE_RIM : ink));
+}
 export const STUN_MIX = 0.5;
 
 /** `amount` of `tint` mixed into `base`. Both are #rrggbb. Presentation only. */
@@ -1068,6 +1169,11 @@ export class GridRenderer {
 
   /** Side-on levels are painted against sky. Cosmetic; see SKY above. */
   setSideOn(sideOn: boolean, engine = "", tilesetId = 0): void {
+    // A different room, or the same one started again: nothing is where it was,
+    // so no enemy's remembered facing means anything. Without this, the first
+    // frame of a restart compares a fresh position against a stale one and can
+    // turn a shark round for no reason anybody could explain.
+    this.facing.forget();
     this.sideOn = sideOn;
     this.world = engine;
     this.skin = tilesetId | 0;
@@ -1480,6 +1586,9 @@ export class GridRenderer {
   private castStampedFor = "";
 
   /** The same frames again, lit for a creature that has noticed you. */
+  /** Which way each enemy is drawn, from where it actually went. See ./facing.ts. */
+  private readonly facing = new Facing();
+
   private enemyChasing: HTMLCanvasElement[][] = [];
   /** ...and for one that has just been hit. */
   private enemyStunned: HTMLCanvasElement[][] = [];
@@ -1560,7 +1669,7 @@ export class GridRenderer {
     this.enemyStamps = cast.map((one) =>
       one.frames.map((frame) => this.stampOne(frame, one.inks, null, 0)));
     this.enemyChasing = cast.map((one) =>
-      one.frames.map((frame) => this.stampOne(frame, one.inks, CHASE_TINT, CHASE_MIX)));
+      one.frames.map((frame) => this.stampOne(frame, chaseInks(one.inks), null, 0)));
     this.enemyStunned = cast.map((one) =>
       one.frames.map((frame) => this.stampOne(frame, one.inks, stun, STUN_MIX)));
   }
@@ -1711,7 +1820,8 @@ export class GridRenderer {
 
     this.stampEnemies();
 
-    for (const enemy of enemies) {
+    for (let seat = 0; seat < enemies.length; seat = (seat + 1) | 0) {
+      const enemy = enemies[seat] as (typeof enemies)[number];
       // Whole pixels, always.
       //
       // The old drawing was fillRects at fractional coordinates, scaled every
@@ -1771,7 +1881,10 @@ export class GridRenderer {
         // nobody could tell; the moment they walk, one of the two directions is
         // a moonwalk. Mirrored rather than drawn twice: the art is a silhouette
         // with a light side, and at 16 pixels a flip reads as a turn.
-        const mirrored = (enemy.dir ?? 1) < 0;
+        // Which way it just WENT, not which way its engine says it is pointing.
+        // `dir` is a patrol field and a chase never sets it, so a shark coming
+        // at you swam backwards. See ./facing.ts.
+        const mirrored = this.facing.of(seat, enemy.x) < 0;
         if (mirrored) {
           ctx.save();
           ctx.translate(left + size, top);
