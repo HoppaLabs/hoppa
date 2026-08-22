@@ -48,8 +48,6 @@ import { holdStill } from "../nozoom.ts";
 import { paintLogo } from "../logo.ts";
 import { bucketHelps, hasWater } from "./water.ts";
 import { SURFACE_ROW, Surfacer, above, surfaceSays } from "./surface.ts";
-import { isoAsked } from "./iso.ts";
-import { IsoView } from "./isoview.ts";
 import { ONE } from "../../core/fixed.ts";
 import { tilesetFor } from "../../core/tileset.ts";
 import { sendLink } from "../send.ts";
@@ -514,21 +512,6 @@ const tally = document.getElementById("tally") as HTMLElement;
 const renderer = new GridRenderer(canvas);
 
 /**
- * THE BLOCKS SPIKE. Off unless the URL asks for it: ?iso=1
- *
- * A one-day experiment -- "build a test engine for the city, don't break any
- * existing code" -- and everything about how it is wired is that second half.
- * It is a separate class on the same canvas, it reads the tiles the engine
- * already emits, and it is reached through one `if`. Every path below this line
- * is the path it always was, and deleting the spike is deleting two files and
- * this block.
- *
- * See src/web/play/iso.ts for why it cannot affect a single shipped link.
- */
-const inBlocks = isoAsked(window.location.search);
-let isoView: IsoView | null = null;
-
-/**
  * Which enemy stands in which cell, for the still frames the renderer draws
  * from the tile grid. The moving frames get it per actor; this is the same
  * information for the frame between turns.
@@ -683,14 +666,6 @@ function listen(): void {
 }
 
 function paint(): void {
-  if (isoView !== null && moving !== null) {
-    isoView.draw(moving.render(), moving.where(), moving.enemyPositions());
-    paintMovingHud();
-    paintPourState();
-    listen();
-    return;
-  }
-
   if (moving !== null) {
     renderer.drawMoving(
       moving.render(),
@@ -1286,10 +1261,6 @@ function chromeHeight(): number {
 }
 
 function resize(): void {
-  if (isoView !== null) {
-    isoView.fit(stage.clientWidth, Math.max(140, window.innerHeight - chromeHeight()));
-    return;
-  }
   renderer.fit(stage.clientWidth, Math.max(140, window.innerHeight - chromeHeight()));
   paint();
 }
@@ -1656,7 +1627,6 @@ paintShareGate();
 renderer.setSprite(chosen.sprite);
 renderer.setWeapon(chosen.weapon);
 renderer.setSideOn(level.engine === "dash", level.engine, level.tilesetId);
-if (inBlocks) isoView = new IsoView(canvas, level.engine, level.tilesetId);
 renderer.setGuardArt(guardArtMap(level));
 renderer.setFlowArt(flowArtMap(level));
 renderer.setUnder(underMap(level));

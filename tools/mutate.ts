@@ -32,22 +32,6 @@ interface Mutation {
 
 const MUTATIONS: readonly Mutation[] = [
   {
-    // The spike escapes and every child is in the experiment. The single most
-    // important property of a thing built as "don't break any existing code".
-    breaks: "the blocks spike turns itself on for everybody",
-    file: "src/web/play/iso.ts",
-    find: '  return new URLSearchParams(search).get("iso") === "1";',
-    replace: "  return true;",
-  },
-  {
-    // A city of tall towers is beautiful and unplayable: the streets and
-    // everyone standing in them vanish behind the skyline.
-    breaks: "nothing is seen through, so the player disappears behind a tower",
-    file: "src/web/play/iso.ts",
-    find: "  return nearer > 0 && nearer <= 6;",
-    replace: "  return false;",
-  },
-  {
     // A tower every cell is not a castle, it is a fence -- and it erases the
     // shape the child drew.
     breaks: "a straight run of wall becomes a row of turrets",
