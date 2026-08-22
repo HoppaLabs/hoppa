@@ -289,6 +289,15 @@ export interface Tileset {
    */
   readonly wallCorner?: Pattern;
   /**
+   * ...and the drawing for a wall, by which SIDES of it are open.
+   *
+   * The same shape as fireFor() for water and floorFor() for roads: a world
+   * whose walls join up reads its neighbours, so the edge treatment goes only
+   * where the wall actually stops. Which is what "seen from above" needs -- a
+   * run of wall is one wall with one shadow, not a row of separate blocks.
+   */
+  readonly wallFor?: (open: number) => Pattern;
+  /**
    * What the outer ring is made of, where it is not the same stuff as the
    * walls a child drew inside it.
    *
@@ -1080,115 +1089,125 @@ const BOARDWALK: Pattern = [
 ];
 
 /**
- * A sandcastle, for the beach.
+ * A sandcastle, for the beach, SEEN FROM ABOVE.
  *
- * "Could we add sandcastles to the beach? So kids can build a fort etc?"
+ * "Could we add sandcastles to the beach? So kids can build a fort etc?" --
+ * and then, once they were in: "the sandcastles look like haystacks, that's
+ * the feedback, we need to see them from above".
  *
- * Which is a question about what a WALL is on a beach. A child on the beach
- * draws walls already -- that is how you make a room -- and until now every one
- * of them came out a dune. Now three walls in four come out battlemented, so a
- * blob of drawn wall is a fort and a line of it is a rampart. It costs the wire
- * format nothing at all: the level says "wall" and which castle stands there is
- * worked out from the cell's own coordinates. See kindAt().
+ * They did, and it was the same mistake the isometric spike made the day
+ * before (adr/0057): these were drawn in ELEVATION -- a facade with a skyline
+ * of battlements along the top -- in a game drawn from overhead. A wall seen
+ * face-on, lying flat on the sand, is a haystack. There is nothing else it
+ * could be.
  *
- * Kind 0 stays the DUNE, deliberately. All castle everywhere is a wall of
- * battlements with no beach left in it, and a quarter of it sand keeps the
- * shape of the thing a child drew readable. A wall with nothing beside it is
- * still a palm -- that rule outranks these, and the renderer checks it first.
+ * From above there are no vertical faces at all. What says "wall" is a flat top
+ * a shade darker than the sand it stands on, a shadow round the outside of it,
+ * and battlements bitten OUT of the outline instead of standing along a
+ * skyline.
  *
- * Drawn against the dune before they went in: the dune is mottled mid-sand, so
- * a castle has to be FLAT and BRIGHT to read as built rather than piled. 4 is
- * the lit face, 5 the cap on a merlon, 2 the joints and the sand behind, 1 the
- * shadow it sits in.
+ * Keyed on which sides are OPEN, exactly like pondFor(): the edge treatment
+ * goes only where the wall actually stops, so a run of them is one wall with
+ * one shadow and a solid block is a solid block. Same trick as the ponds and
+ * the roads, same price -- read the neighbours, spend nothing on the wire.
  */
-const CASTLE_WALL: Pattern = [
-    "4442224442224442",
-    "3332223332223332",
-    "2333332333332333",
-    "2333332333332333",
-    "2333332333332333",
-    "2222222222222222",
-    "3332333332333332",
-    "3332333332333332",
-    "3332333332333332",
-    "2222222222222222",
-    "2333332333332333",
-    "2333332333332333",
-    "2333332333332333",
-    "2222222222222222",
-    "3332333332333332",
-    "1111111111111111",
-];
+const CASTLE_CACHE = new Map<number, Pattern>();
 
-/** ...and the same wall with a way into it. */
-const CASTLE_DOOR: Pattern = [
-    "4442224442224442",
-    "3332223332223332",
-    "2333332333332333",
-    "2333332333332333",
-    "2333332333332333",
-    "2222222222222222",
-    "3332333332333332",
-    "3332333332333332",
-    "3332331111333332",
-    "2222211111122222",
-    "2333312222132333",
-    "2333312222132333",
-    "2333312222132333",
-    "2222212222122222",
-    "3332312222133332",
-    "1111111111111111",
-];
+export function castleFor(open: number): Pattern {
+  const key = open & 15;
+  const had = CASTLE_CACHE.get(key);
+  if (had !== undefined) return had;
 
-/** ...and a lower rampart, so a run of wall is not all one height. */
-const CASTLE_LOW: Pattern = [
-    "2222222222222222",
-    "2222222222222222",
-    "2222222222222222",
-    "2222222222222222",
-    "2222222222222222",
-    "4442224442224442",
-    "3332223332223332",
-    "2333332333332333",
-    "2333332333332333",
-    "2333332333332333",
-    "2222222222222222",
-    "3332333332333332",
-    "3332333332333332",
-    "3332333332333332",
-    "2222222222222222",
-    "1111111111111111",
-];
+  const W = TILE_PX;
+  const rows: string[][] = [];
+  // 3 is the flat top of the sand: a shade under the floor it stands on, or a
+  // wall is invisible against the beach.
+  for (let y = 0; y < W; y++) rows.push(new Array<string>(W).fill("3"));
+  const put = (x: number, y: number, ink: string): void => {
+    if (x < 0 || y < 0 || x >= W || y >= W) return;
+    (rows[y] as string[])[x] = ink;
+  };
+  /** `step` runs along the side; `depth` goes inwards from that edge. */
+  const edge = (side: number, step: number, depth: number, ink: string): void => {
+    if (side === POND_N) put(step, depth, ink);
+    else if (side === POND_S) put(step, W - 1 - depth, ink);
+    else if (side === POND_W) put(depth, step, ink);
+    else put(W - 1 - depth, step, ink);
+  };
+
+  for (const side of [POND_N, POND_E, POND_S, POND_W]) {
+    if ((open & side) === 0) continue;
+    for (let step = 0; step < W; step = (step + 1) | 0) {
+      // The wall stops here, so it throws a shadow on the sand outside it.
+      edge(side, step, 0, "1");
+      edge(side, step, 1, "1");
+      edge(side, step, 2, "2");
+      // Battlements. Every other run of three stands as a merlon, lit on top;
+      // the gap between them is cut back into the shadow, which from above is
+      // exactly what a crenel looks like.
+      if ((((step / 3) | 0) % 2) === 0) {
+        edge(side, step, 1, "5");
+        edge(side, step, 2, "5");
+      } else {
+        edge(side, step, 3, "1");
+      }
+    }
+  }
+
+  const pattern = rows.map((row) => row.join("")) as unknown as Pattern;
+  CASTLE_CACHE.set(key, pattern);
+  return pattern;
+}
 
 /**
- * A corner turret, for a wall cell that is the end of something.
+ * A corner turret, ROUND, seen from above.
  *
- * "Corner cells should be whole turrets" and "single cells should be turrets",
- * which is how a castle is actually shaped: battlements run along the walls and
- * a tower stands at every corner. It is also how a child draws one.
+ * "The turrets should be round" -- and from overhead that is the easiest thing
+ * in the picture to get right, because a tower seen from above IS a circle. A
+ * ring of merlons, a walk round the top, and a dark middle where the inside of
+ * it would be.
  *
- * Read off the NEIGHBOURS, so it costs the wire format nothing: a wall cell
- * with no wall beside it, or with exactly two that meet at a right angle, is a
- * corner. Two opposite neighbours is a straight run and stays wall.
+ * It is also the drawing that settles whether the whole tile is being seen
+ * from above or from the front: nothing round survives being drawn in
+ * elevation.
  */
-const TURRET: Pattern = [
-    "2222222222222222",
-    "2442244224422442",
-    "2442244224422442",
-    "2442244224422442",
-    "2111111111111112",
-    "2443333333333322",
-    "2443333333333322",
-    "2443333333333322",
-    "2442222222222222",
-    "2443333333333322",
-    "2443333333333322",
-    "2443333333333322",
-    "2442222222222222",
-    "2443333333333322",
-    "2443333333333322",
-    "2111111111111112",
-];
+const TURRET: Pattern = (() => {
+  const W = TILE_PX;
+  const rows: string[][] = [];
+  for (let y = 0; y < W; y++) rows.push(new Array<string>(W).fill("2"));
+  const mid = (W - 1) / 2;
+  const put = (x: number, y: number, ink: string): void => {
+    if (x < 0 || y < 0 || x >= W || y >= W) return;
+    (rows[y] as string[])[x] = ink;
+  };
+  for (let y = 0; y < W; y = (y + 1) | 0) {
+    for (let x = 0; x < W; x = (x + 1) | 0) {
+      // Squared distances, so there is no square root in a drawing that has to
+      // come out the same everywhere.
+      const away = (x - mid) * (x - mid) + (y - mid) * (y - mid);
+      if (away <= 10) put(x, y, "1");        // the hollow inside it
+      else if (away <= 25) put(x, y, "3");   // the walk round the top
+      else if (away <= 41) put(x, y, "2");   // the outer wall
+      else if (away <= 54) put(x, y, "1");   // the shadow it throws
+    }
+  }
+  // Eight merlons round the rim, lit on top. Off a fixed table rather than
+  // trigonometry, for the same reason as the squared distances.
+  const RIM: ReadonlyArray<readonly [number, number]> = [
+    [0, -6], [4, -4], [6, 0], [4, 4], [0, 6], [-4, 4], [-6, 0], [-4, -4],
+  ];
+  for (const [dx, dy] of RIM) {
+    for (let oy = -1; oy <= 1; oy = (oy + 1) | 0) {
+      for (let ox = -1; ox <= 1; ox = (ox + 1) | 0) {
+        const x = (Math.round(mid + dx) + ox) | 0;
+        const y = (Math.round(mid + dy) + oy) | 0;
+        const at = rows[y]?.[x];
+        if (at === "2" || at === "1") put(x, y, "5");
+      }
+    }
+  }
+  return rows.map((row) => row.join("")) as unknown as Pattern;
+})();
 
 /**
  * Is this wall cell a corner or a lone tower?
@@ -1215,25 +1234,6 @@ export function isTurret(open: number): boolean {
   return !(north && south) && !(east && west);
 }
 
-/**
- * No plain dune among them any more.
- *
- * It was one kind in four, on the argument that a quarter of it sand keeps the
- * shape a child drew readable. That was written when a beach's walls were
- * mostly its border. Now the border is dune by rule (Tileset.rim) and the walls
- * INSIDE are the things somebody built -- and a mottled sand cell in the middle
- * of a battlemented wall does not read as variety, it reads as a BREACH. Seen
- * immediately once the first two castles went up.
- */
-const CASTLE_KINDS: readonly Pattern[] = [CASTLE_WALL, CASTLE_DOOR, CASTLE_LOW];
-
-/** Which sandcastle stands on a beach cell. */
-export function castleFor(kind: number): Pattern {
-  // Modulo rather than a mask: there are three of these and the renderer hands
-  // out four kinds, so the fourth comes round to the first.
-  return CASTLE_KINDS[((kind % CASTLE_KINDS.length) + CASTLE_KINDS.length) % CASTLE_KINDS.length] as Pattern;
-}
-
 export const BEACH: Tileset = {
   id: 5,
   name: "beach",
@@ -1244,8 +1244,9 @@ export const BEACH: Tileset = {
   // you end up with nine of them.
   sub: [25, 26, 27, 28, 29, 5, 18, 20, 22],
   wall: DUNE,
-  // ...and three walls in four are a sandcastle. See castleFor().
-  wallKinds: castleFor,
+  // ...and a wall drawn inside the room is a sandcastle seen from above,
+  // joined up with the ones beside it. See castleFor().
+  wallFor: castleFor,
   // ...with a tower on every corner, and a tower where one stands alone.
   wallCorner: TURRET,
   // ...but never round the edge of the room: the sea is along the bottom and

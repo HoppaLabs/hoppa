@@ -1205,6 +1205,8 @@ export class GridRenderer {
   private readonly roads = new Map<number, HTMLCanvasElement>();
   /** One stamp per KIND of building, where a wall is a tower. */
   private readonly towers = new Map<number, HTMLCanvasElement>();
+  /** One stamp per set of open sides, where a wall joins up with its neighbours. */
+  private readonly castles = new Map<number, HTMLCanvasElement>();
 
   /**
    * Which of a world's buildings stands on this cell.
@@ -1403,6 +1405,23 @@ export class GridRenderer {
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         paintPattern(ctx, set.fireFor(open), set.fireSub, set, t);
         this.ponds.set(open, canvas);
+      }
+    }
+
+    // A wall, once per set of open sides, where a world's walls join up. Same
+    // sixteen little canvases as the ponds, built the same way at the same
+    // time, so the paint loop only ever looks one up. See Tileset.wallFor.
+    this.castles.clear();
+    if (set.wallFor !== undefined) {
+      for (let open = 0; open < 16; open = (open + 1) | 0) {
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(t * dpr));
+        canvas.height = Math.max(1, Math.round(t * dpr));
+        const ctx = canvas.getContext("2d");
+        if (ctx === null) continue;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        paintPattern(ctx, set.wallFor(open), set.sub, set, t);
+        this.castles.set(open, canvas);
       }
     }
 
@@ -2369,6 +2388,16 @@ export class GridRenderer {
           const tower = this.stamps?.get(GridRenderer.TURRET);
           if (tower !== undefined) {
             ctx.drawImage(tower, x * t, y * t, t, t);
+            continue;
+          }
+        }
+
+        // A wall that joins up with its neighbours: which sides are open decides
+        // the drawing, exactly as it does for a pond. Costs the wire nothing.
+        if (tile === TILE_WALL && this.castles.size > 0) {
+          const built = this.castles.get(sidesOf(tiles, x, y, TILE_WALL));
+          if (built !== undefined) {
+            ctx.drawImage(built, x * t, y * t, t, t);
             continue;
           }
         }

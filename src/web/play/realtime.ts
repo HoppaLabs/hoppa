@@ -90,6 +90,15 @@ export class Loop {
     private readonly finished: () => boolean,
     /** Every input handed to the engine, for the share gate's proof. */
     private readonly onInput: (held: number) => void = () => {},
+    /**
+     * True while the world is holding still on an impact.
+     *
+     * The clock stops; the drawing does not. Nothing about this reaches the
+     * engine -- a run is a list of inputs and this only decides when the next
+     * one is taken -- so a held frame simply means the log is one entry
+     * shorter. See src/web/play/hitstop.ts.
+     */
+    private readonly held: () => boolean = () => false,
   ) {}
 
   start(): void {
@@ -102,7 +111,12 @@ export class Loop {
       const elapsed = now - this.last;
       this.last = now;
 
-      if (!this.finished()) {
+      if (this.held()) {
+        // Bank nothing while the world is stopped, or the moment it lets go
+        // the engine runs every tick it missed in a single frame -- which is
+        // the opposite of a pause: a lurch.
+        this.pump.reset();
+      } else if (!this.finished()) {
         const ticks = this.pump.pump(elapsed);
         for (let i = 0; i < ticks; i++) {
           const held = this.buttons.mask();

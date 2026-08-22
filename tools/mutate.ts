@@ -32,6 +32,31 @@ interface Mutation {
 
 const MUTATIONS: readonly Mutation[] = [
   {
+    // The deadlock. `justKilled()` is a per-TICK flag and the page reads it
+    // per FRAME; while the world is held no tick runs, so without this gate
+    // the flag never clears, every frame re-triggers the hold, and the game
+    // stops dead on the first kill. Found in a browser, not in a test.
+    breaks: "the world holds for ever on the first kill",
+    file: "src/web/play/hitstop.ts",
+    find: "    if (tick === this.seen) return false;",
+    replace: "    if (false) return false;",
+  },
+  {
+    // A hold that never runs out is the same deadlock by another route.
+    breaks: "the flinch never ends, so the clock never restarts",
+    file: "src/web/play/hitstop.ts",
+    find: "    if (this.left > 0) this.left = (this.left - 1) | 0;",
+    replace: "    if (this.left > 0) this.left = this.left | 0;",
+  },
+  {
+    // Banking time through a hold turns a pause into a lurch: the moment it
+    // lets go, every missed tick runs in one frame.
+    breaks: "the loop banks time while held, so the pause ends in a lurch",
+    file: "src/web/play/realtime.ts",
+    find: "        this.pump.reset();\n      } else if (!this.finished()) {",
+    replace: "      } else if (!this.finished()) {",
+  },
+  {
     // "Not surrounded by sandcastle walls." The edge of the room is not a
     // thing anybody built, and a ring of castles round it drowns out the
     // shapes a child actually drew.
@@ -87,15 +112,21 @@ const MUTATIONS: readonly Mutation[] = [
     replace: "if (tile === TILE_WALL && this.towers.size > 0) {",
   },
   {
-    // Replaces "every beach wall is a sandcastle", which described a defect
-    // that became the DESIGN: with the rim drawn as terrain, the walls inside
-    // are the things a child built and a mottled sand cell among them reads as
-    // a breach rather than as variety. What must not come back is a castle
-    // kind that is not a castle.
-    breaks: "a wall a child drew inside the room comes out as plain sand again",
+    // "The sandcastles look like haystacks, we need to see them from above."
+    // The shadow round the open edges is what makes a flat top read as a wall
+    // seen from overhead rather than as a lump of sand.
+    breaks: "a wall stops throwing a shadow, so a plan view reads as a haystack",
     file: "src/core/tileset.ts",
-    find: "const CASTLE_KINDS: readonly Pattern[] = [CASTLE_WALL, CASTLE_DOOR, CASTLE_LOW];",
-    replace: "const CASTLE_KINDS: readonly Pattern[] = [DUNE, CASTLE_DOOR, CASTLE_LOW];",
+    find: '      edge(side, step, 0, "1");',
+    replace: "",
+  },
+  {
+    // "The turrets should be round." A circle drawn in a square leaves its
+    // four corners as the sand outside it; filling them makes it a block.
+    breaks: "the corner turret stops being round",
+    file: "src/core/tileset.ts",
+    find: "      else if (away <= 54) put(x, y, \"1\");   // the shadow it throws",
+    replace: '      put(x, y, "1");',
   },
   {
     // The Easter egg fires by accident. Touching the top row happens constantly
@@ -415,8 +446,32 @@ const MUTATIONS: readonly Mutation[] = [
   },
 ];
 
+/**
+ * How long the suite gets before a mutation counts as having HUNG it.
+ *
+ * The suite is about four seconds. Ninety is absurdly generous and still ends
+ * the day the runner otherwise wedges the machine -- which it did: a mutation
+ * that stopped a countdown ever reaching zero turned a `while (holding())` in
+ * a test into an infinite loop, and because spawnSync waits forever, three
+ * orphaned `bun test` processes sat pinning a core each until somebody noticed
+ * everything else had gone slow.
+ *
+ * A hang IS a caught mutation, and arguably the loudest kind: the suite
+ * noticed so hard it never finished. What it must not be is silent.
+ */
+const SUITE_TIMEOUT_MS = 90_000;
+
 async function suiteIsGreen(): Promise<boolean> {
-  const run = Bun.spawnSync([...SUITE], { stdout: "pipe", stderr: "pipe" });
+  const run = Bun.spawnSync([...SUITE], {
+    stdout: "pipe",
+    stderr: "pipe",
+    timeout: SUITE_TIMEOUT_MS,
+    killSignal: "SIGKILL",
+  });
+  // A timeout kills the child, so exitCode is null or non-zero either way --
+  // which is "not green", which is "caught". Said out loud so a hang is not
+  // mistaken for an ordinary failure by whoever reads the report.
+  if (run.exitCode === null) console.log("     (the suite HUNG on this one, which counts as caught)");
   return run.exitCode === 0;
 }
 

@@ -48,6 +48,7 @@ import { holdStill } from "../nozoom.ts";
 import { paintLogo } from "../logo.ts";
 import { bucketHelps, hasWater } from "./water.ts";
 import { SURFACE_ROW, Surfacer, above, surfaceSays } from "./surface.ts";
+import { Hitstop, OncePerTick, impactsOf, type Impact } from "./hitstop.ts";
 import { ONE } from "../../core/fixed.ts";
 import { tilesetFor } from "../../core/tileset.ts";
 import { sendLink } from "../send.ts";
@@ -658,10 +659,49 @@ function momentNow(): Moment {
 
 let lastMoment: Moment = { hp: 0, treasure: 0, playing: true, won: false };
 
+/**
+ * The world flinching. See ./hitstop.ts for why it costs nothing on the wire.
+ *
+ * Read on the same beat as the noises, from the same instant-to-instant
+ * comparison: a hit is a thing you hear AND feel, and working them out twice in
+ * two places is how they end up disagreeing about what just happened.
+ */
+const hitstop = new Hitstop();
+/** Impacts are read once per TICK, never once per frame. See OncePerTick. */
+const perTick = new OncePerTick();
+
+/** What the engine says landed on this tick, where it says anything at all. */
+function landedNow(now: Moment): readonly Impact[] {
+  const engineNow = moving as unknown as {
+    justKilled?: () => boolean;
+    justFroze?: () => boolean;
+    justRazed?: () => boolean;
+  } | null;
+  return impactsOf({
+    killed: engineNow?.justKilled?.() ?? false,
+    froze: engineNow?.justFroze?.() ?? false,
+    smashed: engineNow?.justRazed?.() ?? false,
+    hpBefore: lastMoment.hp,
+    hpNow: now.hp,
+    playing: now.playing,
+  });
+}
+
 /** Called after every repaint, which is every tick on a real-time level. */
 function listen(): void {
   const now = momentNow();
   for (const cue of soundsFor(lastMoment, now)) sounds.play(cue);
+  if (moving !== null) {
+    // Only on a tick that has actually happened. A held frame advances nothing,
+    // so the engine's just-killed flag is still set from before the hold began
+    // -- and reading it again would hold the world for ever. See OncePerTick.
+    if (perTick.fresh((moving as Moving).ticks())) hitstop.bite(landedNow(now));
+    // A pixel, one way then the other, for as long as the stop lasts. On the
+    // canvas rather than the page, so nothing around it moves.
+    const shove = hitstop.shake();
+    canvas.style.transform = shove === 0 ? "" : `translateX(${shove}px)`;
+    hitstop.frame();
+  }
   lastMoment = now;
 }
 
@@ -910,6 +950,9 @@ function reset(): void {
   if (loop !== null) loop.stop();
   // A fresh run starts with a lungful and with both warnings unspent.
   airSaid = AIR_QUIET;
+  hitstop.forget();
+  perTick.forget();
+  canvas.style.transform = "";
   // The code is for this level, so it survives a replay -- but the panel is
   // hidden again until the next win.
   qrCanvas.hidden = true;
@@ -953,7 +996,7 @@ renderer.setFlowArt(flowArtMap(level));
     loop = new Loop(moving, buttons, paint, finished, (held) => {
       recorder.push(held);
       watchTheSurface(held);
-    });
+    }, () => hitstop.holding());
     loop.start();
   }
 }
@@ -1644,7 +1687,7 @@ if (moving !== null) {
   loop = new Loop(moving, buttons, paint, finished, (held) => {
     recorder.push(held);
     watchTheSurface(held);
-  });
+  }, () => hitstop.holding());
   loop.start();
 }
 

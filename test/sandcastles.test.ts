@@ -33,18 +33,58 @@ test("no wall a child drew inside the room comes out as plain sand", () => {
   expect(BEACH.rim).toBe("sea");
 });
 
-test("there are three castles, and every kind lands on one of them", () => {
+test("a wall's drawing comes from which sides of it are open", () => {
+  // Keyed like a pond, not scattered by a hash. The edge treatment goes only
+  // where the wall actually STOPS, which is what "seen from above" needs: a run
+  // of wall is one wall with one shadow, not a row of separate blocks.
+  const ALL = POND_N | POND_E | POND_S | POND_W;
+  // Buried inside a block: nothing stops, so nothing is drawn on the edges and
+  // the neighbours merge into it.
+  const inside = castleFor(0);
+  expect(inside.every((row) => !row.includes("1"))).toBe(true);
+  // Out on its own: a shadow and battlements all the way round.
+  expect(castleFor(ALL)).not.toEqual(inside);
+  // Every combination is a real drawing, and the four sides are independent.
   const seen = new Set<string>();
-  for (let kind = 0; kind < WALL_KINDS; kind = (kind + 1) | 0) {
-    seen.add(castleFor(kind).join("|"));
+  for (let open = 0; open < 16; open = (open + 1) | 0) {
+    const drawn = castleFor(open);
+    expect({ open, rows: drawn.length }).toEqual({ open, rows: 16 });
+    seen.add(drawn.join("|"));
   }
-  // Three drawings, four kinds: the fourth comes round to the first.
-  expect(seen.size).toBe(3);
-  expect(castleFor(3)).toEqual(castleFor(0));
-  // A kind from anywhere still lands on a real drawing rather than undefined.
-  for (const kind of [0, 1, 2, 3, 7, 99]) {
-    expect({ kind, drawn: castleFor(kind).length }).toEqual({ kind, drawn: 16 });
+  expect(seen.size).toBe(16);
+  // ...and it is cached, so the paint loop is a map lookup rather than a redraw.
+  expect(castleFor(ALL)).toBe(castleFor(ALL));
+});
+
+test("the drawing is a PLAN, not a facade", () => {
+  // "The sandcastles look like haystacks, we need to see them from above."
+  //
+  // The old art was an elevation: battlements along the TOP of the tile only,
+  // and nothing along the sides, because a facade has one skyline. Seen from
+  // above every open side has an edge. That asymmetry is the mechanical
+  // difference between the two, so it is what this measures.
+  const withNorth = castleFor(POND_N);
+  const withWest = castleFor(POND_W);
+  const topRowMarked = (withNorth[0] as string).includes("1");
+  const leftColMarked = [...withWest].some((row) => (row as string)[0] === "1");
+  expect(topRowMarked).toBe(true);
+  expect(leftColMarked).toBe(true);
+  // A facade would draw its skyline on top whatever the neighbours said.
+  expect((castleFor(POND_S)[0] as string).includes("1")).toBe(false);
+});
+
+test("the turret is round: no corner of it is part of the tower", () => {
+  // "The turrets should be round." A circle drawn in a square leaves all four
+  // corners as the sand outside it, which is the whole test -- an elevation or
+  // a square keep would fill them.
+  const rows = BEACH.wallCorner as readonly string[];
+  const outside = rows[0]?.[0];
+  for (const [x, y] of [[0, 0], [15, 0], [0, 15], [15, 15]]) {
+    expect({ x, y, ink: (rows[y as number] as string)[x as number] })
+      .toEqual({ x, y, ink: outside });
   }
+  // ...and the middle is not that, or it is not a tower at all.
+  expect((rows[8] as string)[8]).not.toBe(outside);
 });
 
 test("a wall is opaque, so every castle fills its tile edge to edge", () => {
@@ -52,13 +92,13 @@ test("a wall is opaque, so every castle fills its tile edge to edge", () => {
   // test/inside-the-tile.test.ts, and both are right: a shell sits ON the
   // floor and needs air beside it; a wall IS the floor and a hole in one is a
   // hole you can see the void through.
-  for (let kind = 0; kind < WALL_KINDS; kind = (kind + 1) | 0) {
-    const rows = castleFor(kind);
-    expect({ kind, rows: rows.length }).toEqual({ kind, rows: TILE });
+  for (let open = 0; open < 16; open = (open + 1) | 0) {
+    const rows = castleFor(open);
+    expect({ open, rows: rows.length }).toEqual({ open, rows: TILE });
     for (let y = 0; y < TILE; y = (y + 1) | 0) {
       const row = rows[y] as string;
-      expect({ kind, y, wide: row.length }).toEqual({ kind, y, wide: TILE });
-      expect({ kind, y, holes: row.includes(".") }).toEqual({ kind, y, holes: false });
+      expect({ open, y, wide: row.length }).toEqual({ open, y, wide: TILE });
+      expect({ open, y, holes: row.includes(".") }).toEqual({ open, y, holes: false });
     }
   }
 });
@@ -67,20 +107,25 @@ test("every ink a castle uses is one the beach actually has", () => {
   // A digit past the end of the ramp paints undefined, which is a silent hole
   // in the picture rather than a crash.
   const inks = BEACH.sub.length;
-  for (let kind = 0; kind < WALL_KINDS; kind = (kind + 1) | 0) {
-    for (const row of castleFor(kind)) {
+  for (let open = 0; open < 16; open = (open + 1) | 0) {
+    for (const row of castleFor(open)) {
       for (const ch of row) {
-        expect({ kind, ch, ok: Number(ch) >= 1 && Number(ch) <= inks })
-          .toEqual({ kind, ch, ok: true });
+        expect({ open, ch, ok: Number(ch) >= 1 && Number(ch) <= inks })
+          .toEqual({ open, ch, ok: true });
       }
     }
   }
 });
 
-test("the beach asks for kinds, and the city still has its own", () => {
-  expect(BEACH.wallKinds).toBe(castleFor);
+test("the beach joins its walls up; the city still picks a kind at random", () => {
+  // Two different questions, and the beach's is the one with an answer in the
+  // level: WHICH SIDES ARE OPEN is a fact about the shape a child drew, where
+  // WHICH SKYSCRAPER is taste. So the beach reads neighbours and the city
+  // scatters by a hash, and neither may borrow the other's drawings.
+  expect(BEACH.wallFor).toBe(castleFor);
+  expect(BEACH.wallKinds).toBeUndefined();
   expect(CITY.wallKinds).toBe(towerFor);
-  // Same mechanism, two worlds, and neither may borrow the other's drawings.
+  expect(CITY.wallFor).toBeUndefined();
   expect(castleFor(1)).not.toEqual(towerFor(1));
 });
 
