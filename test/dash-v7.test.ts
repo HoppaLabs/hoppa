@@ -250,9 +250,12 @@ test("the picture is mirrored when it walks left", async () => {
   // side, and at 16 pixels a mirror reads as a turn. Checked in a browser on
   // "the tall room" -- snout and eye lead the way it is going, both ways.
   const renderer = await Bun.file("src/web/play/renderer.ts").text();
-  expect(renderer).toContain("const mirrored = (enemy.dir ?? 1) < 0;");
   expect(renderer).toContain("ctx.scale(-1, 1);");
-  // The field is optional, so every engine before dash/7 -- none of which had
-  // a walker that moved -- draws exactly as it did.
-  expect(renderer).toContain("dir?: number;");
+  // WHICH way is no longer read off the engine. It used to be `enemy.dir`,
+  // which is a patrol field that a chase never sets -- reported as "the shark
+  // is facing the wrong way when it targets the player" -- so the renderer
+  // watches where each one actually goes instead. See test/facing.test.ts.
+  // Nothing about the flip itself changed, and dash/7's walkers still turn.
+  expect(renderer).toContain("const mirrored = this.facing.of(seat, enemy.x) < 0;");
+  expect(renderer).not.toContain("const mirrored = (enemy.dir ?? 1) < 0;");
 });

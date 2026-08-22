@@ -32,6 +32,21 @@ interface Mutation {
 
 const MUTATIONS: readonly Mutation[] = [
   {
+    // Reported as "a yellow creature": the icon beside a shared link was the
+    // starter, and a link in WhatsApp is how this game travels.
+    breaks: "the shared-link icon goes back to being somebody else's creature",
+    file: "tools/icon.ts",
+    find: 'import { VANCE } from "../src/core/creature.ts";',
+    replace: 'import { BRUK as VANCE } from "../src/core/creature.ts";',
+  },
+  {
+    // The garden drew the DUNGEON's door, on a lawn, for six days.
+    breaks: "the garden's way out goes back to a padlocked oak door on the grass",
+    file: "src/web/play/renderer.ts",
+    find: "  garden: { shut: GARDEN_DOOR_SHUT, open: GARDEN_DOOR_OPEN },",
+    replace: "",
+  },
+  {
     // The whole point of the editor's send button. If the code the bot played
     // is not compared with the code on the paper, the button stays open across
     // an edit and a child sends a room nothing has ever been through.
