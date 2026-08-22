@@ -8,7 +8,10 @@ import { weaponArt } from "./weapon.ts";
 import { colourFor } from "../../core/palette.ts";
 import { SPRITE_H, SPRITE_W, spriteIndex, type Sprite } from "../../core/sprite.ts";
 import { Facing } from "./facing.ts";
-import { Stride, bobs, legShift, strode } from "./stride.ts";
+import { Stride, Strides, bobs, legShift, strode } from "./stride.ts";
+import { DUST_FRAMES, landed, puffsAt } from "./dust.ts";
+import { dropsAt } from "./pour.ts";
+import { FACE_LEFT, FACE_RIGHT } from "../../engines/types.ts";
 import { ONE } from "../../core/fixed.ts";
 import { CASTS, ENEMIES } from "../../core/enemies.ts";
 import {
@@ -795,6 +798,8 @@ function gemShapes(world: string): readonly Pattern[] {
  * test/inside-the-tile.ts.
  */
 export const CHASE_RIM = "#ff4d2e";
+/** Water in the air. Bright enough to read against a cave floor and a lawn. */
+export const WATER_IN_AIR = "#5fc8f5";
 export const OUTLINE_INK = 5;
 
 /** The same creature, lit up. Presentation only; no engine is told. */
@@ -1163,6 +1168,10 @@ export class GridRenderer {
   private squash = 0;
   private wasAirborne = false;
   private lastVy = 0;
+  /** Frames of landing dust left to draw, and the feet it was thrown from. */
+  private dust = 0;
+  private dustX = 0;
+  private dustY = 0;
   /**
    * The player, in three poses: feet together, left foot out, right foot out.
    *
@@ -1177,6 +1186,9 @@ export class GridRenderer {
 
   /** How far the player has walked, and therefore which foot is out. */
   private readonly stride = new Stride();
+
+  /** The same, one per enemy seat. */
+  private readonly strides = new Strides();
 
   /**
    * Set the sprite to draw the actor with. Re-stamped to an offscreen canvas
@@ -1200,6 +1212,7 @@ export class GridRenderer {
     // Same argument for the walk: a restart compares this frame's position
     // against the last frame of the run before it, which is a whole room away.
     this.stride.forget();
+    this.strides.forget();
     this.sideOn = sideOn;
     this.world = engine;
     this.skin = tilesetId | 0;
@@ -1881,6 +1894,9 @@ export class GridRenderer {
       x: number; y: number; facing: number;
       swinging: boolean; blinking: boolean;
       swingLeft: number; swingLength: number;
+      /** Ticks of pour left, and how long a pour is. 0 when not pouring. */
+      pourLeft?: number;
+      pourLength?: number;
       /** Side-on only. Absent from above, where nothing leaves the ground. */
       airborne?: boolean;
       /** Subcells per tick, negative going up. Drives the squash and stretch. */
@@ -1937,8 +1953,14 @@ export class GridRenderer {
       //
       // Stepped, not tweened. The era had no interpolation -- every frame was
       // drawn -- and the snap between two poses IS the look.
-      const travelled = ((enemy.x + enemy.y) / (ONE >> 1)) | 0;
-      const frame = enemy.stunned ? 0 : (((travelled % 2) + 2) % 2);
+      //
+      // The cadence is unchanged -- still a swap every half cell -- and what is
+      // new is that stopping now brings the feet TOGETHER. Stepping by distance
+      // alone leaves a guard at the end of its patrol standing with a leg out
+      // for as long as it stands there, which was fine while the player did it
+      // too and looks broken now the player does not. See ./stride.ts.
+      const pose = enemy.stunned ? 0 : this.strides.at(seat, enemy.x, enemy.y);
+      const frame = pose % 2;
 
       // Which SET, not which alpha. A creature that has noticed you is drawn
       // in its own lit colours; a stunned one in the colours of whatever hit
@@ -1988,6 +2010,32 @@ export class GridRenderer {
       // hurts" perfectly well.
       ctx.fillStyle = enemy.stunned ? "#7a5c86" : this.ink(TILE_GUARD);
       ctx.fillRect(left, top, size, size);
+    }
+
+    // The water. Reported as "there are no graphics or animations appearing",
+    // and there were not: pouring changed a class on the BUTTON and drew
+    // nothing at all on the board. See ./pour.ts.
+    const pourLength = actor.pourLength ?? 0;
+    const pourLeft = actor.pourLeft ?? 0;
+    if (pourLeft > 0 && pourLength > 0) {
+      const unit = artUnit(t);
+      const done = 1 - pourLeft / pourLength;
+      // Which way the water goes. Left and right throw it sideways; up and
+      // down have no sideways to draw, so it falls down the screen instead.
+      const sideways = actor.facing === FACE_RIGHT ? 1 : actor.facing === FACE_LEFT ? -1 : 0;
+      const fromX = px(actor.x);
+      const fromY = px(actor.y);
+      for (const drop of dropsAt(done, sideways)) {
+        ctx.globalAlpha = drop.fade;
+        ctx.fillStyle = WATER_IN_AIR;
+        ctx.fillRect(
+          Math.round(fromX + drop.dx * unit),
+          Math.round(fromY + drop.dy * unit),
+          drop.size * unit,
+          drop.size * unit,
+        );
+      }
+      ctx.globalAlpha = 1;
     }
 
     // The sword. It SWEEPS: over the few ticks a swing lasts, the blade starts
@@ -2168,8 +2216,16 @@ export class GridRenderer {
         stretchX = 1 - 0.18 * fast;
         stretchY = 1 + 0.24 * fast;
       }
-      // Remember the impact for the frame it happens on.
-      if (this.wasAirborne && !actor.airborne && this.lastVy > 34) this.squash = 5;
+      // Remember the impact for the frame it happens on. The dust shares the
+      // squash's threshold rather than carrying its own, so the two can never
+      // disagree about whether a landing happened -- which, given one number
+      // written down twice, they eventually would.
+      if (landed(this.wasAirborne, actor.airborne, this.lastVy)) {
+        this.squash = 5;
+        this.dust = DUST_FRAMES;
+        this.dustX = px(actor.x);
+        this.dustY = px(actor.y) + size / 2;
+      }
       this.wasAirborne = actor.airborne;
       this.lastVy = vy;
     }
@@ -2182,6 +2238,29 @@ export class GridRenderer {
     // drop on the beats where the legs are out, which is where a walking body
     // actually is.
     const ay = Math.round(px(actor.y) + size / 2 - drawH) + drop;
+    // The floor noticing, drawn UNDER the creature so it never covers the feet
+    // it came off. See ./dust.ts.
+    if (this.dust > 0) {
+      const unit = artUnit(t);
+      const puffs = puffsAt(DUST_FRAMES - this.dust);
+      // The colour of what you landed ON, not of the backdrop. tiles().ground
+      // is the thing painted behind everything -- which side-on is the SKY --
+      // so dust drawn in it would be invisible against the sky it is thrown
+      // into, which is the only place dust is ever thrown.
+      ctx.fillStyle = this.ink(TILE_WALL);
+      for (const puff of puffs) {
+        ctx.globalAlpha = puff.fade;
+        ctx.fillRect(
+          Math.round(this.dustX + puff.dx * unit),
+          Math.round(this.dustY + puff.dy * unit) - puff.size * unit,
+          puff.size * unit,
+          puff.size * unit,
+        );
+      }
+      ctx.globalAlpha = 1;
+      this.dust -= 1;
+    }
+
     // Blink while the mercy window is open, the way every game of this shape does.
     if (!actor.blinking || (Date.now() >> 6) % 2 === 0) {
       if (walkStamp !== null) {

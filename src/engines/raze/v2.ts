@@ -1044,6 +1044,15 @@ export class RazeV2 implements Engine {
   /** Ticks left of the current swing, for drawing the arc. Presentation only. */
   swingLeft(): number { return this.swing; }
   swingLength(): number { return SWING_TICKS; }
+  /**
+   * How long a pour lasts, so the page can draw the water arriving.
+   *
+   * Presentation only, and it exists because the page was otherwise going to
+   * write 16 down a second time and hope the two stayed equal. Reading it off
+   * the engine means a build that changes the price of water changes the
+   * animation with it. See src/web/play/pour.ts.
+   */
+  pourLength(): number { return POUR_TICKS; }
   justStruck(): boolean { return this.struckThisTick; }
   justHurt(): boolean { return this.hurtThisTick; }
   /** True while any guard has noticed you. Presentation only. */

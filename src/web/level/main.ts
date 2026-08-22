@@ -33,7 +33,7 @@ import { decodeLevel, encodeLevel } from "../../core/codec.ts";
 import { linkFor, slugify } from "../play/link.ts";
 import { sendLink } from "../send.ts";
 import { inviteText } from "../invite.ts";
-import { canSend, type BotRun } from "./sendable.ts";
+import { canSend, proved, type BotRun } from "./sendable.ts";
 import { GridRenderer, tileChip } from "../play/renderer.ts";
 import { RUBBER_ICON } from "../icons.ts";
 import { GAMES, TOOLS, enemyArtFor, labelFor } from "./palette.ts";
@@ -815,7 +815,12 @@ function review(): void {
 let botRun: BotRun | null = null;
 
 function paintSendGate(): void {
-  const open = canSend(botRun, draftToText(draft));
+  // The button asks one question now: can this room become a link at all? A
+  // bot having got through it is advice, printed on the advice line, and no
+  // longer permission. See ./sendable.ts and adr/0062.
+  const code = draftToText(draft);
+  const open = canSend(code);
+  void proved(botRun, code);
   sendButton.hidden = !open;
   // The message belongs to the level it was said about. Once the room has
   // moved on, "link copied" is about a link to somewhere else.

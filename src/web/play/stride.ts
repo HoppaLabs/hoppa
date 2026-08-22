@@ -187,3 +187,35 @@ export class Stride {
     this.travelled = 0;
   }
 }
+
+/**
+ * The same thing, for a room full of enemies.
+ *
+ * The enemies got their stride first and never got the settle: they step by
+ * distance with no memory, so one that stops at the end of its patrol stands
+ * there with a leg out until something moves it again. That was written down
+ * as acceptable on the grounds that nobody watches a guard at the end of its
+ * patrol -- which was true right up until the player stopped doing it too, at
+ * which point the guard is the only thing on screen still frozen mid-step.
+ *
+ * Keyed by SEAT -- the enemy's index in the level -- exactly as ./facing.ts is,
+ * and for the same reason: an enemy has no identity of its own from one frame
+ * to the next, only a place in the list.
+ */
+export class Strides {
+  private readonly walkers = new Map<number, Stride>();
+
+  at(seat: number, x: number, y: number): number {
+    let one = this.walkers.get(seat);
+    if (one === undefined) {
+      one = new Stride();
+      this.walkers.set(seat, one);
+    }
+    return one.at(x, y);
+  }
+
+  /** A new room, or the same one started again: nobody has walked anywhere. */
+  forget(): void {
+    this.walkers.clear();
+  }
+}

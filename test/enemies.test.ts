@@ -147,7 +147,16 @@ test("enemies are drawn from stamps, which is what fixes the look", () => {
   expect(renderer.includes("const foot = Math.round(px(enemy.y) + size / 2);")).toBe(true);
   // Stepped by distance, not by a clock: it strides while walking and stands
   // still when standing still.
-  expect(renderer.includes("const travelled = ((enemy.x + enemy.y) / (ONE >> 1)) | 0;")).toBe(true);
+  //
+  // This used to grep for the exact arithmetic, which is a test that breaks
+  // when the line is IMPROVED and passes when it is broken in any way that
+  // keeps the characters. The cadence now comes from Strides, which is pure
+  // and is tested properly in test/stride.test.ts -- including the part the
+  // enemies never had, which is that stopping brings the feet together. All
+  // this needs to know is that the enemy loop asks that shared thing rather
+  // than counting for itself.
+  expect(renderer.includes("this.strides.at(seat, enemy.x, enemy.y)")).toBe(true);
+  expect(renderer).not.toContain("Date.now()) % 2");
   // ...and the squash-and-stretch is gone, along with the scaling it needed.
   expect(renderer).not.toContain("const squash = 1 - wave * 0.12;");
   expect(renderer).not.toContain("const drawW = size * squash;");

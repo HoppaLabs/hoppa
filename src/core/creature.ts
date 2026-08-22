@@ -366,10 +366,32 @@ export const PELL = creatureFromBuild(
  * no hearts. A character a child picks off the front page and then cannot
  * finish the pack with is a bad default.
  *
- * So Vance and Bash are the same creature underneath and different creatures
- * to a nine-year-old, which is most of what a preset is. Making them differ in
- * play needs a third characteristic or a bigger budget -- a spec change, and
- * one to take on purpose. See docs/adr/0050.
+ * ...AND ITS WEAPON IS NOT.
+ *
+ * adr/0050 closed by saying that making Vance and Bash differ in PLAY needs "a
+ * third characteristic or a bigger budget -- a spec change, and one to take on
+ * purpose." That was right about the CAPS and it looked past the field sitting
+ * next to them. Every creature already carries a weapon, a child already picks
+ * one when they draw a character, and it costs nothing out of the six points.
+ * It is not a third characteristic and it is not a bigger budget; it is the
+ * choice the game already offers, made differently.
+ *
+ * So the jaeger carries the wand, and that is a different game rather than a
+ * different picture: a wand never finishes anything (killsFor is false), it
+ * FREEZES -- for three seconds at no strength and six at full, always from one
+ * wave -- and in the garden and the reef it freezes water, which turns a pond
+ * into a bridge and a bank of urchins into a floor. Vance clears a room by
+ * making it safe rather than by clearing it out, which is what a machine built
+ * for containing giant monsters would do.
+ *
+ * It also settles a question asked weeks ago and answered only in the art:
+ * "it's weird for a jaeger to have a wand, so maybe we have a blue laser
+ * instead of a wand?" -- weaponArt() already draws exactly that. The jaeger
+ * has been holding a freeze ray in the city since the day it was drawn; until
+ * now no default character could actually fire one.
+ *
+ * The caps stay at Bash's, deliberately. The measurement behind them has not
+ * changed and neither has the six-point budget.
  */
 export const VANCE = creatureFromBuild(
   "01J8XKB1N9F4",
@@ -381,6 +403,7 @@ export const VANCE = creatureFromBuild(
   // the SHOULDERS -- the widest thing on the sprite -- rather than on panel
   // detail there is no room for.
   spriteFromRows(VANCE_ROWS, [3, 28, 0]),
+  "wand",
 )
 
 /** The starter stable, in the order the picker shows them. */

@@ -651,6 +651,74 @@ const MUTATIONS: readonly Mutation[] = [
     find: "  const floor = lowestInked(pixels);",
     replace: "  const floor = SPRITE_H - 1;",
   },
+  {
+    // Two of the four starters were the same creature: Bash and Vance had
+    // byte-identical caps AND the same weapon, so the robot was a picture.
+    breaks: "the jaeger goes back to being a reskin of Bash",
+    file: "src/core/creature.ts",
+    find: '  spriteFromRows(VANCE_ROWS, [3, 28, 0]),\n  "wand",',
+    replace: "  spriteFromRows(VANCE_ROWS, [3, 28, 0]),",
+  },
+  {
+    // The strength/speed axis inverts underwater and nothing said so. A child
+    // picks Nim because fast sounds better and drowns in the reef.
+    breaks: "the reef stops saying it is about strength",
+    file: "src/web/play/rewards.ts",
+    find: '  return engine === "swim" ? "strength" : null;',
+    replace: "  return null;",
+  },
+  {
+    // A highlight that is on everywhere is decoration, not information.
+    breaks: "every world claims to be about strength, so the hint means nothing",
+    file: "src/web/play/rewards.ts",
+    find: '  return engine === "swim" ? "strength" : null;',
+    replace: '  return "strength";',
+  },
+  {
+    // Enemies stepped by distance with no memory, so one that stopped at the
+    // end of its patrol stood there with a leg out.
+    breaks: "enemies go back to standing about mid-stride",
+    file: "src/web/play/renderer.ts",
+    find: "      const pose = enemy.stunned ? 0 : this.strides.at(seat, enemy.x, enemy.y);",
+    replace: "      const pose = enemy.stunned ? 0 : ((((enemy.x + enemy.y) / 128) | 0) % 4 + 4) % 4;",
+  },
+  {
+    // The landing dust drawn inside the creature is dust nobody ever sees,
+    // because it is drawn underneath. Found by rendering it at true scale.
+    breaks: "the landing dust is drawn inside the creature, where it cannot be seen",
+    file: "src/web/play/dust.ts",
+    find: "  const dx = (7 + frame) | 0;",
+    replace: "  const dx = (1 + frame) | 0;",
+  },
+  {
+    breaks: "landing raises no dust at all",
+    file: "src/web/play/dust.ts",
+    find: "  return wasAirborne && !airborne && vy > DUST_AT_SPEED;",
+    replace: "  return false;",
+  },
+  {
+    // Pouring changed a class on the BUTTON and drew nothing on the board, so
+    // the water tool read as broken. Reported exactly that way.
+    breaks: "the bucket goes back to drawing no water at all",
+    file: "src/web/play/pour.ts",
+    find: "  if (done < 0 || done > 1) return [];",
+    replace: "  if (true) return [];",
+  },
+  {
+    // A stream, not one lump: the drops are staggered along the same throw.
+    breaks: "the water comes out as one lump instead of a stream",
+    file: "src/web/play/pour.ts",
+    find: "    const at = (done * 2 + i / DROPS) % 1;",
+    replace: "    const at = done;",
+  },
+  {
+    // The editor's send button asks whether the room can become a link, not
+    // whether a bot has been through it. Asked for directly.
+    breaks: "the editor refuses to send a level that has not been autoplayed",
+    file: "src/web/level/sendable.ts",
+    find: "export function canSend(code: string): boolean {\n  if (code.trim() === \"\") return false;",
+    replace: "export function canSend(code: string): boolean {\n  if (true) return false;",
+  },
 ];
 
 /**

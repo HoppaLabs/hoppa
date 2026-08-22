@@ -21,6 +21,7 @@ import {
 import { paintQrOnto } from "../qrpaint.ts";
 import { loadCharacter, loadDraft, setSoundOn, soundOn } from "../stash.ts";
 import { Sounds, soundsFor, type Moment } from "./sound.ts";
+import { becauseOf, rewardedBy, type Trait } from "./rewards.ts";
 import { aPlace as isAPlace, draftToText } from "../../core/draft.ts";
 import { parseLevel } from "../../core/level.ts";
 import { colourFor } from "../../core/palette.ts";
@@ -715,6 +716,10 @@ function paint(): void {
         blinking: moving.merciful(),
         swingLeft: moving.swingLeft(),
         swingLength: moving.swingLength(),
+        // The bucket, so the board can show the water. Optional, because an
+        // older build may have no idea what a pour is -- and a missing read
+        // means "this version does not have that idea yet", not a crash.
+        ...(pourOf(moving)),
         // Side-on engines know about the ground and about falling; the ones
         // seen from above have neither idea, and get no jump animation.
         ...(airborneOf(moving)),
@@ -828,6 +833,26 @@ function flashMessage(text: string | null): void {
  * moving through it. Read off the engine rather than guessed from the level, so
  * a future side-on build gets the animation by exposing the same two things.
  */
+/**
+ * How far through a pour this engine is, if it has the idea at all.
+ *
+ * Read off the engine the same way the jump is, so a future build gets the
+ * animation by exposing the same two numbers and nothing here has to change.
+ */
+function pourOf(game: Moving): { pourLeft?: number; pourLength?: number } {
+  const maybe = game as unknown as {
+    pouring?: () => number;
+    pourLength?: () => number;
+  };
+  if (typeof maybe.pouring !== "function") return {};
+  const left = maybe.pouring();
+  // No pourLength() means an older build that never had the accessor. Zero
+  // rather than a number copied from an engine: the page draws nothing it
+  // cannot measure, which is better than drawing it for the wrong length.
+  const length = typeof maybe.pourLength === "function" ? maybe.pourLength() : 0;
+  return { pourLeft: left, pourLength: length };
+}
+
 function airborneOf(game: Moving): { airborne?: boolean; vy?: number } {
   const maybe = game as unknown as {
     onGround?: () => boolean;
@@ -1072,16 +1097,24 @@ function watchTheSurface(held: number): void {
  * the numbers buy is discoverable by playing, which is the better way to find
  * it out anyway.
  */
-function traitLine(creature: Creature): string {
+function traitLine(creature: Creature, engine: string): string {
   const build = capsToBuild(creature.caps);
   const pips = (n: number): string =>
     "\u25cf".repeat(n) + "\u25cb".repeat(PIP_MAX - n);
+  // Which row this world is actually about. Null nearly everywhere, and that
+  // restraint is deliberate -- see ./rewards.ts. No extra words: the pips are
+  // already on screen and the child reads their own number off a picture they
+  // understand, which is what the version of this line that DID use words got
+  // removed for not doing.
+  const wants = rewardedBy(engine);
+  const mark = (trait: Trait): string =>
+    wants === trait ? ` pair-wanted" title="${becauseOf(wants)}` : "";
   return (
     // The name of the thing, not a description of the creature: "strength ●●●○"
     // reads as a measurement, where "strong ●●●○" reads as an opinion with
     // some dots after it.
-    `<span class="pair"><b class="what">strength</b><b class="pips">${pips(build.FORCE)}</b></span>` +
-    `<span class="pair"><b class="what">speed</b><b class="pips">${pips(build.HASTE)}</b></span>`
+    `<span class="pair${mark("strength")}"><b class="what">strength</b><b class="pips">${pips(build.FORCE)}</b></span>` +
+    `<span class="pair${mark("speed")}"><b class="what">speed</b><b class="pips">${pips(build.HASTE)}</b></span>`
   );
 }
 
@@ -1275,7 +1308,7 @@ function paintStable(): void {
     });
     stable.appendChild(button);
   }
-  trait.innerHTML = traitLine(chosen);
+  trait.innerHTML = traitLine(chosen, level.engine);
 }
 
 // --- layout -----------------------------------------------------------------

@@ -311,6 +311,21 @@
   #trait .pair { display: flex; gap: 7px; align-items: baseline; }
   #trait .what { color: var(--ink-bright); font-weight: 600; }
   #trait .pips { color: var(--gold); letter-spacing: 1px; }
+  /* The row this world is actually about -- only the reef says anything, and
+     only because picking wrong there genuinely spoils the level. No extra
+     words: the pips are already on screen, so this just says which of the two
+     to read. See src/web/play/rewards.ts. */
+  #trait .pair-wanted .what { color: var(--gold); }
+  #trait .pair-wanted { position: relative; }
+  #trait .pair-wanted::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: -3px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--gold);
+    opacity: 0.55;
+  }
 
   #stage { position: relative; }
   /* The win screen covers the whole page, not just the board. Once there is a

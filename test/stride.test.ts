@@ -13,7 +13,8 @@
 import { expect, test } from "bun:test";
 import { SPRITE_H, SPRITE_W } from "../src/core/sprite.ts";
 import {
-  LEG_ROWS, POSES, SETTLE_FRAMES, STRIDE, Stride, bobs, legShift, lowestInked, poseOf, strode,
+  LEG_ROWS, POSES, SETTLE_FRAMES, STRIDE, Stride, Strides, bobs, legShift, lowestInked,
+  poseOf, strode,
 } from "../src/web/play/stride.ts";
 
 /** A sprite from a picture: rows of "." and "1". */
@@ -205,4 +206,28 @@ test("it counts BOTH axes, because a top-down room is walked in four directions"
     poseD = down.at(0, d);
   }
   expect(poseD).toBe(poseA);
+});
+
+test("a room full of enemies each walk their own walk", () => {
+  // Keyed by SEAT, exactly as facing is, because an enemy has no identity from
+  // one frame to the next -- only a place in the list. Sharing one counter
+  // between them would have the whole room stepping in time, which is a chorus
+  // line rather than a patrol.
+  const all = new Strides();
+  let a = 0;
+  let b = 0;
+  for (let frame = 0; frame < 12; frame = (frame + 1) | 0) {
+    a = (a + 60) | 0;
+    all.at(0, a, 0);
+    all.at(1, b, 0);   // seat 1 never moves
+  }
+  expect(all.at(1, b, 0)).toBe(0);          // stood still, feet together
+  expect(all.at(0, (a + 60) | 0, 0)).not.toBe(0);   // seat 0 is mid-stride
+});
+
+test("...and a new room forgets all of them", () => {
+  const all = new Strides();
+  for (let frame = 0; frame < 20; frame = (frame + 1) | 0) all.at(0, frame * 60, 0);
+  all.forget();
+  expect(all.at(0, 99999, 0)).toBe(0);
 });
