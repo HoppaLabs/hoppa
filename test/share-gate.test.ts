@@ -30,13 +30,14 @@ test("the button is offered whether or not anybody has beaten it", () => {
   expect(play).not.toContain("return aPlace() || proven;");
 });
 
-test("an unbeaten level says so, rather than letting the link imply otherwise", () => {
+test("an unbeaten level says what it is FOR, rather than that nobody won", () => {
   // The gate used to make "you got a link" mean "somebody has done this". With
   // it open, the words have to carry that instead -- and there are three
-  // different things to say, not two.
-  expect(play).toContain("I did it in ${wonIn}${scoreUnit()}. Beat that.");
-  expect(play).toContain("I have not done it yet!");
-  expect(play).toContain("nobody has done it yet!");
+  // different things to say, not two. They live in src/web/invite.ts now, and
+  // test/invite.test.ts is where they are checked; this only pins that the
+  // play page still asks.
+  expect(play).toContain("text: inviteText({");
+  expect(play).toContain("beaten: sendingBack || wonIn >= 0,");
 });
 
 test("a level that is actually broken is still refused, and always was", () => {

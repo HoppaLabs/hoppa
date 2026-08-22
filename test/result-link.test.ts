@@ -107,7 +107,9 @@ test("a result link with no name still names the level", () => {
 });
 
 test("sending a level tries the phone's own share sheet before the clipboard", async () => {
-  const main = await Bun.file("src/web/play/main.ts").text();
+  // The chain moved out of the play page on day 21, when the level editor
+  // needed the same four steps: src/web/send.ts is now the only copy of it.
+  const main = await Bun.file("src/web/send.ts").text();
   // Reported: no confirmation appeared AND the pasted link opened the editor.
   // One cause -- navigator.clipboard.writeText failed silently, so nothing was
   // said and the clipboard still held whatever was in it before.

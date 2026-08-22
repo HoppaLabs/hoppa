@@ -46,6 +46,8 @@ import { weaponArt, weaponSays } from "./weapon.ts";
 import { goOffline } from "../offline.ts";
 import { holdStill } from "../nozoom.ts";
 import { paintLogo } from "../logo.ts";
+import { sendLink } from "../send.ts";
+import { inviteText } from "../invite.ts";
 import { AIR_QUIET, breathPips, breathWarning, type Breath } from "./breath.ts";
 import { keepsFresh, scoreFromTicks } from "./best.ts";
 import { PAD_MASK, heldFor } from "./dpad.ts";
@@ -1494,63 +1496,16 @@ function myScore(): number {
  * knows which situation it is in.
  */
 /**
- * Copy without the Clipboard API, for when the Clipboard API says no.
- *
- * `execCommand("copy")` is deprecated and works everywhere, which is a fair
- * description of the web. It needs a real element with a real selection, so
- * this makes one, uses it and throws it away.
- */
-function copyTheOldWay(url: string): boolean {
-  const box = document.createElement("textarea");
-  box.value = url;
-  // Off-screen but not display:none, or there is nothing to select.
-  box.style.position = "fixed";
-  box.style.top = "-1000px";
-  box.setAttribute("readonly", "");
-  document.body.appendChild(box);
-  try {
-    box.select();
-    box.setSelectionRange(0, url.length);
-    return document.execCommand("copy");
-  } catch {
-    return false;
-  } finally {
-    box.remove();
-  }
-}
-
-/**
  * Sending a level, in the order a phone is actually good at.
  *
- * This used to be one `navigator.clipboard.writeText` and a message. When that
- * silently failed -- which it does on iOS more often than the documentation
- * suggests -- two things happened at once, and both were reported: no
- * confirmation appeared, AND the clipboard still held whatever was in it
- * before. Paste that and you land wherever the old link went, which for
- * somebody who had tapped "edit level" earlier is the level editor.
- *
- * So the clipboard is now the second choice, not the first:
- *
- * 1. **The phone's own share sheet.** This is literally what "send it to a
- *    friend" means, and it puts WhatsApp one tap away instead of asking a child
- *    to find the paste menu. Cancelling it is not a failure.
- * 2. **The clipboard**, if there is no share sheet.
- * 3. **execCommand**, deprecated and widely working, if the clipboard refuses.
- * 4. **The link on screen**, to copy by hand, if all of that fails.
- *
- * Every one of those ends with something on screen. Silence was the bug.
+ * The four steps live in src/web/send.ts, because the level editor sends links
+ * too and the fallback chain is not a thing to keep two copies of. This end
+ * decides only WHAT is being sent and what to call it.
  */
 async function share(): Promise<void> {
-  if (!hasBeatenThis()) {
-    sent.className = "bad";
-    sent.textContent = "finish the level first, then you can send it";
-    sent.hidden = false;
-    return;
-  }
   const base = `${window.location.origin}${window.location.pathname}`;
   // A level and nothing else is an invitation; a level with the time you did it
   // in is a challenge, and a challenge is what a child actually wants to send.
-  // The button only opens once you have beaten it, so there is always a time.
   const url = sendingBack
     ? resultLinkFor(
         level,
@@ -1566,57 +1521,25 @@ async function share(): Promise<void> {
     ? challengeLinkFor(level, levelName, wonIn, chosen.name, base)
     : linkFor(level, levelName, base);
 
-  const say = (words: string, bad = false): void => {
-    sent.className = bad ? "bad" : "";
-    sent.textContent = words;
-    sent.hidden = false;
-  };
-
-  if (typeof navigator.share === "function") {
-    try {
-      await navigator.share({
-        title: "hoppa",
-        text: sendingBack
-        ? `I did it in ${myScore()}. Beat that.`
-        : wonIn >= 0
-        ? `${mine ? "My level" : levelName}: I did it in ${wonIn}${scoreUnit()}. Beat that.`
-        // Not beaten by whoever is sending it. Said out loud rather than left
-        // ambiguous: the gate used to make "you got a link" mean "somebody has
-        // done this", and with the gate open the words have to carry it
-        // instead. It is also the better dare.
-        : mine
-        ? `Play my level: ${levelName} -- I have not done it yet!`
-        : `Play this level: ${levelName} -- nobody has done it yet!`,
-        url,
-      });
-      say("sent");
-      return;
-    } catch (err) {
-      // Changing your mind is not an error, and must not fall through to
-      // copying something you decided not to send.
-      if (err instanceof DOMException && err.name === "AbortError") return;
-    }
-  }
-
-  let copied = false;
-  try {
-    await navigator.clipboard.writeText(url);
-    copied = true;
-  } catch {
-    copied = copyTheOldWay(url);
-  }
-
-  if (copied) {
-    say(
-      sendingBack
-        ? "copied — send it back and see if they can beat your score"
-        : "link copied — send it to a friend",
-    );
-    return;
-  }
-  // Nothing would copy it. The link itself is still a way to send it, as long
-  // as it is clearly the thing to copy rather than a wall of characters.
-  say(`press and hold this to copy it: ${url}`, true);
+  await sendLink({
+    url,
+    text: inviteText({
+      sendingBack,
+      mine,
+      beaten: sendingBack || wonIn >= 0,
+      score: sendingBack ? myScore() : wonIn,
+      unit: scoreUnit(),
+      name: levelName,
+    }),
+    copied: sendingBack
+      ? "copied \u2014 send it back and see if they can beat your score"
+      : "link copied \u2014 send it to a friend",
+    say: (words: string, bad = false): void => {
+      sent.className = bad ? "bad" : "";
+      sent.textContent = words;
+      sent.hidden = false;
+    },
+  });
 }
 
 sendIt.addEventListener("click", (ev) => {

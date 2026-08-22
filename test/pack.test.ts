@@ -260,10 +260,11 @@ test("a room that ships is a level to share, but it is not YOUR level", () => {
   // same flag: with sendingBack off, the QR line called one of the six "your
   // level", which it is not.
   expect(play.includes('qrHint.innerHTML = mine')).toBe(true);
-  // The wording gained a tail when the share gate opened -- an unbeaten level
-  // now says so -- so this checks the part that carries the meaning.
-  expect(play).toContain("`Play this level: ${levelName} --");
-  expect(play).toContain("`Play my level: ${levelName} --");
+  // ...and the same flag reaches the words on the message, which is the other
+  // half of the same mistake. The sentences themselves are checked against
+  // inviteText() in test/invite.test.ts.
+  expect(play).toContain("mine,");
+  expect(play).toContain("name: levelName,");
 });
 
 test("the editor would let a child draw the rooms we ship", () => {
