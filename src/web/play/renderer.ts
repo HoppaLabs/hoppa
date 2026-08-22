@@ -393,6 +393,9 @@ const DOOR_BY_WORLD: Record<string, { shut: Pattern; open: Pattern }> = {
   city: { shut: EVAC_PAD, open: EVAC_PAD },
   // Two, because a chest does. See CHEST_SHUT.
   reef: { shut: CHEST_SHUT, open: CHEST_OPEN },
+  // ...and the same chest up on the sand, where a sailor's trunk belongs just
+  // as much: "we can use the sea chest on the beach levels as well".
+  beach: { shut: CHEST_SHUT, open: CHEST_OPEN },
 };
 
 const DOOR_INKS_BY_WORLD: Record<string, Record<string, readonly string[]>> = {
@@ -407,6 +410,11 @@ const DOOR_INKS_BY_WORLD: Record<string, Record<string, readonly string[]>> = {
     shut: ["#2a1a0d", "#4a2f16", "#6f4823", "#9a6b38", "#a37c14", "#c78a1c"],
     // ...and the same chest with the lid back and the light out of it.
     open: ["#2a1a0d", "#4a2f16", "#8a5a12", "#c78a1c", "#ffc23d", "#ffe9a3"],
+  },
+  // Washed up rather than sunk, so the wood is warmer and the brass brighter.
+  beach: {
+    shut: ["#2a1a0d", "#6b350c", "#a35314", "#d87a1f", "#a37c14", "#d8ab1f"],
+    open: ["#2a1a0d", "#6b350c", "#a35314", "#d87a1f", "#ffc23d", "#ffe9a3"],
   },
 };
 
@@ -518,26 +526,31 @@ const FLOWER_FRAMES: readonly Pattern[] = [
  * 1 is the rim, 2 the shadow between the ribs, 3 the shell, 4 the lit ribs,
  * 5 the pearl at the hinge.
  *
- * The widest frame has its rim on BOTH sides. Two rows of it ran off the left
- * edge of the tile with no rim on them while the right edge had one, and an
- * outline that stops on one side reads as a picture that has been cut: "the
- * shell icon looks cropped on its left side when placed".
+ * It sits INSIDE the tile, with a clear column of nothing at each edge.
+ *
+ * Two goes at this. The first had two rows running off the left edge with no
+ * rim on them while the right edge had one -- an outline that stops on one
+ * side reads as a picture that has been cut. Rimming those rows was not
+ * enough: the widest ones were then sixteen pixels across, flush to the left
+ * edge with the spare column on the right, and a rim with no air beside it
+ * still reads as cropped against whatever is in the next tile. Reported
+ * twice, and the second report was right both times.
  */
 const SHELL_FRAMES: readonly Pattern[] = [
   [ // upright, and the frame the still buttons show
     "................",
     "................",
     "................",
-    "......111.......",
-    "....1122211.....",
-    "..11222222211...",
-    ".1222433342221..",
-    "122344333443221.",
-    "123334434433321.",
-    "1233334343333221",
-    "1444334343344421",
-    "111444333444111.",
-    "...113355331....",
+    "................",
+    "................",
+    ".....11111......",
+    "...112222211....",
+    "..12223332221...",
+    "..12344344321...",
+    ".1233343433321..",
+    ".1233343433321..",
+    "..11443334411...",
+    "....13355331....",
     ".....111111.....",
     "................",
     "................",
@@ -548,14 +561,14 @@ const SHELL_FRAMES: readonly Pattern[] = [
     "................",
     "................",
     "................",
-    ".....11111......",
-    "...112222211....",
-    "..12223332221...",
-    ".1223443443221..",
-    "122333434333221.",
-    "124433434334421.",
-    ".1144433344411..",
-    "...113355331....",
+    "................",
+    "......111.......",
+    "....1122211.....",
+    "...122434221....",
+    "..12334343321...",
+    ".1223343433221..",
+    "..11443334411...",
+    "....13355331....",
     ".....111111.....",
     "................",
     "................",
@@ -567,13 +580,13 @@ const SHELL_FRAMES: readonly Pattern[] = [
     "................",
     "................",
     "................",
+    "................",
     "......111.......",
-    "...111222111....",
-    "..12224342221...",
-    ".1223343433221..",
-    ".1243343433421..",
-    "..14443334441...",
-    "...113355331....",
+    "....1122211.....",
+    "...122434221....",
+    "..13334343331...",
+    "...144333441....",
+    "....13355331....",
     ".....111111.....",
     "................",
     "................",

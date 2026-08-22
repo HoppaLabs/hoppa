@@ -27,7 +27,7 @@ const EXPECTED: Readonly<Record<string, readonly string[]>> = {
   platformer: ["clear", "wall", "start", "door / exit", "treasure", "goblin", "bat", "lizard", "ladder", "spikes"],
   underwater: ["clear", "rock", "start", "sea chest", "treasure", "shark", "kraken", "squid", "current", "urchins"],
   garden: ["clear", "hedge", "start", "door / exit", "flowers", "bear", "bunny", "squirrel", "bridge", "pond"],
-  beach: ["clear", "dune", "start", "door / exit", "shells", "crab", "gull", "jellyfish", "jetty", "sea"],
+  beach: ["clear", "dune", "start", "sea chest", "shells", "crab", "gull", "jellyfish", "jetty", "sea"],
   city: ["clear", "building", "start", "evac zone", "people", "kaiju", "swarmer", "crawler", "fire"],
 };
 
