@@ -276,6 +276,61 @@ const EVAC_PAD: Pattern = [
   "1111111111111111",
 ];
 
+/**
+ * A sea chest, for the reef -- and a sailor's trunk is what the way out of an
+ * underwater level should be. Asked for exactly that: a padlocked oak DOOR on
+ * the seabed has no wall to be set into and nothing to be a door TO.
+ * 
+ * Two drawings rather than one, unlike the city's landing pad: a pad does not
+ * change shape when it opens, it lights up, but a chest very much does. The
+ * lid is down and banded here, with a keyhole in the lock plate.
+ * 
+ * 1 is the outline, 2 the dark between the staves, 3 the wood, 4 the lit wood,
+ * 5 the brass, 6 the light inside it.
+ */
+const CHEST_SHUT: Pattern = [
+  "................",
+  ".....111111.....",
+  "...1144444411...",
+  "..154444444451..",
+  ".13533333333531.",
+  ".13533333333531.",
+  ".13533333333531.",
+  ".12522255222521.",
+  ".14544411444541.",
+  ".13523355332531.",
+  ".13523323332531.",
+  ".13523323332531.",
+  ".13523323332531.",
+  ".13523323332531.",
+  ".12211111111221.",
+  "..11........11..",
+];
+
+/**
+ * ...and thrown back, with the light coming out of it. The lid becomes a thin
+ * band at the top and the inside of the trunk is the brightest thing on the
+ * screen, which is what a way out should be once it is a way out.
+ */
+const CHEST_OPEN: Pattern = [
+  "...1344444431...",
+  "..133333333331..",
+  "..133333333331..",
+  "..122222222221..",
+  "..166666666661..",
+  "..166555555661..",
+  "..166555555661..",
+  ".12222255222221.",
+  ".14544455444541.",
+  ".13523355332531.",
+  ".13523323332531.",
+  ".13523323332531.",
+  ".13523323332531.",
+  ".13523323332531.",
+  ".12211111111221.",
+  "..11........11..",
+];
+
 const DOOR_SHUT: readonly Pattern[] = [[
   "................",
   ".11111111111111.",
@@ -332,8 +387,12 @@ const DOOR_INKS: Record<string, readonly string[]> = {
  * Same mechanism as gemShapes(), one level along again. A world absent from
  * here gets the door.
  */
-const DOOR_BY_WORLD: Record<string, readonly Pattern[]> = {
-  city: [EVAC_PAD],
+const DOOR_BY_WORLD: Record<string, { shut: Pattern; open: Pattern }> = {
+  // One drawing, twice: a landing pad does not change SHAPE when the last
+  // person is aboard, its lights come on.
+  city: { shut: EVAC_PAD, open: EVAC_PAD },
+  // Two, because a chest does. See CHEST_SHUT.
+  reef: { shut: CHEST_SHUT, open: CHEST_OPEN },
 };
 
 const DOOR_INKS_BY_WORLD: Record<string, Record<string, readonly string[]>> = {
@@ -343,12 +402,18 @@ const DOOR_INKS_BY_WORLD: Record<string, Record<string, readonly string[]>> = {
     // Cleared for lift: the pad lit, the H white, the corner lights on.
     open: ["#0a2a12", "#1c7d2c", "#2fae42", "#bff0a8", "#ffffff"],
   },
+  reef: {
+    // Oak and brass, sunk long enough to have gone dark.
+    shut: ["#2a1a0d", "#4a2f16", "#6f4823", "#9a6b38", "#a37c14", "#c78a1c"],
+    // ...and the same chest with the lid back and the light out of it.
+    open: ["#2a1a0d", "#4a2f16", "#8a5a12", "#c78a1c", "#ffc23d", "#ffe9a3"],
+  },
 };
 
 /** The drawing this world's way out uses, in the state it is in. */
 function doorShape(world: string, open: boolean): Pattern {
   const own = DOOR_BY_WORLD[world];
-  if (own !== undefined) return own[0] as Pattern;
+  if (own !== undefined) return open ? own.open : own.shut;
   return (open ? DOOR_OPEN[0] : DOOR_SHUT[0]) as Pattern;
 }
 

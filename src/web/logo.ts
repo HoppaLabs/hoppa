@@ -29,80 +29,76 @@ export type Ink = 0 | 1 | 2 | 3 | 4 | 5;
  */
 const LETTERS: Readonly<Record<string, readonly string[]>> = {
   h: [
-    "###.......",
-    "###.......",
-    "###.......",
-    "###.......",
-    "###.####..",
-    "##########",
-    "###....###",
-    "###....###",
-    "###....###",
-    "###....###",
-    "###....###",
-    "###....###",
-    "..........",
-    "..........",
-    "..........",
-    "..........",
+    "####........",
+    "####........",
+    "####........",
+    "####........",
+    "####.#####..",
+    "############",
+    "####....####",
+    "####....####",
+    "####....####",
+    "####....####",
+    "####....####",
+    "####....####",
+    "............",
+    "............",
+    "............",
+    "............",
   ],
   o: [
-    "..........",
-    "..........",
-    "..........",
-    "..........",
-    "..######..",
-    ".########.",
-    "###....###",
-    "###....###",
-    "###....###",
-    "###....###",
-    ".########.",
-    "..######..",
-    "..........",
-    "..........",
-    "..........",
-    "..........",
+    "............",
+    "............",
+    "............",
+    "............",
+    "..########..",
+    ".##########.",
+    "####....####",
+    "####....####",
+    "####....####",
+    "####....####",
+    ".##########.",
+    "..########..",
+    "............",
+    "............",
+    "............",
+    "............",
   ],
   p: [
-    "..........",
-    "..........",
-    "..........",
-    "..........",
-    "########..",
-    "#########.",
-    "###....###",
-    "###....###",
-    "###....###",
-    "###....###",
-    "#########.",
-    "########..",
-    "###.......",
-    "###.......",
-    "###.......",
-    "###.......",
+    "............",
+    "............",
+    "............",
+    "............",
+    "##########..",
+    "###########.",
+    "####....####",
+    "####....####",
+    "####....####",
+    "###########.",
+    "##########..",
+    "####........",
+    "####........",
+    "####........",
+    "####........",
+    "............",
   ],
-  // Single-storey, and told apart from the o by its corners: the right-hand
-  // stem is STRAIGHT, so the a has square corners where the o has round ones.
-  // Two letters that differ only in a rounding read as the same letter at the
-  // size a phone draws this.
   a: [
-    "..........",
-    "..........",
-    "..........",
-    "..........",
-    "..########",
-    ".#########",
-    "###....###",
-    "###....###",
-    "###....###",
-    "###....###",
-    ".#########",
-    "..########",
-    "..........",
-    "..........",
-    "..........",
-    "..........",
+    "............",
+    "............",
+    "............",
+    "............",
+    "..########..",
+    ".##########.",
+    "........####",
+    ".###########",
+    "############",
+    "####....####",
+    "############",
+    ".#####..####",
+    "............",
+    "............",
+    "............",
+    "............",
   ],
 };
 
@@ -171,12 +167,17 @@ export function wordGrid(word: string = WORD): { w: number; h: number; ink: Uint
         continue;
       }
 
-      // Inside. The ramp runs down the x-height band, so a descender does not
-      // restart the gradient halfway through the word.
-      const through = Math.min(1, Math.max(0, (py - 5) / 8));
-      let shade = through < 0.34 ? 4 : through < 0.72 ? 3 : 2;
-      // Bevel: lit along the top edge, shadowed along the bottom.
-      if (at(px, py - 1) === 0) shade = 5;
+      // Inside. The spectrum runs down the X-HEIGHT and then HOLDS, so a p's
+      // descender stays the colour the rest of the letter ended on. Banding by
+      // absolute row instead dropped the descenders off the end of the ramp
+      // and out the other side, which reads as a fault rather than a gradient.
+      const through = Math.min(1, Math.max(0, (py - 5) / 7));
+      const steps = RAMP.length - 1;                 // the outline is not a step
+      let shade = 2 + Math.min(steps - 1, Math.round((1 - through) * (steps - 1)));
+      // Bevel: lit along the top edge, and down into the deepest colour along
+      // the bottom. At six inks that is gold over magenta, which is the whole
+      // effect in two rows.
+      if (at(px, py - 1) === 0) shade = RAMP.length;
       else if (at(px, py + 1) === 0) shade = 2;
       ink[py * w + px] = shade;
     }
@@ -187,16 +188,21 @@ export function wordGrid(word: string = WORD): { w: number; h: number; ink: Uint
 /**
  * The ramp, darkest first, with the outline in front.
  *
- * Gold, because the treasure is gold and the player is gold: the name of the
- * game should be made of the thing the game is about. Held against the page's
- * own dark, which every screen already sits on.
+ * A SPECTRUM, magenta up through orange to gold. Asked for as "1980s sci-fi,
+ * imagining Epcot launch", and then chosen from four: the spectrum was on
+ * everything in 1982 and it is the only one of the four that still reads at
+ * the size a phone actually draws this. The chrome one looked the part blown
+ * up and went muddy small; the dark band across the gold closed up.
+ *
+ * Not anybody's actual mark -- the era's idea, not the era's artwork.
  */
 export const RAMP: readonly string[] = [
-  "#1b1206", // outline
-  "#8a5a12",
-  "#c78a1c",
-  "#f0b52e",
-  "#ffe08a", // top-edge highlight
+  "#12060f", // outline
+  "#b8256e", // the magenta the word sits down into
+  "#e8477a",
+  "#ff6a3d",
+  "#ffa32e",
+  "#ffd76a", // gold, along the top edge
 ];
 
 /**
