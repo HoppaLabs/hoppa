@@ -84,7 +84,7 @@ export const TOOLS: readonly Tool[] = [
   // One tool, two names. It is the same entity either way -- what changes is
   // what the world draws, because a flame standing on grass looks like a
   // mistake and spikes in a cave look like a floor. See src/core/tileset.ts.
-  { glyph: GLYPH_FIRE, label: "fire", names: { outside: "spikes", reef: "urchins", garden: "pond", beach: "sea", city: "fire", jungle: "creek", pyramid: "spike trap", space: "plasma vent" }, limit: 10 },
+  { glyph: GLYPH_FIRE, label: "fire", names: { outside: "spikes", reef: "urchins", garden: "pond", beach: "sea", city: "fire", jungle: "creek", pyramid: "spike trap", space: "acid pool" }, limit: 10 },
   // The two surprise boxes. TWO tools, because the author chooses what is in
   // them -- "I want the author to decide if it's treasure or an enemy" -- and
   // one tool with a hidden coin flip is a lottery rather than a level.
@@ -148,15 +148,20 @@ export const GAMES = [
   // borrowed is the hazard and the pillar, which are the two things a child
   // looks straight at. See PYRAMID in src/core/tileset.ts.
   { engine: "roam", label: "pyramid", tiles: 8 },
-  // The space station: the platformer, in orbit. The one skin where a drawing
-  // means something quite different rather than merely something recoloured
-  // -- soil with a bright cap of grass on it is, shape for shape, hull
-  // plating with a strip of deck lighting along the top.
+  // The space station: the adventure game inside a derelict.
+  //
+  //     "Maybe the space station should be top down with a maze of corridors,
+  //      alien inspired"
+  //
+  // It was the platformer in orbit for exactly one day. A maze is a thing you
+  // see the SHAPE of, and you cannot see the shape of a maze from the side --
+  // so the camera turned, which here means the engine changed: roam, the same
+  // rules the cave and the tomb run on. Nothing about how it plays is new.
   //
   // The only world since the city that does NOT fly a flag. There is no wind
   // in a vacuum, which is the same reason the reef does not, and the way out
-  // is an airlock. See SPACE in src/core/tileset.ts.
-  { engine: "dash", label: "space", tiles: 9 },
+  // is an airlock. See SPACE in src/core/tileset.ts and docs/adr/0073.
+  { engine: "roam", label: "space", tiles: 9 },
 ] as const;
 
 /** The world a game is drawn in, by name -- which cast of creatures it holds. */

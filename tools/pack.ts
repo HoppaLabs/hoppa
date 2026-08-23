@@ -132,6 +132,26 @@ class Room {
     return this;
   }
 
+  /**
+   * ...or the whole room at once, for the one room that is a MAZE.
+   *
+   * Every other room here is built from parts because a 24x14 grid typed as
+   * text is one miscounted column away from not parsing. A maze has no parts:
+   * it is a shape, and the shape is the level. This one was generated (a
+   * depth-first carve on a two-cell pitch, then a quarter of the remaining
+   * walls knocked through so it is corridors rather than dead ends) and then
+   * put through the same two gates as everything else -- the spec verifier,
+   * then the bot with all four ready-made creatures -- before being written
+   * down. `text()` still counts the columns.
+   */
+  rows(grid: readonly string[]): this {
+    for (let y = 0; y < GRID_H; y++) {
+      const row = grid[y] as string;
+      for (let x = 0; x < GRID_W; x++) this.put(x, y, row[x] as string);
+    }
+    return this;
+  }
+
   text(header: string): string {
     const rows = this.cells.map((row) => row.join(""));
     for (const row of rows) {
@@ -165,12 +185,16 @@ const beach = (seed: string) => `hoppa/1 calm seed=${seed} tiles=5 behaviour=5`;
 const city = (seed: string) => `hoppa/1 raze seed=${seed} tiles=6 behaviour=3`;
 // The three worlds asked for together -- "Can we also add jungle, ancient
 // Egypt and sci-fi/space levels?" -- each a SKIN over rules that already
-// worked. The jungle is the garden's engine under a canopy, the pyramid is
-// the adventure game inside a tomb, and the station is the platformer in
-// orbit. See src/core/tileset.ts.
+// worked. The jungle is the garden's engine under a canopy, and the pyramid is
+// the adventure game inside a tomb.
+//
+// The station was the platformer in orbit for one day, and is the adventure
+// game inside a derelict now: "top down with a maze of corridors". A skin
+// still -- the engine it moved TO is one that already existed -- but the only
+// world so far that has changed which one. See docs/adr/0073.
 const jungle = (seed: string) => `hoppa/1 calm seed=${seed} tiles=7 behaviour=5`;
 const pyramid = (seed: string) => `hoppa/1 roam seed=${seed} tiles=8 behaviour=10`;
-const station = (seed: string) => `hoppa/1 dash seed=${seed} tiles=9 behaviour=10`;
+const station = (seed: string) => `hoppa/1 roam seed=${seed} tiles=9 behaviour=10`;
 
 /* -------------------------------------------------------------------------- */
 
@@ -541,7 +565,7 @@ export const PACK: readonly PackLevel[] = [
   {
     file: "18-the-station.lvl",
     name: "the station",
-    teaches: "three decks, two ladders, and vents on the floor",
+    teaches: "a maze of corridors, four cores, and acid pooling in them",
     text: theStation(),
   },
 ];
@@ -643,38 +667,52 @@ function thePyramid(): string {
 }
 
 /**
- * The station. Three decks, two ladders, and vents.
+ * The station. A derelict, and a maze of corridors.
  *
- * The tall room's climb, in orbit: ladders on opposite sides so it is a climb
- * rather than a lift, and a vent on the two decks you spend longest on.
+ *     "Maybe the space station should be top down with a maze of corridors,
+ *      alien inspired"
  *
- * The core on the top deck was the whole of the difficulty here. A first
- * version put one on the short ledge at the far left of the MIDDLE deck --
- * four cells wide, reachable only off the top of a ladder -- and every one of
- * the four creatures failed the room. It is not that the ledge is unreachable;
- * it is that fetching it turns a three-floor route into a four-leg one and the
- * bot runs out of clock. Cores sit where the route already goes.
+ * It was three decks and two ladders, seen from the side, for one day. A maze
+ * is a thing you see the SHAPE of and you cannot see the shape of one from the
+ * side, so the camera turned -- which here means the engine did, to roam, the
+ * rules the cave and the tomb already run on. See docs/adr/0073.
+ *
+ * THE GANGWAY ALONG THE BOTTOM AND UP THE RIGHT IS NOT DECORATION. A maze on a
+ * two-cell pitch leaves two rows and two columns over at the far edge, which a
+ * first version drew as a double-thick wall: dead grid, and worse, it made the
+ * only route through the room the maze itself. Every creature but the quickest
+ * ran the two-minute clock out. Opened up it is a main corridor -- which is
+ * what a station has -- and the slowest creature finishes in twenty-six
+ * seconds with the maze still there to get lost in.
+ *
+ * The three lone blocks are EGGS: a wall cell with nothing beside it, the
+ * garden's tree rule. Each sits in the middle of a small chamber so you can
+ * walk round it, which is the only way a lone block can exist in a maze whose
+ * corridors are one cell wide.
  */
 function theStation(): string {
-  const room = new Room().ground();
-  room.deck(5, [18]);
-  room.deck(9, [4]);
-  room.ladder(18, 5, 8);
-  room.ladder(4, 9, 12);
-  room.put(3, 4, "$").put(13, 4, "$").put(20, 8, "$").put(9, 12, "$");
-  // Both vents on the ground floor, not on a deck. A vent has to stand on
-  // something, and the editor builds a room top to bottom -- so one placed on
-  // a deck is painted before the deck under it exists and comes back refused.
-  // A room a child is shown and then stopped from copying is worse than no
-  // room. See "the editor would let a child draw the rooms we ship".
-  room.put(15, 12, "^").put(7, 12, "^");
-  room.put(12, 8, "G").put(19, 12, "D");
-  room.put(2, 12, "@");
-  room.put(20, 4, ">");
-  // A box, on the way and a few cells clear of anything else worth having.
-  room.put(7, 4, "?").put(17, 7, "!");
-
-  return room.text(station("stat"));
+  // Generated, gate-checked, and then written down -- see Room.rows(). The
+  // four cores are spread by ranking each candidate on its distance from the
+  // NEAREST thing already placed; ranking them by distance from the start
+  // instead put all four along the top corridor, which makes a maze into one
+  // walk. The guards stand where the longer run through the cell is five cells
+  // or fewer, which is spec L5 deciding the level design again.
+  return new Room().rows([
+    "########################",
+    "#@......#.^......$.....#",
+    "#.###.#.#.#####.###.#D.#",
+    "#.#...#G#.#..B..#......#",
+    "#.#.#.#.#.#.#####.#.##.#",
+    "#.....?.#.#............#",
+    "#.#######.#.###.#####..#",
+    "#...^...#...#!...$#....#",
+    "###.###.#.###.#####.##.#",
+    "#.....#..$........#....#",
+    "#.#.#####.#.#.###.###..#",
+    "#..............^#......#",
+    "#$....................>#",
+    "########################",
+  ]).text(station("stat"));
 }
 
 /**

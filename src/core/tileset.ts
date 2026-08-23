@@ -842,6 +842,87 @@ const POND: Pattern = [
 ];
 
 /**
+ * ...and the same idea for ACID, which is what the station spills.
+ *
+ * A separate function rather than POND recoloured, and the difference is the
+ * SHAPE. A pond fills its cell corner to corner, which is right for water --
+ * water in a cell is a cell of water. Acid drawn that way came out as a green
+ * SQUARE, and this game already has a square you are meant to run at: the
+ * surprise box. A hazard that reads like a present is the worst possible way
+ * round.
+ *
+ * So a puddle is a rounded blob that does not reach the corners, with a dark
+ * rim, and it runs out to the edge only on the sides where there is more acid
+ * to run into. Same joining rule as the pond -- a bit CLEAR in `open` means
+ * that side is more of the same -- so four cells of it are one spill.
+ *
+ * All integer arithmetic: this is the determinism zone and floats are refused
+ * here, ellipse or no ellipse. The test is the usual one with both sides
+ * multiplied out -- (2x-15)^2*b^2 + (2y-15)^2*a^2 <= (a*b)^2, in half-pixels
+ * so the centre of a sixteen-wide tile lands on a whole number.
+ */
+const ACID_CACHE = new Map<number, Pattern>();
+
+/** Half-width and half-height of the puddle, in half-pixels. */
+const ACID_A = 13;
+const ACID_B = 12;
+
+export function acidFor(open: number): Pattern {
+  const had = ACID_CACHE.get(open);
+  if (had !== undefined) return had;
+
+  const W = 16;
+  const limit = (Math.imul(ACID_A, ACID_B) * Math.imul(ACID_A, ACID_B)) | 0;
+  const wet: boolean[] = [];
+  for (let y = 0; y < W; y = (y + 1) | 0) {
+    for (let x = 0; x < W; x = (x + 1) | 0) {
+      const dx = ((x * 2) - 15) | 0;
+      const dy = ((y * 2) - 15) | 0;
+      const lhs = (Math.imul(Math.imul(dx, dx), Math.imul(ACID_B, ACID_B))
+        + Math.imul(Math.imul(dy, dy), Math.imul(ACID_A, ACID_A))) | 0;
+      let on = lhs <= limit;
+      // A joined side runs out to the edge; an open one keeps the blob's shape.
+      const band = x >= 3 && x <= 12;
+      const tall = y >= 3 && y <= 12;
+      if ((open & POND_N) === 0 && y < 8 && band) on = true;
+      if ((open & POND_S) === 0 && y > 7 && band) on = true;
+      if ((open & POND_W) === 0 && x < 8 && tall) on = true;
+      if ((open & POND_E) === 0 && x > 7 && tall) on = true;
+      wet.push(on);
+    }
+  }
+  const at = (x: number, y: number): boolean =>
+    x >= 0 && x < W && y >= 0 && y < W && (wet[y * W + x] as boolean);
+
+  const rows: string[] = [];
+  for (let y = 0; y < W; y = (y + 1) | 0) {
+    let row = "";
+    for (let x = 0; x < W; x = (x + 1) | 0) {
+      if (!at(x, y)) { row += "."; continue; }
+      const edge = !at(x - 1, y) || !at(x + 1, y) || !at(x, y - 1) || !at(x, y + 1);
+      // Darker below the waterline, so a puddle has a depth to it rather than
+      // being a flat shape with a rim drawn round it.
+      row += edge ? "3" : y > 9 ? "2" : "1";
+    }
+    rows.push(row);
+  }
+  // One glint, top left, where the light is on everything else in this world.
+  const glint = (x: number, y: number): void => {
+    const row = rows[y] as string;
+    if (row[x] === ".") return;
+    rows[y] = row.slice(0, x) + "5" + row.slice(x + 1);
+  };
+  glint(5, 5); glint(6, 5); glint(4, 6);
+
+  const made = rows as unknown as Pattern;
+  ACID_CACHE.set(open, made);
+  return made;
+}
+
+/** A puddle with nothing beside it: the drawing a lone spill gets. */
+const ACID: Pattern = acidFor(POND_N | POND_E | POND_S | POND_W);
+
+/**
  * Planks: a bridge over a pond.
  *
  * Boards across, with a gap of water showing between each pair, because a solid
@@ -1911,78 +1992,175 @@ export const PYRAMID: Tileset = {
 };
 
 /**
- * The wall of a corridor: plating, laid in a running bond.
+ * The station, seen from above: hull panels, eight wide and four tall, laid in
+ * a running bond.
  *
- *     "the sci-level does not like a space station, they were expecting
- *      corridors and control rooms"
+ *     "Maybe the space station should be top down with a maze of corridors,
+ *      alien inspired"
  *
- * The background used to be STARS -- a starfield, scattered and dim, drawn on
- * deep navy. It was a nice starfield, and it was answering the wrong question.
- * A starfield behind a platform says the platform is OUTSIDE, floating in
- * space, and that is exactly what got reported: not "the stars are wrong" but
- * "this is not a space station". A station has an inside. The inside of a
- * station is a wall.
+ * Which is a change of CAMERA, not of paint -- see docs/adr/0073. What it asks
+ * of the drawings is the thing the cave settled on day one and this had to
+ * learn again: in a maze the corridor is the subject, so the wall is the lit
+ * thing and the floor is the dark thing. Both inversions were drawn and looked
+ * at. A dark ribbed hull with a lit grating underfoot -- which is the more
+ * obviously alien of the two -- came out as mush: wall and floor within a step
+ * of each other, and the lanes you are supposed to be reading disappeared.
  *
- * So the background is plating now: seven-pixel plates in two courses, offset
- * by half a plate so the vertical seams do not line up into a column down the
- * screen. The seams are the only transparent pixels, which is what keeps it
- * quiet -- this tile repeats behind every open cell in the room, and the lesson
- * the starfield taught still holds: a texture drawn under everything has to be
- * quiet. The navy ground shows through the seams and nowhere else.
- *
- * The three lit pixels at the top left of each plate are the difference
- * between metal and graph paper. Without them the first version read as a
- * ruled grid, because a seam on its own is a LINE and what says "plate" is a
- * plate having a lip that catches the light. Three pixels of eight, dashed, so
- * it is an edge rather than the stripe a full-width highlight turned into.
+ * So: panels, calm, with a lit lip along the top of each one, and the seams
+ * broken half a panel across between courses so a run of wall does not stripe.
+ * Almost exactly what STONE does, because what STONE does is legible.
  */
-const BULKHEAD: Pattern = [
-  "................",
-  ".7776666.7776666",
-  ".6666666.6666666",
-  ".6666666.6666666",
-  ".6666666.6666666",
-  ".6666666.6666666",
-  ".6666666.6666666",
-  ".6666666.6666666",
-  "................",
-  "6666.7776666.777",
-  "6666.6666666.666",
-  "6666.6666666.666",
-  "6666.6666666.666",
-  "6666.6666666.666",
-  "6666.6666666.666",
-  "6666.6666666.666",
+const HULL: Pattern = [
+  "8888888688888886",
+  "7777777677777776",
+  "7777777677777776",
+  "6666666666666666",
+  "8886888888868888",
+  "7776777777767777",
+  "7776777777767777",
+  "6666666666666666",
+  "8888888688888886",
+  "7777777677777776",
+  "7777777677777776",
+  "6666666666666666",
+  "8886888888868888",
+  "7776777777767777",
+  "7776777777767777",
+  "6666666666666666",
 ];
 
 /**
- * ...and a window in it, which is where the stars went.
+ * ...and the same wall where the corridor runs along the near side of it.
  *
- * The starfield was not deleted, it was MOVED: the glass is transparent, so
- * what shows through a viewport is the same deep navy ground the seams show,
- * and four stars sit on it. Being inside looking out is a stronger statement
- * of "space station" than being outside ever was, and it costs the same tile.
+ * Two rows of deck light in cyan, then the panels pushed down -- STONE_TOP's
+ * shape exactly. It is doing two jobs, and that is deliberate: seen from above
+ * it is the strip lighting along a corridor wall, and seen from the SIDE it is
+ * the lit edge of a platform, which is what a space level made before the
+ * camera turned still needs from it. One drawing, both cameras. See
+ * docs/adr/0073 on why there is no second tileset.
+ */
+const HULL_TOP: Pattern = [
+  "4444444444444444",
+  "4444444444444444",
+  "8888888688888886",
+  "7777777677777776",
+  "7777777677777776",
+  "6666666666666666",
+  "8886888888868888",
+  "7776777777767777",
+  "7776777777767777",
+  "6666666666666666",
+  "8888888688888886",
+  "7777777677777776",
+  "7777777677777776",
+  "6666666666666666",
+  "8886888888868888",
+  "7776777777767777",
+];
+
+/**
+ * The deck: a grid of plate seams on the dark.
  *
- * A viewport is a big drawing -- fourteen pixels of the sixteen -- so it is
- * rare rather than scattered: one open cell in thirteen. See Tileset.floorOdd.
+ * The cave's floor drawn in hull tones, and for the cave's reason -- the floor
+ * is the thing you walk on, not the thing you look at. A solid-plate deck was
+ * tried, the one this world used as its BACKGROUND when it was a platformer,
+ * and in a maze it sat a step too close to the wall: the corridors stopped
+ * reading as corridors. Quiet wins.
+ *
+ * It is still plating side-on, where this same drawing is the wall behind you
+ * rather than the floor under you.
+ */
+const DECK: Pattern = [
+  "6666666666666666",
+  "6.......6.......",
+  "6.......6.......",
+  "6.......6.......",
+  "6.......6.......",
+  "6.......6.......",
+  "6.......6.......",
+  "6666666666666666",
+  "....6.......6...",
+  "....6.......6...",
+  "....6.......6...",
+  "....6.......6...",
+  "....6.......6...",
+  "....6.......6...",
+  "6666666666666666",
+  "................",
+];
+
+/**
+ * A wall cell with nothing beside it: an egg.
+ *
+ * The garden's rule -- see Tileset.tree -- and the alien half of "alien
+ * inspired". A leathery pod, lit from the top left like everything else here,
+ * a few dark flecks so it is hide rather than plastic, and a crown that has
+ * split open with the light coming out of it.
+ *
+ * GREY, and that is not a shrug. The first one was drawn in the teal end of
+ * the ramp, which is the only part of this palette with any colour in it, and
+ * a small teal object in this world is what the TREASURE is: four of them in a
+ * room and a child cannot tell what they are meant to be running towards. The
+ * shell is hull-coloured and only the crack glows.
+ *
+ * The crack was a slit down the whole height first, and at sixteen pixels an
+ * alternating light-and-dark vertical line is a LADDER. It is a crown now --
+ * eight pixels across the top -- which is both more readable and more the
+ * thing it is imitating.
+ */
+const EGG: Pattern = [
+  "................",
+  "................",
+  "................",
+  "......6666......",
+  ".....864467.....",
+  "....86455467....",
+  "...6888447776...",
+  "...6888877776...",
+  "...8888777677...",
+  "..886877777777..",
+  "..888777777777..",
+  "..688777777676..",
+  "..687777777776..",
+  "...6767777776...",
+  "....66666666....",
+  ".....677776.....",
+];
+
+/**
+ * One deck plate in thirteen is a window.
+ *
+ * This is where the starfield went. Before the camera turned, the background
+ * of a space level WAS stars -- and that was the bug: a starfield behind a
+ * platform says the platform is outside, floating in space, which is what got
+ * reported as "this is not a space station". A station has an inside.
+ *
+ * So the stars are behind glass now, and the glass is transparent: what shows
+ * through a viewport is the deep navy `ground`, with four stars on it. Seen
+ * from above it is a floor you can see space through, which is a better thing
+ * to walk over than a floor you cannot.
+ *
+ * Rare rather than scattered -- one open cell in thirteen -- because a window
+ * is fourteen pixels of the sixteen and twenty of them is a gallery rather
+ * than a corridor. See Tileset.floorOdd.
  */
 const VIEWPORT: Pattern = [
-  "6666666666666666",
-  "6888888888888886",
-  "6877777777777786",
-  "687...5.......86",
-  "687...........86",
-  "687.....4.....86",
-  "687...........86",
-  "687..5........86",
-  "687...........86",
-  "687........5..86",
-  "687...........86",
-  "687...4.......86",
-  "6877777777777786",
-  "6888888888888886",
-  "6666666666666666",
-  "6666666666666666",
+  "................",
+  ".88888888888888.",
+  ".87777777777778.",
+  ".87...5.......8.",
+  ".87...........8.",
+  ".87.....4.....8.",
+  ".87...........8.",
+  ".87..5........8.",
+  ".87...........8.",
+  ".87........5..8.",
+  ".87...........8.",
+  ".87...4.......8.",
+  ".87777777777778.",
+  ".88888888888888.",
+  "................",
+  "................",
 ];
 
 /**
@@ -2036,22 +2214,28 @@ const TERMINAL: Pattern = [
  * not, which is also the only arrangement that looks right.
  */
 export function spaceFloor(key: number): Pattern {
-  if ((key & ROAD_CAR) === 0) return BULKHEAD;
+  if ((key & ROAD_CAR) === 0) return DECK;
   return (key & POND_S) === 0 ? TERMINAL : VIEWPORT;
 }
 
 /**
  * The station, seen from the side. The platformer, in orbit.
  *
- * Fifth skin, and the one that leans hardest on a drawing meaning something
- * else. The outdoor world is soil with a bright cap of grass on top, and what
- * a platform in a space station is, is exactly that shape: a dark mass you
- * cannot enter with a lit edge you land on. So EARTH and EARTH_TOP become
- * hull plating with a strip of deck lighting along the top, and not one pixel
- * was moved to do it -- only the ramp under them.
+ * Fifth skin, and the only one that has changed CAMERA since it shipped:
  *
- * The lit edge is CYAN rather than white on purpose. It is the line a child
- * aims their feet at, and every other bright thing in this game is warm.
+ *     "Maybe the space station should be top down with a maze of corridors,
+ *      alien inspired"
+ *
+ * It was the platformer in orbit for one day. It is the adventure game inside
+ * a derelict now -- same rules the cave and the tomb run on, so nothing about
+ * how it plays had to be invented, and every drawing in it was redrawn for the
+ * camera it is actually seen through. See docs/adr/0073.
+ *
+ * The lit edge is CYAN rather than white on purpose, and that survives the
+ * turn: seen from above it is the strip lighting along a corridor, seen from
+ * the side it was the line a child aims their feet at. Every other bright
+ * thing in this game is warm; this one is not, and that is what makes a room
+ * of it read as somewhere with no weather in it.
  */
 export const SPACE: Tileset = {
   id: 9,
@@ -2060,25 +2244,37 @@ export const SPACE: Tileset = {
   // 1-5 are the deck light, dark to bright, where the outdoors has its four
   // steps of grass. 6-8 are the hull under it, where the outdoors has soil.
   sub: [12, 13, 14, 16, 17, 1, 2, 3],
-  wall: EARTH,
-  wallTop: EARTH_TOP,
-  // The inside of a station: plating, with a window or a bank of instruments
-  // about one open cell in thirteen. See spaceFloor().
-  floor: BULKHEAD,
+  // Corridor walls, and the strip light along the near side of them.
+  wall: HULL,
+  wallTop: HULL_TOP,
+  // One panel on its own is an egg. The garden's tree rule, and the alien half
+  // of "alien inspired". See EGG.
+  tree: EGG,
+  // The deck, with a window or a bank of instruments about one cell in
+  // thirteen. See spaceFloor().
+  floor: DECK,
   floorFor: spaceFloor,
   floorOdd: 13,
+  // Kept for the levels made in the one day this world was a platformer: the
+  // ladder tool is not offered for this engine, so nothing new can place one.
   ladder: LADDER,
-  // Steel, not timber: a wooden ladder in a space station is the one thing in
-  // here a child would actually query.
   ladderSub: [6, 4, 3, 2],
-  // A plasma vent. The flame's own drawing and the flame's own flicker --
-  // what makes it read as machinery rather than as fire is that it is the
-  // wrong COLOUR for fire, which at this size is the whole of the trick.
-  fire: FLAME,
-  fireFrames: FLAME_FRAMES,
-  // Deep blue edge up to a white core: the way a gas flame is lit, which is
-  // the opposite way round from the cave's coal fire.
-  fireSub: [8, 9, 10, 15, 16, 5],
+  // Acid, pooled. Joined up the way a pond is -- see acidFor() -- because
+  // something leaking across four cells of corridor is one spill and not four
+  // puddles, and a thing you have to WALK AROUND wants a shape you can read
+  // the edge of.
+  //
+  // It replaced a plasma vent, which was a flame in cold colours. Two reasons.
+  // A vent is machinery, and machinery is what the walls are already saying;
+  // and nothing else in this world is green, so green is free to mean exactly
+  // one thing here.
+  fire: ACID,
+  fireFor: acidFor,
+  // Body, deep, rim, unused, glint -- the roles acidFor() draws in, which is
+  // why this one is not darkest-first like every other ramp in this file. The
+  // rim is the darkest of them on purpose: it is the edge of the spill, and
+  // the edge is the part a child has to be able to see.
+  fireSub: [21, 20, 18, 19, 23],
   ground: PALETTE[6] as string,
 };
 

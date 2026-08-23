@@ -118,7 +118,7 @@ export const PACK: readonly PackLevel[] = [
   {
     slug: "the-station",
     name: "the station",
-    teaches: "three decks, two ladders, and vents on the floor",
-    code: "ETKkAFINV______-fYIeMkCQoaZhRfA-TJEDoTGjamopSmY5npPJfDPy5_PCHEHEHEECGCECHEHEHEFKMw",
+    teaches: "a maze of corridors, four cores, and acid pooling in them",
+    code: "ESKkAFINVf___wEAA3V900VBA1VfWwVAA39d8wEYQ9132wQAQ19XcwABAwAAA____uDImxFKXKcKkKIuJ7KtEUVki8P3LXyg",
   },
 ];
