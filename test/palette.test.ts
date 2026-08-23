@@ -23,12 +23,13 @@ import { GAMES, enemyArtFor, labelFor, toolsFor, worldFor } from "../src/web/lev
 // are one engine drawn in two worlds, and there is no longer one palette per
 // engine to look up.
 const EXPECTED: Readonly<Record<string, readonly string[]>> = {
-  adventure: ["clear", "wall", "start", "door / exit", "treasure", "goblin", "bat", "lizard", "fire", "box: gem", "box: monster"],
-  platformer: ["clear", "wall", "start", "door / exit", "treasure", "goblin", "bat", "lizard", "ladder", "spikes", "box: gem", "box: monster"],
+  adventure: ["clear", "wall", "start", "flag", "treasure", "goblin", "bat", "lizard", "fire", "box: gem", "box: monster"],
+  platformer: ["clear", "wall", "start", "flag", "treasure", "goblin", "bat", "lizard", "ladder", "spikes", "box: gem", "box: monster"],
   underwater: ["clear", "rock", "start", "sea chest", "treasure", "shark", "kraken", "squid", "current", "urchins", "box: gem", "box: shark"],
-  garden: ["clear", "hedge", "start", "garden door", "flowers", "bear", "bunny", "squirrel", "bridge", "pond", "box: flower", "box: bear"],
-  beach: ["clear", "dune", "start", "sea chest", "shells", "crab", "gull", "jellyfish", "jetty", "sea", "box: shell", "box: crab"],
+  garden: ["clear", "hedge", "start", "flag", "flowers", "bear", "bunny", "squirrel", "bridge", "pond", "box: flower", "box: bear"],
+  beach: ["clear", "dune", "start", "flag", "shells", "crab", "gull", "jellyfish", "jetty", "sea", "box: shell", "box: crab"],
   city: ["clear", "building", "start", "evac zone", "people", "kaiju", "swarmer", "crawler", "fire"],
+  jungle: ["clear", "trees", "start", "flag", "fruit", "jaguar", "frog", "monkey", "log", "creek", "box: fruit", "box: jaguar"],
 };
 
 test("every game's palette reads the way it should", () => {

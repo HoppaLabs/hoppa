@@ -59,27 +59,32 @@ export const TOOLS: readonly Tool[] = [
   // tool you reach for most and the one you want before you have decided what
   // you are drawing, and it was sitting second behind the wall.
   { glyph: GLYPH_FLOOR, label: "clear", rubber: true },
-  { glyph: GLYPH_WALL, label: "wall", names: { reef: "rock", garden: "hedge", beach: "dune", city: "building" } },
+  { glyph: GLYPH_WALL, label: "wall", names: { reef: "rock", garden: "hedge", beach: "dune", city: "building", jungle: "trees" } },
   { glyph: GLYPH_START, label: "start" },
   // Every game, again. It was withheld from the garden while calm/1 was the
   // only one there was: that build has no win, so it drew a door and never
   // opened it, and the tool was a button that did nothing. calm/2 was asked for
   // WITH a way out, and a new garden is drawn under calm/2. See adr/0045.
-  { glyph: GLYPH_EXIT, label: "door / exit", names: { city: "evac zone", reef: "sea chest", beach: "sea chest", garden: "garden door" } },
-  { glyph: GLYPH_TREASURE, label: "treasure", names: { garden: "flowers", beach: "shells", city: "people" }, limit: 8 },
+  // "flag", in every world that flies one -- which is now all of them but the
+  // reef and the city. The exit stopped being a door the day it became a flag
+  // ("maybe instead of doors and exits we should have flags that flutter"),
+  // and for a day after that four of these buttons still said door while the
+  // game drew a flag. The word a child taps has to be the thing they get.
+  { glyph: GLYPH_EXIT, label: "flag", names: { city: "evac zone", reef: "sea chest" } },
+  { glyph: GLYPH_TREASURE, label: "treasure", names: { garden: "flowers", beach: "shells", city: "people", jungle: "fruit" }, limit: 8 },
   // Three enemies, one tool each. They walk, chase and die exactly alike --
   // what changes is what a child sees walking towards them, which at nine
   // years old is most of what an enemy IS.
-  { glyph: GLYPH_GUARD, label: "goblin", names: { reef: "shark", garden: "bear", beach: "crab", city: "kaiju" }, limit: 10 },
-  { glyph: GLYPH_BAT, label: "bat", names: { reef: "kraken", garden: "bunny", beach: "gull", city: "swarmer" }, limit: 10 },
-  { glyph: GLYPH_DRAGON, label: "lizard", names: { reef: "squid", garden: "squirrel", beach: "jellyfish", city: "crawler" }, limit: 10 },
-  { glyph: GLYPH_LADDER, label: "ladder", names: { garden: "bridge", beach: "jetty" }, engines: ["dash", "calm"] },
+  { glyph: GLYPH_GUARD, label: "goblin", names: { reef: "shark", garden: "bear", beach: "crab", city: "kaiju", jungle: "jaguar" }, limit: 10 },
+  { glyph: GLYPH_BAT, label: "bat", names: { reef: "kraken", garden: "bunny", beach: "gull", city: "swarmer", jungle: "frog" }, limit: 10 },
+  { glyph: GLYPH_DRAGON, label: "lizard", names: { reef: "squid", garden: "squirrel", beach: "jellyfish", city: "crawler", jungle: "monkey" }, limit: 10 },
+  { glyph: GLYPH_LADDER, label: "ladder", names: { garden: "bridge", beach: "jetty", jungle: "log" }, engines: ["dash", "calm"] },
   // One tool, four directions. Drag it and the water goes the way you dragged.
   { glyph: GLYPH_FLOW_RIGHT, label: "current", engines: ["swim"], limit: MAX_FLOW },
   // One tool, two names. It is the same entity either way -- what changes is
   // what the world draws, because a flame standing on grass looks like a
   // mistake and spikes in a cave look like a floor. See src/core/tileset.ts.
-  { glyph: GLYPH_FIRE, label: "fire", names: { outside: "spikes", reef: "urchins", garden: "pond", beach: "sea", city: "fire" }, limit: 10 },
+  { glyph: GLYPH_FIRE, label: "fire", names: { outside: "spikes", reef: "urchins", garden: "pond", beach: "sea", city: "fire", jungle: "creek" }, limit: 10 },
   // The two surprise boxes. TWO tools, because the author chooses what is in
   // them -- "I want the author to decide if it's treasure or an enemy" -- and
   // one tool with a hidden coin flip is a lottery rather than a level.
@@ -89,8 +94,8 @@ export const TOOLS: readonly Tool[] = [
   //
   // Only where an engine knows what to do with one. A tool that draws a tile
   // the game will not open is worse than a tool that is missing.
-  { glyph: GLYPH_BOX_TREASURE, label: "box: gem", names: { garden: "box: flower", beach: "box: shell", city: "box: people" }, engines: ["dash", "roam", "calm", "swim"], limit: 6 },
-  { glyph: GLYPH_BOX_ENEMY, label: "box: monster", names: { reef: "box: shark", garden: "box: bear", beach: "box: crab", city: "box: kaiju" }, engines: ["dash", "roam", "calm", "swim"], limit: 6 },
+  { glyph: GLYPH_BOX_TREASURE, label: "box: gem", names: { garden: "box: flower", beach: "box: shell", city: "box: people", jungle: "box: fruit" }, engines: ["dash", "roam", "calm", "swim"], limit: 6 },
+  { glyph: GLYPH_BOX_ENEMY, label: "box: monster", names: { reef: "box: shark", garden: "box: bear", beach: "box: crab", city: "box: kaiju", jungle: "box: jaguar" }, engines: ["dash", "roam", "calm", "swim"], limit: 6 },
 ];
 
 /**
@@ -128,6 +133,15 @@ export const GAMES = [
   // already is, so the rules needed nothing and the work is all in what a
   // child sees. See docs/adr/0050.
   { engine: "raze", label: "city", tiles: 6 },
+  // The jungle: the garden's game under a canopy. Asked for alongside the
+  // pyramid and the space station as "3 other level kinds".
+  //
+  // The garden's rules fit it without a line of change -- one thing that
+  // chases you, two that do not, water to walk round and something across it
+  // -- so what makes it a different place to be is the light and the cast. A
+  // garden is a lawn in the sun; a jungle is shaded earth with the foliage
+  // above it catching what gets through. See JUNGLE in src/core/tileset.ts.
+  { engine: "calm", label: "jungle", tiles: 7 },
 ] as const;
 
 /** The world a game is drawn in, by name -- which cast of creatures it holds. */

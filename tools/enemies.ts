@@ -896,16 +896,174 @@ export const CITY_CAST: readonly Enemy[] = [
   },
 ];
 
+/**
+ * The jungle. The garden's game under a canopy: something that chases you,
+ * something that hops, and something up in the trees.
+ */
+export const JUNGLE_CAST: readonly Enemy[] = [
+  {
+    // The jungle's chaser. It started as a snake, which is the obvious jungle
+    // predator and, drawn from the front at sixteen pixels, completely
+    // illegible -- a coil is a shape you can only read from the SIDE, so what
+    // came out was a gold blob floating over a striped bar. A big cat is the
+    // opposite: at this size the head IS the animal, which this cast already
+    // proves twice over.
+    //
+    // The rosettes are PAIRS of pixels rather than single ones. check()
+    // rejected the first cut at ten orphans, and it was right: a lone dark
+    // pixel touches nothing of its own colour, which is the definition of
+    // dirt. The budget of eight is there so EYES can be single pixels.
+    name: "jaguar",
+    glyph: "G",
+    inks: ["#6e3407", "#de7713", "#ff9325", "#ffd0a3", "#ffffff", "#2b1a0b"],
+    frames: [
+      [
+        "................",
+        "...6........6...",
+        "..626......626..",
+        "..622666666226..",
+        "...6333333336...",
+        "...6112222116...",
+        "...6252222526...",
+        "...6212222126...",
+        "...6224114226...",
+        "...6244444426...",
+        "....64111146....",
+        "....62444426....",
+        "..662222222266..",
+        "..622112211226..",
+        "..622222222226..",
+        "..666666666666..",
+      ],
+      [
+        "................",
+        "...6........6...",
+        "..626......626..",
+        "..622666666226..",
+        "...6333333336...",
+        "...6112222116...",
+        "...6252222526...",
+        "...6212222126...",
+        "...6224114226...",
+        "...6244444426...",
+        "....64111146....",
+        "..662244442266..",
+        "..622222222226..",
+        "..622112211226..",
+        "..662222222266..",
+        "....66666666....",
+      ],
+    ],
+  },
+  {
+    // Drawn as a parrot first, and it kept coming out a frog: a front-facing
+    // bird has its beak pointing at you, so the one line of its silhouette
+    // that says "bird" is the one line you cannot draw. Rather than fight that
+    // it became the thing it already looked like -- and a red-eyed tree frog
+    // is more jungle than a parrot anyway, because what carries it is the eyes
+    // rather than the profile.
+    name: "frog",
+    glyph: "B",
+    inks: ["#0b531a", "#17b02b", "#49de40", "#e11d33", "#ffffff", "#082b11"],
+    frames: [
+      [
+        "................",
+        "................",
+        "................",
+        "...666....666...",
+        "..65446..64456..",
+        "..641426624146..",
+        "...6222222226...",
+        "...6222222226...",
+        "..622222222226..",
+        ".62211333311226.",
+        ".62222333322226.",
+        ".62222333322226.",
+        ".62222222222226.",
+        "..662222222266..",
+        "....66666666....",
+        "................",
+      ],
+      [
+        "................",
+        "................",
+        "................",
+        "...666....666...",
+        "..65446..64456..",
+        "..641426624146..",
+        "...6222222226...",
+        "...6222222226...",
+        "..622222222226..",
+        "6622113333112266",
+        "6222223333222226",
+        "6222223333222226",
+        "6626222222226266",
+        "..6.62222226.6..",
+        "....66666666....",
+        "................",
+      ],
+    ],
+  },
+  {
+    // Ears wide, muzzle pale, face light against a dark body: the same three
+    // signals the bear and the bunny use. Not a lack of imagination -- it is
+    // the reason any of them read at all.
+    name: "monkey",
+    glyph: "D",
+    inks: ["#5e3410", "#8a4d16", "#b8681e", "#f0c48a", "#ffffff", "#2b1a0b"],
+    frames: [
+      [
+        "................",
+        "................",
+        ".....666666.....",
+        "..666333333666..",
+        ".62224444442226.",
+        ".64225444452246.",
+        ".62241444414226.",
+        "..662444444266..",
+        "....64111146....",
+        ".....644446.....",
+        "..66.622226.66..",
+        "..66.622226.66..",
+        "..66.622226.66..",
+        "..66.622226.66..",
+        ".....662266.....",
+        ".......66.......",
+      ],
+      [
+        "................",
+        "................",
+        ".....666666.....",
+        "..666333333666..",
+        ".62224444442226.",
+        ".64225444452246.",
+        ".62241444414226.",
+        "..662444444266..",
+        "....64111146....",
+        "..66.644446.66..",
+        "..66.622226.66..",
+        "..66.622226.66..",
+        "..66.622226.66..",
+        ".....622226.....",
+        ".....662266.....",
+        ".......66.......",
+      ],
+    ],
+  },
+];
+
 export const CASTS: Readonly<Record<string, readonly Enemy[]>> = {
   garden: GARDEN_CAST,
   reef: REEF_CAST,
   beach: BEACH_CAST,
   city: CITY_CAST,
+  jungle: JUNGLE_CAST,
 };
 
 /** Every drawing this file holds, for the checks below. */
 export const ALL: readonly Enemy[] = [
   ...ENEMIES, ...GARDEN_CAST, ...REEF_CAST, ...BEACH_CAST, ...CITY_CAST,
+  ...JUNGLE_CAST,
 ];
 
 /**
@@ -953,7 +1111,7 @@ export function check(): string[] {
   // level stores an enemy as an index and the worlds are alternative art for
   // the same three slots.
   for (const [world, cast] of [["dungeon", ENEMIES], ["garden", GARDEN_CAST], ["reef", REEF_CAST], ["beach", BEACH_CAST],
-    ["city", CITY_CAST]] as const) {
+    ["city", CITY_CAST], ["jungle", JUNGLE_CAST]] as const) {
     if (cast.length !== ENEMIES.length) {
       wrong.push(`${world}: ${cast.length} creatures, want ${ENEMIES.length}`);
     }
@@ -1111,6 +1269,10 @@ function enemiesModule(): string {
   lines.push("");
   lines.push("export const CITY_CAST: readonly Enemy[] = [");
   write(CITY_CAST);
+  lines.push("");
+  lines.push("/** The jungle's three. The garden's shape under a canopy. */");
+  lines.push("export const JUNGLE_CAST: readonly Enemy[] = [");
+  write(JUNGLE_CAST);
 
   lines.push("/** Which cast a world uses. Anything not named here uses the dungeon three. */");
   lines.push("export const CASTS: Readonly<Record<string, readonly Enemy[]>> = {");
@@ -1118,6 +1280,7 @@ function enemiesModule(): string {
   lines.push("  reef: REEF_CAST,");
   lines.push("  beach: BEACH_CAST,");
   lines.push("  city: CITY_CAST,");
+  lines.push("  jungle: JUNGLE_CAST,");
   lines.push("};");
   lines.push("");
   lines.push("/** The enemy a level glyph means, or undefined. */");

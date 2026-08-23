@@ -1669,7 +1669,90 @@ export const CITY: Tileset = {
   ground: PALETTE[1] as string, // #1a212b, the tarmac
 };
 
-export const TILESETS: readonly Tileset[] = [UNDERGROUND, OUTSIDE, REEF, GARDEN, BEACH, CITY];
+/**
+ * The jungle floor, seen from above.
+ *
+ * Fallen leaves rather than the garden's grass tufts, and the reason is not
+ * decoration. The hedges in the garden stopped reading as something you cannot
+ * walk through the moment the wall and the floor were both mid green, and a
+ * jungle is a room where nearly every wall is foliage -- so here the FLOOR is
+ * earth and the litter on it is brown. Green means "you cannot go there", in
+ * every cell, with no exceptions to learn.
+ *
+ * Sparse and close in tone to the earth behind it, for the reason the grass
+ * is: the first cut used four evenly spaced leaves in the pale end of the
+ * brown ramp, and a room of it read as a LATTICE -- you could see the sixteen
+ * pixel repeat as a grid of dots. Scatter unevenly, and keep the litter one
+ * step off the ground rather than four, and the tile stops announcing itself.
+ *
+ * Drawn under
+ * everything in the room, and anything busier is noise a child has to see past.
+ */
+const LITTER: Pattern = [
+  "................",
+  "......6.........",
+  ".....655........",
+  "......5.........",
+  "..............5.",
+  "..6.............",
+  ".655............",
+  "..5.........6...",
+  "...........655..",
+  "....5.......5...",
+  "................",
+  ".........6......",
+  "........655.....",
+  ".........5......",
+  "..5.............",
+  "................",
+];
+
+/**
+ * The jungle, seen from above. The garden's game, somewhere it can bite.
+ *
+ * Third skin, same trick as the beach and the city: this is not a new set of
+ * rules, it is somewhere else to put ones that already work. The garden's
+ * shape fits a jungle exactly -- one thing that chases you, two that do not,
+ * water you walk round, something across it, and something to collect.
+ *
+ * What makes it a jungle rather than a green garden is the light. A garden is
+ * a lawn in the sun: bright floor, darker things standing on it. Under a
+ * canopy it is the other way round -- the floor is shaded earth and the
+ * foliage above it is what catches what light there is -- so the ramp is
+ * inverted relative to the garden's and the two do not read alike even where
+ * they share a drawing.
+ */
+export const JUNGLE: Tileset = {
+  id: 7,
+  name: "jungle",
+  hazard: "water",
+  // 1-4 are leaf: the dark between, the mass, the lit face, and a specular
+  // where a gap in the canopy lets the sun through. 5-6 are the litter on the
+  // floor, and they are BROWN -- see LITTER.
+  sub: [18, 19, 20, 22, 50, 51, 52, 53],
+  wall: BUSH,
+  // One on its own is a tree, the garden's rule exactly: a wall cell with no
+  // wall beside it, which costs the wire format nothing.
+  tree: TREE,
+  floor: LITTER,
+  // A fallen log over the creek, the job the garden's bridge does and the
+  // beach's jetty does.
+  ladder: BRIDGE,
+  ladderSub: [13, 49, 51, 52, 53],
+  // A creek. Joined up the way a pond is -- see pondFor() -- because six
+  // separate rimmed puddles is not a river.
+  fire: POND,
+  fireFor: pondFor,
+  // Green water, not blue: this is standing water under trees, and the one
+  // thing it must not look like is the sea, which is two skins away.
+  fireSub: [12, 13, 14, 15, 5],
+  // Shaded earth. The darkest ground of any world, which is the point.
+  ground: PALETTE[49] as string,
+};
+
+export const TILESETS: readonly Tileset[] = [
+  UNDERGROUND, OUTSIDE, REEF, GARDEN, BEACH, CITY, JUNGLE,
+];
 
 /**
  * The lowest `tiles=` value that names a skin rather than nothing.
@@ -1687,7 +1770,7 @@ export const TILESETS: readonly Tileset[] = [UNDERGROUND, OUTSIDE, REEF, GARDEN,
 export const FIRST_SKIN = 5;
 
 /** The skins a level can ask for by number, by id. */
-const SKINS: Readonly<Record<number, Tileset>> = { 5: BEACH, 6: CITY };
+const SKINS: Readonly<Record<number, Tileset>> = { 5: BEACH, 6: CITY, 7: JUNGLE };
 
 /**
  * The tileset for a world.
