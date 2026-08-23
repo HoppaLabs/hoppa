@@ -113,7 +113,7 @@ export const PACK: readonly PackLevel[] = [
     slug: "the-pyramid",
     name: "the pyramid",
     teaches: "four chambers, four amulets, and traps in the doorways",
-    code: "ESKgAFSHjwekgMCg4MCg4MCgmlAgwGEiDAYSIMBgWkYMCg4MCgulBrkQFpDSRqbymiXFXrfeLcWENg",
+    code: "ESKgAFSHjf___wkAkwkQkwAAA9_v79_v7wBJIxBJIwAAA_v99_v99wAAAwAAA____sVQFxGSIykSmyGzITWdXONkc8Bk",
   },
   {
     slug: "the-station",

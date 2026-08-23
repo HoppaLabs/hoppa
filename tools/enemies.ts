@@ -1066,7 +1066,14 @@ export const PYRAMID_CAST: readonly Enemy[] = [
     // marking ON something, not a line across a room.
     name: "mummy",
     glyph: "G",
-    inks: ["#3d2f04", "#a57c0c", "#ffd962", "#e11d33", "#ffffff", "#2b1a0b"],
+    // LINEN, not gold. It was drawn in #3d2f04 and #a57c0c, which are palette
+    // 24 and 26 -- the tomb's own wall ramp -- and it measured fine, because
+    // its lit bandages are bright against the dark floor it stands on. It
+    // read as "another gold thing in a gold room" all the same. Contrast was
+    // never the problem here; RECOGNITION was, and a mummy is wrapped in
+    // cloth. Asked for as "mummies, beetles, tombs", and the first thing you
+    // should be able to say about it is which of the three it is.
+    inks: ["#4a3a2a", "#b8c4d2", "#eef3f9", "#e11d33", "#ffffff", "#241a12"],
     frames: [
       [
         "................",

@@ -825,7 +825,7 @@ export const PYRAMID_CAST: readonly Enemy[] = [
   {
     name: "mummy",
     glyph: "G",
-    inks: ["#3d2f04", "#a57c0c", "#ffd962", "#e11d33", "#ffffff", "#2b1a0b"],
+    inks: ["#4a3a2a", "#b8c4d2", "#eef3f9", "#e11d33", "#ffffff", "#241a12"],
     frames: [
       [
         "................",

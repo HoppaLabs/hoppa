@@ -534,50 +534,57 @@ function theJungle(): string {
 }
 
 /**
- * The pyramid. Eight chambers, four amulets, and traps in the doorways.
+ * The pyramid. Mummies, a beetle, and two things to be buried in.
  *
- * The adventure game's own shape -- walls that make the room a route rather
- * than a hall -- with the hazard put where a tomb would put it.
+ *     "On the pyramid I'm expecting mummies, beetles, tombs etc"
  *
- * Spec L5 designed this room more than taste did. A guard in a long corridor
- * paces it end to end, and the first pyramid was a hall with three guards on
- * twelve-cell runs. Cutting it into chambers no more than five cells wide
- * fixed that, and then L5 failed again on ONE guard -- because the doorways
- * are the only columns open from the top of the room to the bottom, so a
- * guard standing on one paces all twelve cells vertically. One cell across
- * and its run is the chamber it is standing in.
+ * ...which the first one had none of that you could SEE. The cast was right --
+ * a mummy, a scarab and a jackal -- but one of each in a room of plain gold
+ * brick, and the world's own lone-cell drawing was a pillar that never
+ * appeared because the room had no lone cells in it. Everything the world knew
+ * how to draw, it had nowhere to draw.
  *
- * There was a lesson before both of those. The first version put the scarab
- * beside the start square, and the two SLOW creatures lost the room: Bash and
- * Vance could not get clear of it. A room the strong creatures cannot win is
- * a room that does not ship, and none of this was visible by reading it --
- * see the bot rows in test/pack.test.ts.
+ * So the chambers are three deep rather than two, which is what makes room for
+ * furniture; the lone-cell drawing is a sarcophagus rather than a column,
+ * because from above a column is a circle and a circle is a boulder; and one
+ * wall block in four is carved (see tombFor()).
+ *
+ * Spec L5 wrote the rest of it. A guard in an open chamber paces the whole
+ * width of the room, so the four of them stand in ALCOVES -- pairs of uprights
+ * open at the bottom, two cells to pace and still walkable into. The first
+ * pyramid was a hall with three guards on twelve-cell runs; the second fixed
+ * the runs by cutting the room into chambers so small it looked like a cage.
+ *
+ * The traps moved twice, and by measurement rather than taste. A trap in the
+ * far doorway of a band costs eighteen seconds of detour -- 19s to 37s for the
+ * slowest creature -- and two of those put the room out of reach for everyone.
+ * In the middle doorways, where there is a way round on both sides, two traps
+ * cost nothing at all.
  */
 function thePyramid(): string {
   const room = new Room().border();
-  // Three thick bands of masonry with doorways through them, staggered so the
-  // room is a route rather than a hall you can see across.
-  for (const y of [2, 3, 4]) room.wallRow(y, [4, 12, 19]);
-  for (const y of [6, 7, 8]) room.wallRow(y, [8, 16, 21]);
-  for (const y of [10, 11]) room.wallRow(y, [3, 11, 18]);
-  // A trap in one doorway of each of the upper bands. A trap in the middle of
-  // a floor is scenery; a trap in a gap you have to walk through is a choice
-  // about which way round you go.
-  room.put(19, 3, "^").put(8, 7, "^");
-  room.put(2, 1, "$").put(21, 5, "$").put(6, 9, "$").put(20, 12, "$");
-  // The guards stand IN the doorways -- which is where a tomb would put them,
-  // and also the only place spec L5 allows. A guard in an open band paces the
-  // whole width of the room; a guard in a one-cell gap through a three-thick
-  // wall has a run of three across and five up and down.
-  // The far-right doorway of the middle band, off the route rather than on
-  // it. In the middle doorway the mummy cost Bash and Vance the room -- the
-  // two SLOW creatures walk into it on the way to everything, and two enemies
-  // plus a chase is more hearts than they have. It is still between you and
-  // one of the four amulets.
-  room.put(21, 7, "G");
-  room.put(16, 7, "B").put(11, 10, "D");
-  room.put(2, 12, "@");
-  room.put(21, 1, ">");
+  // Two bands of masonry with three doorways each, and chambers three cells
+  // deep between them -- deep enough that a tomb can have furniture standing
+  // in it, which the first version was not.
+  for (const y of [4, 5]) room.wallRow(y, [3, 12, 20]);
+  for (const y of [9, 10]) room.wallRow(y, [6, 15, 21]);
+  // Alcoves: pairs of uprights open at the bottom, so a guard has two cells to
+  // pace and you can still walk in after it. This is spec L5 doing the level
+  // design -- a guard in an open chamber paces the whole width of the room.
+  for (const x of [5, 8, 17, 20]) for (const y of [1, 2]) room.put(x, y, WALL);
+  for (const x of [10, 13, 16, 19]) for (const y of [6, 7]) room.put(x, y, WALL);
+  // Two sarcophagi, standing clear of everything: a wall cell with no wall
+  // beside it is this world's lone thing, the way it is a tree in the garden.
+  room.put(12, 2, WALL);
+  room.put(4, 7, WALL);
+  // A trap in two of the six doorways.
+  room.put(12, 4, "^").put(15, 9, "^");
+  room.put(2, 2, "$").put(22, 2, "$").put(2, 12, "$").put(22, 12, "$");
+  // Two mummies, a beetle and a jackal, one to an alcove.
+  room.put(6, 2, "G").put(18, 2, "G");
+  room.put(11, 7, "B").put(17, 7, "D");
+  room.put(2, 7, "@");
+  room.put(22, 1, ">");
   return room.text(pyramid("tomb"));
 }
 

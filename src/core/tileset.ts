@@ -1766,31 +1766,72 @@ export const JUNGLE: Tileset = {
 };
 
 /**
- * A pillar, seen from above: one column and the light falling round it.
+ * A sarcophagus, seen from above.
  *
  * The tomb's answer to the garden's tree, and the same rule decides where it
- * goes -- a wall cell with no wall beside it. A room a child paints with a
- * long drag is a corridor wall; a room they tap four times is a hall with
- * four columns in it, and neither costs the wire format a single bit.
+ * goes -- a wall cell with no wall beside it. Tap once for a coffin standing
+ * on its own, drag for a corridor wall, and neither costs the wire format a
+ * single bit.
+ *
+ * It was a PILLAR first, which is a truer thing to find in a pyramid and, seen
+ * from above, is a circle: a column and a boulder are the same drawing. Asked
+ * for "mummies, beetles, tombs" and a column is none of the three. The mask
+ * and the crossed bands are what make this readable at sixteen pixels, and
+ * they are also the only part a child looks at.
  */
-const PILLAR: Pattern = [
+const SARCOPHAGUS: Pattern = [
   "................",
-  ".....111111.....",
-  "...1133333311...",
-  "..133444444331..",
-  "..134444444431..",
-  ".13444433444431.",
-  ".13444333344431.",
-  ".13443322334431.",
-  ".13443322334431.",
-  ".13444333344431.",
-  ".13444433444431.",
-  "..134444444431..",
-  "..133444444331..",
-  "...1133333311...",
+  "......1111......",
+  ".....155551.....",
+  "....15255251....",
+  "....15555551....",
+  "....15555551....",
+  "....13255231....",
+  "....13322331....",
+  "....13322331....",
+  "....15555551....",
+  "....13333331....",
+  "....15555551....",
+  "....13333331....",
+  "....14444441....",
   ".....111111.....",
   "................",
 ];
+
+/**
+ * ...and the blocks themselves, one in four of them carved.
+ *
+ * The same mechanism the city uses to stop a row of towers being wallpaper:
+ * the renderer picks a kind from the cell's own coordinates, so which blocks
+ * are carved costs the wire format nothing at all.
+ *
+ * Cut with the SHADOW ink rather than a new colour, because that is what a
+ * carving is -- the same stone with the light not reaching into it. Loud
+ * hieroglyphs on every block would be a patterned wallpaper; a quarter of the
+ * blocks bearing a mark is a wall somebody wrote on.
+ */
+const TOMB_CARVED: Pattern = [
+  "2111111121111111",
+  "2424424424444444",
+  "2322223323333333",
+  "2322233323333233",
+  "1111111111111111",
+  "4444424444444424",
+  "3333323333322223",
+  "3323323332333323",
+  "2111111121111111",
+  "2444444424422244",
+  "2333333323332333",
+  "2333233323322233",
+  "1111111111111111",
+  "4444424444444424",
+  "3333323333333323",
+  "1111111111111111",
+];
+
+export function tombFor(kind: number): Pattern {
+  return (kind & (WALL_KINDS - 1)) === 3 ? TOMB_CARVED : STONE;
+}
 
 /**
  * The pyramid, seen from above. The adventure game, inside a tomb.
@@ -1816,8 +1857,10 @@ export const PYRAMID: Tileset = {
   sub: [24, 25, 26, 27, 28],
   wall: STONE,
   wallTop: STONE_TOP,
-  // One on its own is a column. See PILLAR.
-  tree: PILLAR,
+  // One on its own is a sarcophagus. See SARCOPHAGUS.
+  tree: SARCOPHAGUS,
+  // ...and one block in four is carved. See tombFor().
+  wallKinds: tombFor,
   floor: GROUND,
   ladder: LADDER,
   // Rope, not wood: pale against the sandstone it hangs on, where the cave's
