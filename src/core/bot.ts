@@ -26,6 +26,7 @@ import {
   TILE_EXIT_LOCKED,
   TILE_EXIT_OPEN,
   TILE_LADDER,
+  TILE_BOX,
   TILE_TREASURE,
   TILE_WALL,
 } from "./tiles.ts";
@@ -144,14 +145,86 @@ function goal(tiles: Uint8Array, fromX: number, fromY: number, exitAt = -1): num
   for (let cell = 0; cell < tiles.length; cell++) {
     const tile = tiles[cell] as number;
     if (exitAt < 0 && (tile === TILE_EXIT_OPEN || tile === TILE_EXIT_LOCKED)) exit = cell;
-    if (tile !== TILE_TREASURE) continue;
-    const away = Math.abs((cell % GRID_W) - fromX) + Math.abs(((cell / GRID_W) | 0) - fromY);
+    // A shut box counts as a gem worth walking to.
+    //
+    // It may be holding one, and there is no way to tell from outside -- which
+    // is the whole point of a box. If it is, the door is waiting for it, and a
+    // bot that ignored boxes would stand at a locked exit with every loose gem
+    // in the room and no idea what was missing. So it opens every box it can
+    // find, which is also what a child does.
+    //
+    // The goal is the box's NEIGHBOUR, not the box: a box is a wall until it is
+    // opened, so the router can never path into one. You walk up to it and
+    // knock.
+    const boxed = tile === TILE_BOX;
+    if (tile !== TILE_TREASURE && !boxed) continue;
+    const target = boxed ? beside(tiles, cell) : cell;
+    if (target < 0) continue;
+    const away = Math.abs((target % GRID_W) - fromX) + Math.abs(((target / GRID_W) | 0) - fromY);
     if (away < best) {
       best = away;
-      gem = cell;
+      gem = target;
     }
   }
   return gem >= 0 ? gem : exit;
+}
+
+/**
+ * An open cell orthogonally beside this one, or -1.
+ *
+ * Reading order, so two bots given the same room always walk to the same side
+ * of the same box. Which side does not matter; agreeing does.
+ */
+function beside(tiles: Uint8Array, cell: number): number {
+  const x = cell % GRID_W;
+  const y = (cell / GRID_W) | 0;
+  // BESIDE before above or below, and that is not arbitrary.
+  //
+  // Reading order put the cell ABOVE first, which in a room with drift is the
+  // worst place to be asked to hover: underwater Nim -- the fastest build, so
+  // the one that overshoots furthest -- swam up over the box, sailed past the
+  // cell it was aiming at, and spent the rest of the level pressing up. It
+  // pressed the weapon exactly zero times in three thousand six hundred ticks.
+  //
+  // Left and right are how the router moves everything else, and a creature
+  // that arrives sideways is already lined up on the axis that matters.
+  const tries: ReadonlyArray<readonly [number, number]> = [
+    [x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1],
+  ];
+  for (const [nx, ny] of tries) {
+    if (nx < 0 || nx >= GRID_W || ny < 0 || ny >= GRID_H) continue;
+    const tile = tiles[idx(nx, ny)] as number;
+    if (tile === TILE_WALL || tile === TILE_BOX) continue;
+    return idx(nx, ny);
+  }
+  return -1;
+}
+
+/**
+ * A shut box directly beside us, or -1.
+ *
+ * Orthogonal only. Facing comes from the direction pressed, and pressing a
+ * diagonal faces the creature along ONE of the two axes -- so a box reached
+ * corner-first would be swung at and missed, for ever.
+ */
+/**
+ * How near a centre line counts as lined up, in subcells.
+ *
+ * Under the 32 a three-quarter-cell body has to spare in a one-cell gap, and
+ * over half the 50 subcells the fastest build covers in a tick -- a band under
+ * half a step flips its sign every tick and never settles.
+ */
+const ALIGNED = 30;
+
+function boxBeside(tiles: Uint8Array, x: number, y: number): number {
+  const tries: ReadonlyArray<readonly [number, number]> = [
+    [x, y - 1], [x - 1, y], [x + 1, y], [x, y + 1],
+  ];
+  for (const [nx, ny] of tries) {
+    if (nx < 0 || nx >= GRID_W || ny < 0 || ny >= GRID_H) continue;
+    if ((tiles[idx(nx, ny)] as number) === TILE_BOX) return idx(nx, ny);
+  }
+  return -1;
 }
 
 /**
@@ -287,7 +360,7 @@ function playFromAbove(engine: Playable, level: LevelBits, cap: number): number[
       const step = path[0] as number;
       const spot = engine.where?.() ?? { x: cellCentre(here.x), y: cellCentre(here.y), facing: 0 };
       const going = towards(at, step);
-      const ALIGN = 30;
+      const ALIGN = ALIGNED;
       const dx = cellCentre(step % GRID_W) - spot.x;
       const dy = cellCentre((step / GRID_W) | 0) - spot.y;
 
@@ -307,6 +380,42 @@ function playFromAbove(engine: Playable, level: LevelBits, cap: number): number[
       if (Math.abs(enemy.x - here.x) <= 1 && Math.abs(enemy.y - here.y) <= 1) {
         held |= HELD_ACT;
         break;
+      }
+    }
+
+    // ...and knock on a box we are standing next to.
+    //
+    // The direction is REPLACED rather than added to: the engine opens the box
+    // in the cell you are FACING, facing comes from the direction pressed, and
+    // the router is at this moment pressing whatever gets us to the box's
+    // neighbour -- which, once we are standing on it, is nothing at all. So the
+    // press has to be aimed at the box on purpose.
+    //
+    // LINE UP FIRST, THEN KNOCK, which is the same two-step the corridor router
+    // does and for the same reason. Underwater it is not optional: the reef has
+    // momentum, so a creature that arrives beside a box keeps sliding along its
+    // face and out of the cell again. Nim -- the fastest build, and so the one
+    // that drifts furthest -- never once landed a swing before this, and Pell
+    // took eighteen seconds over a four-second room.
+    //
+    // Aligning and knocking cannot happen on the same tick: pressing two
+    // directions makes it a diagonal, and walk() resolves a diagonal facing to
+    // the HORIZONTAL, so a box directly above would be swung at sideways for
+    // ever.
+    const knock = boxBeside(tiles, here.x, here.y);
+    if (knock >= 0) {
+      const spot = engine.where?.() ?? { x: cellCentre(here.x), y: cellCentre(here.y), facing: 0 };
+      const sideways = (knock % GRID_W) !== here.x;
+      const drift = sideways
+        ? cellCentre((knock / GRID_W) | 0) - spot.y
+        : cellCentre(knock % GRID_W) - spot.x;
+      held = (held & ~(HELD_UP | HELD_DOWN | HELD_LEFT | HELD_RIGHT)) | 0;
+      if (Math.abs(drift) > ALIGNED) {
+        held |= sideways
+          ? (drift > 0 ? HELD_DOWN : HELD_UP)
+          : (drift > 0 ? HELD_RIGHT : HELD_LEFT);
+      } else {
+        held |= towards(at, knock) | HELD_ACT;
       }
     }
 
@@ -678,6 +787,32 @@ function playFromTheSide(
       if (Math.abs(enemy.x - here.x) <= 1 && Math.abs(enemy.y - here.y) <= 1) {
         held |= HELD_SWING;
         break;
+      }
+    }
+
+    // Knock on a box.
+    //
+    // Beside us, we swing at it -- and the direction is REPLACED, because the
+    // engine opens the box in the cell you are FACING and facing comes from
+    // the direction pressed. Above us, we jump into it, which is the way a
+    // side-on game has always opened a block and the reason a box overhead is
+    // worth drawing.
+    //
+    // The jump has to be HELD rather than tapped: dash/9's jump cut gives about
+    // a third of the rise for a tap, and a third of a rise does not reach the
+    // ceiling. The hold below already does that for every other jump; this just
+    // asks for one.
+    {
+      const boxTiles = engine.render();
+      const shut = (cx: number, cy: number): boolean =>
+        cx >= 0 && cx < GRID_W && cy >= 0 && cy < GRID_H
+        && (boxTiles[idx(cx, cy)] as number) === TILE_BOX;
+      if (shut(here.x - 1, here.y) || shut(here.x + 1, here.y)) {
+        held = (held & ~(HELD_LEFT | HELD_RIGHT)) | 0;
+        held |= shut(here.x - 1, here.y) ? HELD_LEFT : HELD_RIGHT;
+        held |= HELD_SWING;
+      } else if (shut(here.x, here.y - 1) || shut(here.x, here.y - 2)) {
+        held |= HELD_ACT;
       }
     }
 

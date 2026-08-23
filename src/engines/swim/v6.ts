@@ -673,7 +673,7 @@ export class SwimV6 implements Engine {
   private moveEnemies(): void {
     for (let i = 0; i < this.enemies.length; i = (i + 1) | 0) {
       const enemy = this.enemies[i] as Enemy;
-      const patrol = this.patrols[i] as Patrol;
+      const patrol = this.patrols[i] as Patrol | undefined;
 
       // Dead is dead, for this attempt. Every game of this shape works that
       // way -- you clear a room and it stays clear -- and starting the level
@@ -696,6 +696,19 @@ export class SwimV6 implements Engine {
         this.stepOneAxis(enemy, this.x, this.y);
         continue;
       }
+
+      // A thing that came out of a BOX has no corridor to go back to.
+      //
+      // Patrols are derived from the level's guard glyphs, one per guard, and
+      // a boxed enemy is appended after all of them -- so `patrols[i]` is
+      // simply not there for it. Reading it crashed the moment a monster box
+      // was opened with the player far enough away to lose interest.
+      //
+      // It stands where it was let out. That is the right behaviour as well as
+      // the safe one: a box is somewhere the author chose, and a creature that
+      // wandered off to pace a corridor it had never been in would be a
+      // surprise that walked away.
+      if (patrol === undefined) continue;
 
       // Not chasing. A chase drags an enemy out of the corridor it was drawn
       // in, and the corridor's extent only means anything ON that corridor --

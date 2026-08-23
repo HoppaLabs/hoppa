@@ -47,7 +47,6 @@ import { GALLERY } from "../../core/gallery.ts";
 const logoCanvas = document.getElementById("logo") as HTMLCanvasElement | null;
 if (logoCanvas !== null) paintLogo(logoCanvas, window.innerWidth >= 560 ? 3 : 2);
 
-
 const paper = document.getElementById("paper") as HTMLCanvasElement;
 const context = paper.getContext("2d") as CanvasRenderingContext2D;
 const inks = document.getElementById("inks") as HTMLElement;
@@ -349,24 +348,6 @@ function paintStats(): void {
   paintCode();
 });
 
-/**
- * Put the points back where they started, and leave the drawing alone.
- *
- * The pair to `clear`, which does the opposite: one undoes the picture, one
- * undoes the numbers. A child who has spent every point on speed and cannot
- * remember what it was before had, until now, no way back that did not also
- * throw away the creature they had drawn.
- *
- * Not a delete. Nothing saved is touched, and nothing is gone for good -- which
- * is why it can sit next to `delete` without a warning of its own.
- */
-(document.getElementById("reset") as HTMLButtonElement).addEventListener("click", () => {
-  const fresh = startingCharacter();
-  for (const spend of SPENDABLE) build[spend.key] = fresh.build[spend.key];
-  paintStats();
-  paintCode();
-  note.textContent = "points put back";
-});
 
 /**
  * Where the play button goes.

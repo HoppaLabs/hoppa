@@ -599,10 +599,18 @@ function paintQr(): void {
  */
 function paintShareGate(): void {
   sendIt.hidden = !hasBeatenThis();
-  // A level you made is sent as a level; one you were sent goes back as a
-  // time. The button says which, because they are different acts.
-  sendIt.textContent = aPlace() ? "share this place"
-    : sendingBack ? "send your score" : "share level";
+  // ONE WORDING, always.
+  //
+  // It used to say "send your score" when you were replying to somebody's
+  // level and "share level" the rest of the time, on the reasoning that they
+  // are different acts. They are -- but the BUTTON is not where that
+  // difference belongs, because a child meets it once per level and cannot
+  // learn a rule they see one side of at a time. Asked for directly: "I want
+  // to keep things consistent, let's always have share level instead."
+  //
+  // What goes out still differs, and that is where the difference lives: the
+  // message carries the time when there is one to carry. See inviteText().
+  sendIt.textContent = aPlace() ? "share this place" : "share level";
 }
 
 // --- noise ------------------------------------------------------------------

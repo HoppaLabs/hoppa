@@ -284,6 +284,11 @@ function theGauntlet(): string {
   for (const y of [10, 11]) room.wallRow(y, [4, 14, 20]);
   room.put(6, 1, "$").put(18, 1, "$").put(3, 5, "$").put(21, 9, "$");
   room.put(12, 3, "B").put(16, 7, "G");
+  // NO BOXES IN THIS ROOM, and the attempt is worth recording. A box is a
+  // WALL, and the gauntlet's three bands have exactly two ways through each --
+  // putting one anywhere in open floor cost every creature the level. The
+  // shipped rooms are tuned tightly enough that boxes want a room designed
+  // around them rather than boxes dropped into a room that was not.
   room.put(9, 12, "@").put(20, 12, ">");
   return room.text(roam("6ff6"));
 }
