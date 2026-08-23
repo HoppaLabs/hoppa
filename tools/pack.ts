@@ -202,8 +202,8 @@ function firstSteps(): string {
   room.put(5, 10, "^").put(19, 3, "^");
   room.put(4, 2, "$").put(20, 2, "$").put(12, 3, "$");
   room.put(3, 11, "@").put(19, 11, ">");
-  // A gem in one, something with teeth in the other.
-  room.put(12, 4, "?").put(4, 4, "!");
+  // A box, on the way and a few cells clear of anything else worth having.
+  room.put(7, 1, "?").put(15, 4, "!");
 
   return room.text(roam("1aa1"));
 }
@@ -226,8 +226,8 @@ function theLongWay(): string {
   // in, and everything here is twenty cells wide.
   room.put(3, 10, "$").put(20, 3, "$").put(3, 3, "$");
   room.put(3, 12, "@").put(12, 12, ">");
-  // A gem in one, something with teeth in the other.
-  room.put(3, 5, "?").put(20, 5, "!");
+  // A box, on the way and a few cells clear of anything else worth having.
+  room.put(22, 5, "?").put(5, 8, "!");
 
   return room.text(roam("2bb2"));
 }
@@ -249,8 +249,8 @@ function fourCorners(): string {
   room.put(2, 1, "$").put(21, 1, "$").put(2, 9, "$").put(21, 9, "$");
   room.put(3, 3, "B").put(15, 7, "G");
   room.put(11, 12, "@").put(18, 12, ">");
-  // A gem in one, something with teeth in the other.
-  room.put(1, 1, "?").put(21, 8, "!");
+  // A box, on the way and a few cells clear of anything else worth having.
+  room.put(6, 1, "?").put(20, 4, "!");
 
   return room.text(roam("3cc3"));
 }
@@ -283,8 +283,8 @@ function upAndOver(): string {
   room.put(5, 12, "#").put(5, 11, "$");
   room.put(12, 7, "$").put(17, 7, "$");
   room.put(2, 12, "@").put(21, 7, ">");
-  // A gem in one, something with teeth in the other.
-  room.put(11, 7, "?").put(16, 7, "!");
+  // A box, on the way and a few cells clear of anything else worth having.
+  room.put(9, 11, "?").put(7, 7, "!");
 
   return room.text(dash("4dd4"));
 }
@@ -304,8 +304,8 @@ function theTallRoom(): string {
   room.put(3, 4, "$").put(20, 8, "$").put(9, 12, "$");
   room.put(12, 8, "D");
   room.put(2, 12, "@").put(20, 4, ">");
-  // A gem in one, something with teeth in the other.
-  room.put(4, 4, "?").put(19, 8, "!");
+  // A box, on the way and a few cells clear of anything else worth having.
+  room.put(7, 4, "?").put(17, 7, "!");
 
   return room.text(dash("5ee5"));
 }
@@ -334,8 +334,8 @@ function theGauntlet(): string {
   // shipped rooms are tuned tightly enough that boxes want a room designed
   // around them rather than boxes dropped into a room that was not.
   room.put(9, 12, "@").put(20, 12, ">");
-  // A gem in one, something with teeth in the other.
-  room.put(2, 5, "?").put(14, 5, "!");
+  // A box, on the way and a few cells clear of anything else worth having.
+  room.put(10, 1, "?").put(21, 3, "!");
 
   return room.text(roam("6ff6"));
 }
@@ -356,8 +356,8 @@ function theHotFloor(): string {
   room.line(9, 3, 14, 3, "^");
   room.put(2, 2, "$").put(21, 2, "$").put(11, 10, "$");
   room.put(3, 11, "@").put(20, 11, ">");
-  // A gem in one, something with teeth in the other.
-  room.put(11, 8, "?").put(2, 1, "!");
+  // A box, on the way and a few cells clear of anything else worth having.
+  room.put(5, 1, "?").put(21, 6, "!");
 
   return room.text(roam("7gg7"));
 }
@@ -384,8 +384,8 @@ function theNarrowWay(): string {
   room.put(3, 3, "B");
   room.put(2, 1, "$").put(21, 1, "$").put(2, 9, "$").put(21, 9, "$");
   room.put(11, 12, "@").put(19, 12, ">");
-  // A gem in one, something with teeth in the other.
-  room.put(20, 9, "?").put(1, 1, "!");
+  // A box, on the way and a few cells clear of anything else worth having.
+  room.put(6, 1, "?").put(21, 5, "!");
 
   return room.text(roam("8hh8"));
 }
@@ -429,8 +429,8 @@ function mindTheSpikes(): string {
   // the one a child reaches last.
   room.put(7, 7, "$").put(16, 7, "$").put(21, 7, "$").put(8, 12, "$");
   room.put(2, 12, "@").put(22, 7, ">");
-  // A gem in one, something with teeth in the other.
-  room.put(6, 7, "?").put(10, 7, "!");
+  // A box, on the way and a few cells clear of anything else worth having.
+  room.put(3, 7, "?").put(5, 11, "!");
 
   return room.text(dash("9ii9"));
 }
@@ -578,8 +578,8 @@ function theJungle(): string {
   room.put(17, 10, "G");
   room.put(2, 11, "@");
   room.put(21, 2, ">");
-  // A gem in one, something with teeth in the other.
-  room.put(7, 9, "?").put(17, 3, "!");
+  // A box, on the way and a few cells clear of anything else worth having.
+  room.put(10, 11, "?").put(7, 4, "!");
 
   return room.text(jungle("jgle"));
 }
@@ -636,8 +636,8 @@ function thePyramid(): string {
   room.put(11, 7, "B").put(17, 7, "D");
   room.put(2, 7, "@");
   room.put(22, 1, ">");
-  // A gem in one, something with teeth in the other.
-  room.put(2, 3, "?").put(2, 11, "!");
+  // A box, on the way and a few cells clear of anything else worth having.
+  room.put(5, 6, "?").put(22, 8, "!");
 
   return room.text(pyramid("tomb"));
 }
@@ -671,8 +671,8 @@ function theStation(): string {
   room.put(12, 8, "G").put(19, 12, "D");
   room.put(2, 12, "@");
   room.put(20, 4, ">");
-  // A gem in one, something with teeth in the other.
-  room.put(4, 4, "?").put(12, 4, "!");
+  // A box, on the way and a few cells clear of anything else worth having.
+  room.put(7, 4, "?").put(17, 7, "!");
 
   return room.text(station("stat"));
 }
@@ -737,8 +737,10 @@ function theReef(): string {
   room.put(3, 2, "$").put(20, 3, "$").put(17, 12, "$");
 
   room.put(2, 1, "@").put(21, 11, ">");
-  // A gem in one, something with teeth in the other.
-  room.put(20, 5, "?").put(3, 5, "!");
+  // A gem box and no monster box. Underwater a released enemy in a room
+  // you DRIFT through is more than any of the four can survive -- searched
+  // at every clearance down to two cells, and there is nowhere.
+  room.put(22, 1, "?");
 
   return room.text(swim("ssss"));
 }
@@ -791,8 +793,10 @@ function theTallRocks(): string {
   room.put(11, 1, "$").put(7, 9, "$").put(16, 8, "$").put(21, 11, "$");
 
   room.put(2, 1, "@").put(21, 2, ">");
-  // A gem in one, something with teeth in the other.
-  room.put(15, 8, "?").put(6, 9, "!");
+  // A gem box and no monster box. Underwater a released enemy in a room
+  // you DRIFT through is more than any of the four can survive -- searched
+  // at every clearance down to two cells, and there is nowhere.
+  room.put(15, 5, "?");
 
   return room.text(swim("rock"));
 }
@@ -857,8 +861,10 @@ function theWreck(): string {
   room.put(9, 5, "$").put(15, 11, "$").put(21, 10, "$").put(2, 11, "$");
 
   room.put(2, 1, "@").put(21, 2, ">");
-  // A gem in one, something with teeth in the other.
-  room.put(8, 6, "?").put(1, 11, "!");
+  // A gem box and no monster box. Underwater a released enemy in a room
+  // you DRIFT through is more than any of the four can survive -- searched
+  // at every clearance down to two cells, and there is nowhere.
+  room.put(1, 4, "?");
 
   return room.text(swim("wrck"));
 }
@@ -946,8 +952,8 @@ function theGarden(): string {
   // was asked for with one. See adr/0045.
   room.put(2, 2, "@");
   room.put(21, 12, ">");
-  // A gem in one, something with teeth in the other.
-  room.put(8, 7, "?").put(17, 2, "!");
+  // A box, on the way and a few cells clear of anything else worth having.
+  room.put(5, 1, "?").put(21, 7, "!");
 
   return room.text(calm("cccc"));
 }
@@ -1030,8 +1036,8 @@ function theBeach(): string {
 
   room.put(2, 1, "@");
   room.put(22, 1, ">");
-  // A gem in one, something with teeth in the other.
-  room.put(17, 5, "?").put(11, 10, "!");
+  // A box, on the way and a few cells clear of anything else worth having.
+  room.put(1, 4, "?").put(22, 9, "!");
 
   return room.text(beach("bbbb"));
 }
@@ -1110,10 +1116,8 @@ function theCity(): string {
   // to it is a walk right across town.
   room.put(1, 1, "@");
   room.put(21, 12, ">");
-  // A crate in the street, and something in the other one. In the city the
-  // jaeger's swing does three jobs now -- hit the kaiju, bring the building
-  // down, open the crate -- and it is still one button.
-  room.put(4, 5, "?").put(19, 5, "!");
+  // A box, on the way and a few cells clear of anything else worth having.
+  room.put(6, 3, "?").put(3, 9, "!");
 
   return room.text(city("city"));
 }
