@@ -27,7 +27,6 @@
 import { expect, test } from "bun:test";
 import { CHASE_RIM, OUTLINE_INK, STUN_MIX, chaseInks, mix } from "../src/web/play/renderer.ts";
 import { CASTS, ENEMIES } from "../src/core/enemies.ts";
-import { REEF } from "../src/core/tileset.ts";
 
 const renderer = await Bun.file("src/web/play/renderer.ts").text();
 
@@ -58,8 +57,16 @@ test("the brown the report described is what the old numbers actually produced",
   expect(mix("#0b0f14", "#ff8a3d", 0.28)).toBe("rgb(79,49,31)");
   expect(mix("#2b3a4a", "#ff8a3d", 0.28)).toBe("rgb(102,80,70)");
   // ...and the grey box from the report before it, over the reef's water.
-  expect(REEF.ground).toBe("#12306b");
-  expect(mix(REEF.ground, "#ff8a3d", 0.28)).toBe("rgb(84,73,94)");
+  //
+  // The water AS IT WAS THEN, written out rather than read from REEF.ground.
+  // This test is a record of arithmetic that has already happened -- what the
+  // shipped tint actually did to the numbers people complained about -- so it
+  // has to keep the numbers of the day. Reading the live value instead turned
+  // it into a test of the current palette, and it duly broke the moment the
+  // palette was lifted, reporting a cosmetic change as if the old bug had come
+  // back. Both of those cannot be true of one assertion; the history is the
+  // one worth keeping, and there is a test below that the tint is gone.
+  expect(mix("#12306b", "#ff8a3d", 0.28)).toBe("rgb(84,73,94)");
 });
 
 test("the rim is ink 5 in every cast, which is why picking it by index is safe", () => {

@@ -1036,7 +1036,11 @@ export const REEF: Tileset = {
   // the deep it is drawn on without becoming a solid object, which is why the
   // darkest step is barely lighter than the water itself.
   flowSub: [7, 8, 9, 10, 11],
-  ground: "#12306b",
+  // PALETTE, not a copy of it: the two worlds that hand-copied their water
+  // and their lawn were left behind when the palette was lifted, and a
+  // backdrop that no longer matches the floor drawn on top of it shows as a
+  // seam wherever a pattern is not opaque.
+  ground: PALETTE[7] as string,
 };
 
 /**
@@ -1095,7 +1099,7 @@ export const GARDEN: Tileset = {
   // "this will hurt", because it will not: it is a shape you walk round.
   fireSub: [8, 9, 10, 11, 5],
   // Sunlit grass rather than pale mint.
-  ground: "#6fd968",
+  ground: PALETTE[22] as string,
 };
 
 /**
