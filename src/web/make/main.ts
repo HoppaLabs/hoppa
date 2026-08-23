@@ -350,6 +350,25 @@ function paintStats(): void {
 });
 
 /**
+ * Put the points back where they started, and leave the drawing alone.
+ *
+ * The pair to `clear`, which does the opposite: one undoes the picture, one
+ * undoes the numbers. A child who has spent every point on speed and cannot
+ * remember what it was before had, until now, no way back that did not also
+ * throw away the creature they had drawn.
+ *
+ * Not a delete. Nothing saved is touched, and nothing is gone for good -- which
+ * is why it can sit next to `delete` without a warning of its own.
+ */
+(document.getElementById("reset") as HTMLButtonElement).addEventListener("click", () => {
+  const fresh = startingCharacter();
+  for (const spend of SPENDABLE) build[spend.key] = fresh.build[spend.key];
+  paintStats();
+  paintCode();
+  note.textContent = "points put back";
+});
+
+/**
  * Where the play button goes.
  *
  * Normally back to the play page, which loads the built-in level. But if you
@@ -581,7 +600,7 @@ forget.addEventListener("click", () => {
   if (!armed) {
     armed = true;
     forget.classList.add("sure");
-    forget.textContent = "tap again to delete it";
+    forget.textContent = "tap again";
     forgotten.textContent = "the code above is the only copy — last chance to keep it";
     return;
   }
@@ -595,7 +614,7 @@ forget.addEventListener("click", () => {
 
   armed = false;
   forget.classList.remove("sure");
-  forget.textContent = "delete this character";
+  forget.textContent = "delete";
   forgotten.textContent = "gone — this is a blank one";
 
   paintInks();

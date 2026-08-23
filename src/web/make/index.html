@@ -107,6 +107,14 @@
      it -- and a row that centres them puts the button level with the LABEL
      rather than with the box it belongs to. Line them up along the bottom, so
      the button sits on the same line as the thing it acts on. */
+  /* Four buttons on one row on a 360-pixel phone. They are allowed to shrink
+     to fit and to wrap rather than to overflow: a row that runs off the side of
+     a phone hides the button on the end, and the button on the end is the one
+     that saves. */
+  .endrow { gap: 6px; flex-wrap: wrap; }
+  .endrow button { padding: 8px 9px; font-size: 14px; flex: 0 1 auto; }
+  /* The one that keeps your work is the one that looks like it. */
+  .endrow .goes { border-color: var(--gold); color: var(--gold); }
   .row:has(.field) { align-items: flex-end; }
   /* ...and where :has is not understood, the row stacks instead. Two lines is
      not as good as one, but it is never crooked. */
@@ -289,23 +297,22 @@
   </span>
 </div>
 
-<div class="row">
+<!-- All four in one row, and the play button says the thing it has always
+     quietly done: it SAVES, and then it plays. It has saved since the day it
+     was written and the label only ever said "play", which is a button that
+     looks like it throws your work away. -->
+<div class="row endrow">
+  <button id="forget">delete</button>
   <button id="clear">
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M8.5 18.5H21"/>
       <path d="M14.8 4.7 4.7 14.8a2 2 0 0 0 0 2.8l2.2 2.2a2 2 0 0 0 2.8 0L19.8 9.7a2 2 0 0 0 0-2.8l-2.2-2.2a2 2 0 0 0-2.8 0Z"/>
       <path d="M10 9.5 15 14.5"/>
     </svg>clear</button>
-  <button id="go">play</button>
+  <button id="reset">reset</button>
+  <button id="go" class="goes">save + play</button>
 </div>
 <div id="note"></div>
-
-<h2>start over</h2>
-<div class="hint">gone for good &mdash; <b>copy the code first</b> if you
-     might want it back</div>
-<div class="row">
-  <button id="forget">delete this character</button>
-</div>
 <div id="forgotten"></div>
 <div class="row"><a href="../">back to the game</a></div>
 
