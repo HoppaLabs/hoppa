@@ -735,7 +735,7 @@ export const JUNGLE_CAST: readonly Enemy[] = [
   {
     name: "frog",
     glyph: "B",
-    inks: ["#0b531a", "#17b02b", "#49de40", "#e11d33", "#ffffff", "#082b11"],
+    inks: ["#0c2f73", "#144db5", "#2679ea", "#e11d33", "#ffffff", "#061539"],
     frames: [
       [
         "................",

@@ -964,7 +964,18 @@ export const JUNGLE_CAST: readonly Enemy[] = [
     // rather than the profile.
     name: "frog",
     glyph: "B",
-    inks: ["#0b531a", "#17b02b", "#49de40", "#e11d33", "#ffffff", "#082b11"],
+    // BLUE, not green, and that is the jungle's fault rather than the frog's.
+    //
+    // It was drawn in #0b531a, #49de40 and #082b11 -- which became, on the day
+    // the jungle floor went green, the jungle's own shadow, its own specular,
+    // and its own GROUND. Three of six inks, and the one that matters most:
+    // an outline the same colour as the floor is a creature with no edge.
+    //
+    // Repainting the world is what broke it, so the fix is not to unpick that.
+    // A poison dart frog is blue as often as it is green, it is the one thing
+    // in a jungle that is advertising itself, and blue is the one hue this
+    // world has none of.
+    inks: ["#0c2f73", "#144db5", "#2679ea", "#e11d33", "#ffffff", "#061539"],
     frames: [
       [
         "................",

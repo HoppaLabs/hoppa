@@ -1024,7 +1024,7 @@ const GEM_SHAPES: Record<string, readonly Pattern[]> = {
 };
 
 /** The frames this world's treasure turns, or nods, through. */
-function gemShapes(world: string): readonly Pattern[] {
+export function gemShapes(world: string): readonly Pattern[] {
   return GEM_SHAPES[world] ?? GEM_FRAMES;
 }
 
@@ -1112,7 +1112,7 @@ export function standingOn(
 }
 
 /** Outline, face, highlight -- for each world. */
-const GEM_INKS: Record<string, readonly string[]> = {
+export const GEM_INKS: Record<string, readonly string[]> = {
   // Rim, shadowed facet, body, lit facet, specular. A gem is not one blue and
   // a white dot -- what makes it read as CUT is that the facets disagree.
   underground: ["#062f2f", "#12807a", "#1fb3a6", "#5fe0d2", "#ffffff"],
