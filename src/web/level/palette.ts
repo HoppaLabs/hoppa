@@ -70,7 +70,7 @@ export const TOOLS: readonly Tool[] = [
   // ("maybe instead of doors and exits we should have flags that flutter"),
   // and for a day after that four of these buttons still said door while the
   // game drew a flag. The word a child taps has to be the thing they get.
-  { glyph: GLYPH_EXIT, label: "flag", names: { city: "evac zone", reef: "sea chest", space: "airlock" } },
+  { glyph: GLYPH_EXIT, label: "flag", names: { city: "evac zone", reef: "sea chest", beach: "sea chest", garden: "door", space: "airlock" } },
   { glyph: GLYPH_TREASURE, label: "treasure", names: { garden: "flowers", beach: "shells", city: "people", jungle: "fruit", pyramid: "amulets", space: "cores" }, limit: 8 },
   // Three enemies, one tool each. They walk, chase and die exactly alike --
   // what changes is what a child sees walking towards them, which at nine

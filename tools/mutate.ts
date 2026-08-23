@@ -239,14 +239,31 @@ const MUTATIONS: readonly Mutation[] = [
     replace: "  if (false) return false;",
   },
   {
-    // The garden's exit, the OTHER way it can go wrong. It used to be a table
-    // entry pointing at a wooden door; that entry has been dead since flags
-    // arrived, so deleting it broke nothing and the mutation proved nothing.
-    // What actually decides the garden's way out now is this set.
-    breaks: "the garden stops flying a flag and goes back to the dungeon's door",
+    // The garden drew the DUNGEON's door, on a lawn, for six days. The entry
+    // that fixes it was dead for a while -- the garden had been swept into the
+    // flag list -- which is exactly why this mutation stopped proving anything
+    // and why it is worth keeping now that it does again.
+    breaks: "the garden's way out goes back to a padlocked oak door on the grass",
     file: "src/web/play/renderer.ts",
-    find: '"garden", ',
+    find: "  garden: { shut: GARDEN_DOOR_SHUT, open: GARDEN_DOOR_OPEN },",
     replace: "",
+  },
+  {
+    // ...and the same for the sand: "we can use the sea chest on the beach
+    // levels as well".
+    breaks: "the beach loses its sea chest and gets the dungeon's door",
+    file: "src/web/play/renderer.ts",
+    find: "  beach: { shut: CHEST_SHUT, open: CHEST_OPEN },",
+    replace: "",
+  },
+  {
+    // The other direction: a world that HAS been given something better is put
+    // back on the flag list, which is what swept up these two in the first
+    // place. "I forgot about garden and beach put them back how they were".
+    breaks: "the garden is swept back onto the flag list",
+    file: "src/web/play/renderer.ts",
+    find: 'new Set(["underground", "outside", "jungle", "pyramid"])',
+    replace: 'new Set(["underground", "outside", "jungle", "pyramid", "garden"])',
   },
   {
     // A junction box screwed to the side of an alien egg. Invisible to a green

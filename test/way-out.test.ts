@@ -22,9 +22,15 @@ import type { Pattern } from "../src/core/tileset.ts";
 /** The drawing a world gets if it has never been thought about. */
 const oak = doorShape("nowhere anybody has drawn", false);
 
-/** The worlds that fly a flag, and the two that were told not to. */
-const FLIES = ["underground", "outside", "garden", "beach", "jungle", "pyramid"] as const;
-const KEEPS = ["reef", "city"] as const;
+/**
+ * The worlds that fly a flag, and the four that were given something better.
+ *
+ * The garden and the beach were on the first list and should never have been:
+ * each had been given its own way out, by name, before flags existed. "I
+ * forgot about garden and beach put them back how they were".
+ */
+const FLIES = ["underground", "outside", "jungle", "pyramid"] as const;
+const KEEPS = ["reef", "city", "garden", "beach"] as const;
 
 test("the way out is a flag, in every world but two", () => {
   //     "Maybe instead of doors and exits we should have flags that flutter,
