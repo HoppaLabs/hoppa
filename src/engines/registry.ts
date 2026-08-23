@@ -22,6 +22,7 @@ import { RoamV8, ROAM_V8_BEHAVIOUR } from "./roam/v8.ts";
 import { RoamV9, ROAM_V9_BEHAVIOUR } from "./roam/v9.ts";
 import { CalmV4, CALM_V4_BEHAVIOUR } from "./calm/v4.ts";
 import { RazeV2, RAZE_V2_BEHAVIOUR } from "./raze/v2.ts";
+import { RazeV3, RAZE_V3_BEHAVIOUR } from "./raze/v3.ts";
 import { SwimV5, SWIM_V5_BEHAVIOUR } from "./swim/v5.ts";
 import { RoamV10, ROAM_V10_BEHAVIOUR } from "./roam/v10.ts";
 import { DashV10, DASH_V10_BEHAVIOUR } from "./dash/v10.ts";
@@ -276,6 +277,16 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
     `raze/${RAZE_V2_BEHAVIOUR}`,
     (level, creature) =>
       creature === undefined ? new RazeV2(level) : new RazeV2(level, creature),
+  ],
+  // raze/3: the city gets boxes, which is the one engine where that needed a
+  // decision rather than a copy. A box is a wall and in this game walls come
+  // down, so a jaeger left to itself would raze a crate into burning rubble.
+  // A crate is not a building: smash() skips them and the same swing opens
+  // them instead. See src/engines/raze/v3.ts.
+  [
+    `raze/${RAZE_V3_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new RazeV3(level) : new RazeV3(level, creature),
   ],
   // swim/5: the reef already had momentum -- it is the one build nobody meant
   // by "moving a cursor" -- so this is only the three things it shared with the

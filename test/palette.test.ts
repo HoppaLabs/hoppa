@@ -28,7 +28,7 @@ const EXPECTED: Readonly<Record<string, readonly string[]>> = {
   underwater: ["clear", "rock", "start", "sea chest", "treasure", "shark", "kraken", "squid", "current", "urchins", "box: gem", "box: shark"],
   garden: ["clear", "hedge", "start", "flag", "flowers", "bear", "bunny", "squirrel", "bridge", "pond", "box: flower", "box: bear"],
   beach: ["clear", "dune", "start", "flag", "shells", "crab", "gull", "jellyfish", "jetty", "sea", "box: shell", "box: crab"],
-  city: ["clear", "building", "start", "evac zone", "people", "kaiju", "swarmer", "crawler", "fire"],
+  city: ["clear", "building", "start", "evac zone", "people", "kaiju", "swarmer", "crawler", "fire", "box: people", "box: kaiju"],
   jungle: ["clear", "trees", "start", "flag", "fruit", "jaguar", "frog", "monkey", "log", "creek", "box: fruit", "box: jaguar"],
   pyramid: ["clear", "blocks", "start", "flag", "amulets", "mummy", "scarab", "jackal", "spike trap", "box: amulet", "box: mummy"],
   space: ["clear", "hull", "start", "airlock", "cores", "robot", "drone", "blob", "ladder", "plasma vent", "box: core", "box: robot"],

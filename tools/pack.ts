@@ -160,7 +160,9 @@ const beach = (seed: string) => `hoppa/1 calm seed=${seed} tiles=5 behaviour=5`;
 // The city is its own GAME as well as its own world: raze/1 is the adventure
 // game where a strong creature brings a building down. A new engine id rather
 // than roam/9, so no cave level changes -- see src/engines/raze/v1.ts.
-const city = (seed: string) => `hoppa/1 raze seed=${seed} tiles=6 behaviour=2`;
+// The city moved to raze/3 the day the city got boxes. raze/2 stays shipped
+// and stays exact -- every city link anybody has sent pins it.
+const city = (seed: string) => `hoppa/1 raze seed=${seed} tiles=6 behaviour=3`;
 // The three worlds asked for together -- "Can we also add jungle, ancient
 // Egypt and sci-fi/space levels?" -- each a SKIN over rules that already
 // worked. The jungle is the garden's engine under a canopy, the pyramid is
@@ -1108,6 +1110,11 @@ function theCity(): string {
   // to it is a walk right across town.
   room.put(1, 1, "@");
   room.put(21, 12, ">");
+  // A crate in the street, and something in the other one. In the city the
+  // jaeger's swing does three jobs now -- hit the kaiju, bring the building
+  // down, open the crate -- and it is still one button.
+  room.put(4, 5, "?").put(19, 5, "!");
+
   return room.text(city("city"));
 }
 

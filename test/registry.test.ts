@@ -52,6 +52,11 @@ test("every build ships: retiring one would break every link that pinned it", ()
     // is nearly all gaps between hedges and a city is nearly all street
     // corners, so both feel the doorway assist more than the caves do.
     "calm/4", "raze/2",
+    // raze/3: boxes in the city, which is the one engine where that needed a
+    // decision rather than a copy -- a box is a wall and in this game walls
+    // come down. A crate is not a building: the swing opens it instead of
+    // razing it.
+    "raze/3",
     // swim/5: the reef already had momentum, so this is only the three things
     // it shared with the rest -- diagonals, the gap in the rock you nearly
     // lined up with, and the swing you asked for slightly early.

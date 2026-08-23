@@ -17,7 +17,7 @@ export const NEWEST_BUILD: Readonly<Record<string, number>> = {
   dash: 10,
   swim: 6,
   calm: 5,
-  raze: 2,
+  raze: 3,
 };
 
 /** The build a new level of this kind should pin, or 0 if there is no such engine. */

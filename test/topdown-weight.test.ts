@@ -44,6 +44,10 @@ const WORLDS = [
   { engine: "calm", tiles: 0, weighted: 4, before: 3 },
   { engine: "calm", tiles: 0, weighted: 5, before: 3 },
   { engine: "raze", tiles: 6, weighted: 2, before: 1 },
+  // ...and raze/3, which is raze/2 plus boxes. Named explicitly, like every
+  // row above it: the day raze/4 lands, a table that said newestBuild() would
+  // walk off this one and stop noticing whether the city still has a body.
+  { engine: "raze", tiles: 6, weighted: 3, before: 1 },
 ] as const;
 
 interface Runner {
