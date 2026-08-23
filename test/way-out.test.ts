@@ -23,7 +23,7 @@ import type { Pattern } from "../src/core/tileset.ts";
 const oak = doorShape("nowhere anybody has drawn", false);
 
 /** The worlds that fly a flag, and the two that were told not to. */
-const FLIES = ["underground", "outside", "garden", "beach"] as const;
+const FLIES = ["underground", "outside", "garden", "beach", "jungle", "pyramid"] as const;
 const KEEPS = ["reef", "city"] as const;
 
 test("the way out is a flag, in every world but two", () => {

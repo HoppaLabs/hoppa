@@ -223,13 +223,6 @@ const MUTATIONS: readonly Mutation[] = [
     replace: 'import { BRUK as VANCE } from "../src/core/creature.ts";',
   },
   {
-    // The garden drew the DUNGEON's door, on a lawn, for six days.
-    breaks: "the garden's way out goes back to a padlocked oak door on the grass",
-    file: "src/web/play/renderer.ts",
-    find: "  garden: { shut: GARDEN_DOOR_SHUT, open: GARDEN_DOOR_OPEN },",
-    replace: "",
-  },
-  {
     // The whole point of the editor's send button. If the code the bot played
     // is not compared with the code on the paper, the button stays open across
     // an edit and a child sends a room nothing has ever been through.
@@ -246,13 +239,32 @@ const MUTATIONS: readonly Mutation[] = [
     replace: "  if (false) return false;",
   },
   {
+    // The garden's exit, the OTHER way it can go wrong. It used to be a table
+    // entry pointing at a wooden door; that entry has been dead since flags
+    // arrived, so deleting it broke nothing and the mutation proved nothing.
+    // What actually decides the garden's way out now is this set.
+    breaks: "the garden stops flying a flag and goes back to the dungeon's door",
+    file: "src/web/play/renderer.ts",
+    find: '"garden", ',
+    replace: "",
+  },
+  {
+    // Reported as "I don't think brown airlock good in the sci-fi level" --
+    // which is what a world absent from the door table gets. Nothing was an
+    // error; it just quietly drew an oak door in orbit.
+    breaks: "an oak door in orbit again",
+    file: "src/web/play/renderer.ts",
+    find: "  space: { shut: AIRLOCK_SHUT, open: AIRLOCK_OPEN },",
+    replace: "",
+  },
+  {
     // Reported: the unbeaten wording read as a warning rather than an
     // invitation. Swapping it back is a silent regression -- nothing crashes,
     // the link still works, and the message is wrong in WhatsApp.
     breaks: "a level you designed goes out advertising that nobody has beaten it",
     file: "src/web/invite.ts",
-    find: "    ? `Try playing this level I designed: ${invite.name}`",
-    replace: "    ? `Play my level: ${invite.name} -- I have not done it yet!`",
+    find: "? `Try playing this level I designed: ${invite.name}${can}`",
+    replace: "? `Play my level: ${invite.name} -- I have not done it yet!${can}`",
   },
   {
     // The order of the four ways to send. The share sheet has to come first:
@@ -308,14 +320,16 @@ const MUTATIONS: readonly Mutation[] = [
   {
     breaks: "the city forgets it is a skin, so a city level renders as a cave",
     file: "src/core/tileset.ts",
-    find: "const SKINS: Readonly<Record<number, Tileset>> = { 5: BEACH, 6: CITY };",
-    replace: "const SKINS: Readonly<Record<number, Tileset>> = { 5: BEACH };",
+    // Just the one entry, not the whole line. Matching the line meant every
+    // world added after this was written retired it without a word.
+    find: "6: CITY, ",
+    replace: "",
   },
   {
     breaks: "the city's palette says door and treasure over a pad and a person",
     file: "src/web/level/palette.ts",
-    find: 'names: { garden: "flowers", beach: "shells", city: "people" }',
-    replace: 'names: { garden: "flowers", beach: "shells" }',
+    find: ', city: "people"',
+    replace: "",
   },
   {
     breaks: "a level's skin is read from 1, so every shipped reef link is a cave",
@@ -325,10 +339,16 @@ const MUTATIONS: readonly Mutation[] = [
       "{ 1: UNDERGROUND, 2: OUTSIDE, 3: REEF, 4: GARDEN };",
   },
   {
+    breaks: "the station forgets it is a skin, so a space level renders as a cave",
+    file: "src/core/tileset.ts",
+    find: ", 9: SPACE",
+    replace: "",
+  },
+  {
     breaks: "the beach forgets it is a skin, so a beach level renders as a garden",
     file: "src/core/tileset.ts",
-    find: "const SKINS: Readonly<Record<number, Tileset>> = { 5: BEACH, 6: CITY };",
-    replace: "const SKINS: Readonly<Record<number, Tileset>> = { 6: CITY };",
+    find: "{ 5: BEACH, ",
+    replace: "{ ",
   },
   {
     breaks: "switching tab within one engine drops the skin, so the beach tab does nothing",
@@ -381,8 +401,8 @@ const MUTATIONS: readonly Mutation[] = [
   {
     breaks: "the underwater palette says goblin over a picture of a shark",
     file: "src/web/level/palette.ts",
-    find: 'names: { reef: "shark", garden: "bear", beach: "crab", city: "kaiju" }',
-    replace: 'names: { reef: "goblin", garden: "bear", beach: "crab", city: "kaiju" }',
+    find: 'reef: "shark"',
+    replace: 'reef: "goblin"',
   },
   {
     breaks: "the reef's cast is listed out of glyph order, so a shark draws as a squid",
@@ -817,14 +837,20 @@ async function main(): Promise<void> {
   }
 
   const survivors: Mutation[] = [];
+  // Kept apart from the survivors, and that is the whole point of this list.
+  // A mutation whose `find` no longer matches did not survive the suite -- it
+  // was never applied. Counting the two together says "the tests have a hole"
+  // about something that is really "this check stopped being a check", which
+  // is the more dangerous of the two and reads as the less. Both fail the run.
+  const stale: Mutation[] = [];
   console.log(`${MUTATIONS.length} mutations, each one a defect this project has shipped or nearly shipped.\n`);
 
   for (const mutation of MUTATIONS) {
     const path = mutation.file;
     const original = await Bun.file(path).text();
     if (!original.includes(mutation.find)) {
-      console.log(`  ?? ${mutation.breaks}\n     (no longer applies: the code it edits has moved -- fix or drop it)`);
-      survivors.push(mutation);
+      console.log(`  STALE     ${mutation.breaks}\n     (the code it edits has moved, so nothing was broken -- fix or drop it)`);
+      stale.push(mutation);
       continue;
     }
     try {
@@ -839,12 +865,19 @@ async function main(): Promise<void> {
   }
 
   console.log("");
-  if (survivors.length === 0) {
+  if (survivors.length === 0 && stale.length === 0) {
     console.log(`all ${MUTATIONS.length} caught: every one of these defects fails at least one test.`);
     return;
   }
-  console.log(`${survivors.length} SURVIVED -- these can break with the suite still green:`);
-  for (const one of survivors) console.log(`  - ${one.breaks}\n      ${one.file}`);
+  if (stale.length > 0) {
+    console.log(`${stale.length} STALE -- these never ran, so they prove nothing:`);
+    for (const one of stale) console.log(`  - ${one.breaks}\n      ${one.file}`);
+    console.log("");
+  }
+  if (survivors.length > 0) {
+    console.log(`${survivors.length} SURVIVED -- these can break with the suite still green:`);
+    for (const one of survivors) console.log(`  - ${one.breaks}\n      ${one.file}`);
+  }
   process.exit(1);
 }
 

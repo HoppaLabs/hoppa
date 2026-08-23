@@ -531,14 +531,27 @@ const DOOR_BY_WORLD: Record<string, { shut: Pattern; open: Pattern }> = {
   city: { shut: EVAC_PAD, open: EVAC_PAD },
   // Two, because a chest does. See CHEST_SHUT.
   reef: { shut: CHEST_SHUT, open: CHEST_OPEN },
-  // ...and the same chest up on the sand, where a sailor's trunk belongs just
-  // as much: "we can use the sea chest on the beach levels as well".
-  beach: { shut: CHEST_SHUT, open: CHEST_OPEN },
-  // ...and the garden, which had been drawing the dungeon's door on a lawn.
-  garden: { shut: GARDEN_DOOR_SHUT, open: GARDEN_DOOR_OPEN },
   // ...and the station, which had been drawing an oak door in orbit.
   space: { shut: AIRLOCK_SHUT, open: AIRLOCK_OPEN },
 };
+
+// THE BEACH AND THE GARDEN USED TO BE IN THAT TABLE AND ARE NOT ANY MORE.
+//
+// A chest on the sand ("we can use the sea chest on the beach levels as well")
+// and a wooden door on the lawn ("the garden can have an exit, a cute wooden
+// door actually"), both asked for by name and both drawn. Then flags arrived
+// -- "except for the city and underwater levels" -- and those two worlds went
+// with them, which means doorShape() returns before it ever reaches this table
+// for either of them.
+//
+// The entries sat here inert for days afterwards, saying out loud that the
+// garden draws a door. `check:mutants` found them the only way anything could
+// have: deleting one broke nothing, because there was nothing there to break.
+//
+// GARDEN_DOOR_SHUT, GARDEN_DOOR_OPEN, CHEST_SHUT and CHEST_OPEN are all still
+// drawn, just above. If either world is ever asked to stop flying a flag, its
+// exit is a two-line change and no artwork.
+
 
 const DOOR_INKS_BY_WORLD: Record<string, Record<string, readonly string[]>> = {
   city: {
@@ -553,23 +566,12 @@ const DOOR_INKS_BY_WORLD: Record<string, Record<string, readonly string[]>> = {
     // ...and the same chest with the lid back and the light out of it.
     open: ["#2b1a0b", "#4e2e0f", "#8d590b", "#cb8911", "#ffc23d", "#ffe9a3"],
   },
-  // Washed up rather than sunk, so the wood is warmer and the brass brighter.
-  beach: {
-    shut: ["#2b1a0b", "#6e3407", "#a7510c", "#de7713", "#a57c0c", "#dbaa13"],
-    open: ["#2b1a0b", "#6e3407", "#a7510c", "#de7713", "#ffc23d", "#ffe9a3"],
-  },
   space: {
     // Hull steel, the ring, and the port lit from inside: sealed.
     shut: ["#0d1014", "#39485c", "#7c8899", "#cdd6e0", "#b3c0cf", "#3ae3d1"],
     // Open, and the four inks the shared open door uses: frame, the dark
     // beyond, glow, and the light you step into.
     open: ["#0d1014", "#052f2f", "#13b4a5", "#80fdef"],
-  },
-  garden: {
-    // Honey wood, brass, and one pane of glass.
-    shut: ["#3d230e", "#804713", "#c1721e", "#f19c3b", "#a57c0c", "#ffc23d", "#c4ebff"],
-    // The leaf, then the sunlight through the gap. See GARDEN_DOOR_OPEN.
-    open: ["#3d230e", "#61380f", "#915719", "#8d6911", "#ffc23d", "#ffe9a3"],
   },
 };
 

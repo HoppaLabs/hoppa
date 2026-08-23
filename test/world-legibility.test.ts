@@ -23,7 +23,7 @@
 
 import { expect, test } from "bun:test";
 import { TILESETS } from "../src/core/tileset.ts";
-import { doorFrames, doorInks, GEM_INKS, gemShapes } from "../src/web/play/renderer.ts";
+import { doorFrames, doorInks, doorShape, flagged, GEM_INKS, gemShapes } from "../src/web/play/renderer.ts";
 import { CASTS, ENEMIES } from "../src/core/enemies.ts";
 import type { Pattern } from "../src/core/tileset.ts";
 
@@ -105,21 +105,41 @@ test("the two that shipped would both have been caught here", () => {
   }
 });
 
-test("every world has an exit, a treasure and a cast drawn for it", () => {
-  // The other half of how this goes wrong: a new world absent from a table
-  // silently inherits a fallback. Space did, and shipped an oak door in orbit
-  // until somebody said so. A missing drawing is not an error anywhere, which
-  // is exactly why it needs asserting.
+test("no world quietly inherits the dungeon's door", () => {
+  // The fallback exit is a padlocked oak door in a stone frame. It has shipped
+  // on a seabed, on a lawn and in orbit, and every time for the same reason: a
+  // world was added, nobody said what its way out should be, and silence is
+  // not an error anywhere. A world may still end up with the oak door -- but
+  // it has to be a DECISION, and the only way to make silence loud is here.
+  //
+  // THIS TEST USED TO ASK WHETHER EACH WORLD HAD AN EXIT DRAWING AT ALL.
+  // Every world has one; that is what a fallback IS. It could not fail, which
+  // is the same mistake as the bug it was written to catch, and `check:mutants`
+  // is what said so. What it asks now is whether the drawing was CHOSEN: a
+  // world either flies a flag or has its own entry in the door table.
+  const oak = doorShape("nowhere anybody has drawn", false);
   const rows: string[] = [];
   for (const set of TILESETS) {
-    const props = propsOf(set.name);
-    for (const prop of props) {
-      expect({ world: set.name, what: prop.what, frames: prop.frames.length > 0 })
-        .toEqual({ world: set.name, what: prop.what, frames: true });
-      expect({ world: set.name, what: prop.what, inks: prop.inks.length >= 3 })
-        .toEqual({ world: set.name, what: prop.what, inks: true });
-    }
-    rows.push(`  ${set.name.padEnd(12)} ${props.length} drawings of its own`);
+    const flies = flagged(set.name);
+    const drawn = JSON.stringify(doorShape(set.name, false)) !== JSON.stringify(oak);
+    expect({ world: set.name, chosen: flies || drawn })
+      .toEqual({ world: set.name, chosen: true });
+    rows.push(`  ${set.name.padEnd(12)} ${flies ? "flag" : "its own drawing"}`);
+  }
+  console.log(`\n${rows.join("\n")}`);
+});
+
+test("every world's cast is its own, so nobody fights a goblin in space", () => {
+  // The other table a new world can fall out of. Underground and outside are
+  // the two the default list was WRITTEN for, so they are the only two allowed
+  // to be it.
+  const rows: string[] = [];
+  for (const set of TILESETS) {
+    const own = (CASTS[set.name] ?? ENEMIES) !== ENEMIES;
+    const allowed = set.name === "underground" || set.name === "outside";
+    expect({ world: set.name, cast: own || allowed })
+      .toEqual({ world: set.name, cast: true });
+    rows.push(`  ${set.name.padEnd(12)} ${own ? (CASTS[set.name] as readonly { name: string }[]).map((e) => e.name).join(", ") : "the original three"}`);
   }
   console.log(`\n${rows.join("\n")}`);
 });
