@@ -249,10 +249,25 @@ test("beating one of the six offers the level, not a score to send back", () => 
       "const sendingBack = reply !== null || (shared !== null && !isShipped && !mine);",
     ),
   ).toBe(true);
-  // Three answers now, because a garden is neither: you are not sending a score
-  // and you are not sending a challenge, you are sending somewhere to be.
-  expect(play).toContain('sendIt.textContent = aPlace() ? "share this place"');
-  expect(play).toContain(': sendingBack ? "send your score" : "share level";');
+  // TWO answers now, not three. The button used to say "send your score" when
+  // you were replying to somebody's level, on the reasoning that sending a
+  // time and sending a room are different acts. They are -- and the button is
+  // not where that difference belongs, because a child meets it once per level
+  // and cannot learn a rule they only ever see one side of. Asked for
+  // directly: "I want to keep things consistent, let's always have share level
+  // instead."
+  //
+  // A garden is still its own word, because "share this place" is not a
+  // consistency problem, it is a different NOUN.
+  expect(play).toContain('sendIt.textContent = aPlace() ? "share this place" : "share level";');
+  // Not merely absent as a string -- the note above still explains why it went,
+  // and a test that failed on its own explanation is a test that punishes
+  // writing things down. What must be gone is the BRANCH.
+  expect(play).not.toContain("sendingBack ? \"send your score\"");
+  // What goes OUT still carries the time when there is one, which is where the
+  // difference actually lives.
+  expect(play).toContain("beaten: sendingBack || wonIn >= 0,");
+  expect(play).toContain("score: sendingBack ? myScore() : wonIn,");
 });
 
 test("a room that ships is a level to share, but it is not YOUR level", () => {
