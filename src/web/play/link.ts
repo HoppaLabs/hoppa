@@ -22,6 +22,24 @@ import type { Sprite } from "../../core/sprite.ts";
 export interface SharedLevel {
   readonly level: Level;
   readonly slug: string;
+  /**
+   * Has anybody got out of this room?
+   *
+   * The one bit the spec's share gate used to enforce by refusing. §12 called
+   * it "the most valuable mechanic here" -- quality filter, difficulty signal
+   * and trash talk in one -- and both halves of the gate came down on request
+   * (adr/0046, adr/0062), which was right: a six-year-old being told no by a
+   * bot is worse than a friend getting a room nobody can finish.
+   *
+   * So the claim stops being a gate and becomes a LABEL. Nobody is stopped
+   * from sending anything; the receiver is simply told which kind of thing
+   * they were sent, and "I did it in 14s" goes back to meaning something.
+   *
+   * False means NO CLAIM, not "impossible" -- most links ever sent carry no
+   * claim at all, because the kind that carries one did not exist when they
+   * were made. See linkFor().
+   */
+  readonly beaten: boolean;
 }
 
 /** Turn a title into something that survives a URL and a group chat. */
@@ -43,8 +61,21 @@ export function slugify(title: string): string {
   return cleaned.length > 0 ? cleaned : UNNAMED;
 }
 
-export function linkFor(level: Level, title: string, base: string): string {
-  return `${base}#p/${slugify(title)}/${encodeLevel(level)}`;
+/**
+ * A link to a level, optionally saying that somebody has got out of it.
+ *
+ * `#b/` rather than a fourth segment on `#p/`, for the reason the challenge
+ * link is its own kind: a level code is base64url and there is no way to look
+ * at a `#p/` link and know whether a trailing piece is a flag or part of the
+ * level. And `#p/` has to go on meaning exactly what it has always meant --
+ * every one ever sent predates this, so reading them as a claim either way
+ * would be inventing a fact about somebody else's level.
+ *
+ * So: `#b/` asserts it, `#p/` says nothing. One bit, and no link that exists
+ * changes meaning.
+ */
+export function linkFor(level: Level, title: string, base: string, beaten = false): string {
+  return `${base}#${beaten ? "b" : "p"}/${slugify(title)}/${encodeLevel(level)}`;
 }
 
 // --- sending a level WITH your time -----------------------------------------
@@ -219,11 +250,19 @@ export function levelFromHash(hash: string): SharedLevel | null {
   if (raw.length === 0) return null;
 
   const parts = raw.split("/");
-  if (parts.length < 3 || parts[0] !== "p") return null;
+  const kind = parts[0];
+  if (parts.length < 3 || (kind !== "p" && kind !== "b")) return null;
 
   const slug = parts[1] as string;
   const code = parts.slice(2).join("/");
   if (code.length === 0) throw new CodecError("that link has a name but no level in it");
 
-  return { level: decodeLevel(code), slug: slug === "" ? UNNAMED : slug };
+  return {
+    level: decodeLevel(code),
+    slug: slug === "" ? UNNAMED : slug,
+    // One parser for both kinds. They differ in one claim and nothing else, so
+    // splitting them would be two functions that have to keep agreeing about
+    // what a level code is.
+    beaten: kind === "b",
+  };
 }

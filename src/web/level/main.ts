@@ -826,7 +826,6 @@ function paintSendGate(): void {
   // longer permission. See ./sendable.ts and adr/0062.
   const code = draftToText(draft);
   const open = canSend(code);
-  void proved(botRun, code);
   sendButton.hidden = !open;
   // The message belongs to the level it was said about. Once the room has
   // moved on, "link copied" is about a link to somewhere else.
@@ -841,9 +840,14 @@ function gameBase(): string {
 
 sendButton.addEventListener("click", () => {
   const title = nameBox.value.trim() === "" ? "my level" : nameBox.value.trim();
+  // Has a bot been through THIS room? The editor already works that out, and
+  // until now threw the answer away -- see paintSendGate(). It is not
+  // permission any more, but it is still true, and it is exactly the thing a
+  // friend on the other end wants to know about a room nobody has played.
+  const possible = proved(botRun, draftToText(draft));
   let url: string;
   try {
-    url = linkFor(parseLevel(draftToText(draft)), title, gameBase());
+    url = linkFor(parseLevel(draftToText(draft)), title, gameBase(), possible);
   } catch {
     sentLine.className = "bad";
     sentLine.textContent = "this level will not fit in a link";
@@ -852,13 +856,15 @@ sendButton.addEventListener("click", () => {
   }
   void sendLink({
     url,
-    // Always unbeaten by the child at this end -- the whole point of the
-    // button is that they have not played it. A bot has, which is what let
-    // the button appear, but a bot's run is not theirs to boast about.
+    // Always unbeaten by the CHILD at this end -- the whole point of the
+    // button is that they have not played it, so there is no time to boast.
+    // A bot may have been through it, and that is a different sentence: not
+    // "I did it in 14s" but "it can be done".
     text: inviteText({
       sendingBack: false,
       mine: true,
       beaten: false,
+      possible,
       score: 0,
       unit: "s",
       name: title,

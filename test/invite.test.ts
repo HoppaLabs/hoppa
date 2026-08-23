@@ -14,6 +14,7 @@ const base: Invite = {
   sendingBack: false,
   mine: false,
   beaten: false,
+  possible: false,
   score: 0,
   unit: "s",
   name: "the deep",

@@ -17,6 +17,15 @@ export interface Invite {
   readonly mine: boolean;
   /** Has the sender actually beaten it? */
   readonly beaten: boolean;
+  /**
+   * Has ANYBODY got out of it -- a bot in the editor, or whoever sent it on?
+   *
+   * A weaker claim than `beaten` and a different one. `beaten` is a boast and
+   * comes with a time; this is a reassurance and comes with nothing. It exists
+   * because the room a six-year-old draws and sends without playing is exactly
+   * the room a friend most needs to be told is possible.
+   */
+  readonly possible: boolean;
   /** The winning time, when there is one. */
   readonly score: number;
   /** "s" or " turns" -- a real-time game counts seconds, a turn-based one does not. */
@@ -40,7 +49,13 @@ export function inviteText(invite: Invite): string {
     return `${what}: I did it in ${invite.score}${invite.unit}. Beat that.`;
   }
   // Not beaten by whoever is sending it. An invitation, not a disclaimer.
+  //
+  // "It can be done" only where that is actually known. The whole value of the
+  // line is that it is not said about every level: a reassurance printed on
+  // everything reassures nobody, and printing it on a room nobody has finished
+  // would be the one thing the spec's share gate existed to prevent.
+  const can = invite.possible ? ". It can be done." : "";
   return invite.mine
-    ? `Try playing this level I designed: ${invite.name}`
-    : `Try playing this level: ${invite.name}`;
+    ? `Try playing this level I designed: ${invite.name}${can}`
+    : `Try playing this level: ${invite.name}${can}`;
 }

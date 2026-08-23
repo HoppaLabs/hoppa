@@ -269,10 +269,12 @@ let challenge: ReturnType<typeof challengeFromHash> = null;
 try {
   reply = resultFromHash(window.location.hash);
   challenge = reply === null ? challengeFromHash(window.location.hash) : null;
+  // A reply and a challenge both carry a TIME, which is a stronger form of the
+  // same claim `#b/` makes: you cannot have a time without having got out.
   shared = reply !== null
-    ? { level: reply.level, slug: reply.slug }
+    ? { level: reply.level, slug: reply.slug, beaten: true }
     : challenge !== null
-    ? { level: challenge.level, slug: challenge.slug }
+    ? { level: challenge.level, slug: challenge.slug, beaten: challenge.score >= 0 }
     : levelFromHash(window.location.hash);
 } catch (err) {
   loadError = err instanceof CodecError ? err.message : String(err);
@@ -386,6 +388,22 @@ if (refusal !== null) {
   level = decodeLevel(FRONT_DOOR.code);
   levelName = FRONT_DOOR.name;
 }
+/**
+ * Can the room now on screen be got out of, as far as anybody knows?
+ *
+ * Read here rather than up beside the hash, because both things that decide it
+ * happen above: a link that would not run falls back to a shipped room, and
+ * that changes the answer.
+ *
+ * No claim on the link means no claim -- except for a room the game itself
+ * ships, which is the one case where we know. Every one of them is beaten by
+ * the bot with all four ready-made creatures on every run of the suite, so a
+ * link to one can say so honestly. It also means the default share, from a
+ * child who has tapped "play another" and not won yet, still carries the
+ * badge.
+ */
+const arrivedBeaten = shared === null ? true : shared.beaten;
+
 const levelCode = encodeLevel(level);
 
 // The wordmark, drawn rather than typed. See src/web/logo.ts.
@@ -1662,7 +1680,11 @@ async function share(): Promise<void> {
       )
     : wonIn >= 0
     ? challengeLinkFor(level, levelName, wonIn, chosen.name, base)
-    : linkFor(level, levelName, base);
+    // Not beaten HERE, but the claim survives being passed on: if this room
+    // arrived saying somebody had got out of it, that is still true when it
+    // goes out again. A badge that stopped at the first forward would be worth
+    // very little, since forwarding is most of how these links travel.
+    : linkFor(level, levelName, base, arrivedBeaten);
 
   await sendLink({
     url,
@@ -1670,6 +1692,7 @@ async function share(): Promise<void> {
       sendingBack,
       mine,
       beaten: sendingBack || wonIn >= 0,
+      possible: arrivedBeaten,
       score: sendingBack ? myScore() : wonIn,
       unit: scoreUnit(),
       name: levelName,
@@ -1706,6 +1729,13 @@ if (reply !== null && reply.creature !== null) {
   const unit = moving === null ? "turns" : "seconds";
   const who = challenge.who.replace(/-/g, " ");
   boast.textContent = `${who} did this in ${challenge.score} ${unit} — can you do better?`;
+  boast.hidden = false;
+} else if (shared !== null && shared.beaten) {
+  // No time, but a claim: somebody has been through this room. Said quietly,
+  // because it is a reassurance rather than a boast -- and said at all only
+  // where it is known, since the point of the label is that not every level
+  // carries it. See linkFor() and spec §12.
+  boast.textContent = "somebody has got out of this one — your turn";
   boast.hidden = false;
 }
 
