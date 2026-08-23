@@ -1577,7 +1577,10 @@ export class GridRenderer {
     // ...and whether this one has a car on it, from the cell's own position so
     // that it is the same cells every time and no two neighbours agree.
     const h = (Math.imul(x + 1, 0x27d4eb2d) ^ Math.imul(y + 1, 0x165667b1)) >>> 0;
-    const car = h % 7 === 0 ? ROAD_CAR : 0;
+    // One in seven for the city, whose special cell is a car; one in thirteen
+    // for the station, whose special cell is a whole viewport. See
+    // Tileset.floorOdd.
+    const car = h % (this.tiles().floorOdd ?? 7) === 0 ? ROAD_CAR : 0;
     return this.roads.get(link | car) ?? this.stamps?.get(TILE_FLOOR);
   }
 

@@ -395,6 +395,17 @@ export interface Tileset {
    */
   readonly floorFor?: (key: number) => Pattern;
   /**
+   * ...and how RARE the one cell floorFor() is told about from its own
+   * position should be: one cell in this many.
+   *
+   * The city wants a car about one street cell in seven, which is what the
+   * number was before it was a number. The station wants a viewport about one
+   * wall cell in thirteen, because a window is a much bigger drawing than a
+   * car and twenty of them behind the action is a gallery rather than a
+   * corridor. Same mechanism, one dial. See ROAD_CAR and spaceFloor().
+   */
+  readonly floorOdd?: number;
+  /**
    * ...and the same for a WALL, where one building is not every building.
    *
    * Only the city sets it. A cave wall is a cave wall however many there are;
@@ -1900,41 +1911,134 @@ export const PYRAMID: Tileset = {
 };
 
 /**
- * Space, behind the station.
+ * The wall of a corridor: plating, laid in a running bond.
  *
- * The side-on game's floor has always been AIR -- nothing at all, so the sky
- * behind it is uninterrupted -- and out here that reads as a flat navy
- * rectangle, which is what space looks like to a telescope and not what it
- * looks like to a nine-year-old. Stars, then. Scattered unevenly, for the
- * reason the jungle's leaves are: evenly spaced marks in a sixteen pixel tile
- * are not a starfield, they are graph paper.
+ *     "the sci-level does not like a space station, they were expecting
+ *      corridors and control rooms"
  *
- * And DIM. The first version put nine a tile in the brightest cyan on the
- * ramp, and a room of it read as static rather than as sky -- because a tile
- * repeats 336 times across a screen, so nine a tile is three thousand stars
- * and every one of them at full contrast. Five a tile, four in the hull greys
- * and one bright, and it reads as depth instead of noise. The jungle's litter
- * learned the same thing from the other end: a texture drawn under everything
- * has to be quiet.
+ * The background used to be STARS -- a starfield, scattered and dim, drawn on
+ * deep navy. It was a nice starfield, and it was answering the wrong question.
+ * A starfield behind a platform says the platform is OUTSIDE, floating in
+ * space, and that is exactly what got reported: not "the stars are wrong" but
+ * "this is not a space station". A station has an inside. The inside of a
+ * station is a wall.
+ *
+ * So the background is plating now: seven-pixel plates in two courses, offset
+ * by half a plate so the vertical seams do not line up into a column down the
+ * screen. The seams are the only transparent pixels, which is what keeps it
+ * quiet -- this tile repeats behind every open cell in the room, and the lesson
+ * the starfield taught still holds: a texture drawn under everything has to be
+ * quiet. The navy ground shows through the seams and nowhere else.
+ *
+ * The three lit pixels at the top left of each plate are the difference
+ * between metal and graph paper. Without them the first version read as a
+ * ruled grid, because a seam on its own is a LINE and what says "plate" is a
+ * plate having a lip that catches the light. Three pixels of eight, dashed, so
+ * it is an edge rather than the stripe a full-width highlight turned into.
  */
-const STARS: Pattern = [
+const BULKHEAD: Pattern = [
   "................",
-  ".......7........",
+  ".7776666.7776666",
+  ".6666666.6666666",
+  ".6666666.6666666",
+  ".6666666.6666666",
+  ".6666666.6666666",
+  ".6666666.6666666",
+  ".6666666.6666666",
   "................",
-  "..8.............",
-  "................",
-  "................",
-  "..............7.",
-  "................",
-  "................",
-  ".....5..........",
-  "................",
-  "............8...",
-  "................",
-  "................",
-  "...7............",
-  "................",
+  "6666.7776666.777",
+  "6666.6666666.666",
+  "6666.6666666.666",
+  "6666.6666666.666",
+  "6666.6666666.666",
+  "6666.6666666.666",
+  "6666.6666666.666",
 ];
+
+/**
+ * ...and a window in it, which is where the stars went.
+ *
+ * The starfield was not deleted, it was MOVED: the glass is transparent, so
+ * what shows through a viewport is the same deep navy ground the seams show,
+ * and four stars sit on it. Being inside looking out is a stronger statement
+ * of "space station" than being outside ever was, and it costs the same tile.
+ *
+ * A viewport is a big drawing -- fourteen pixels of the sixteen -- so it is
+ * rare rather than scattered: one open cell in thirteen. See Tileset.floorOdd.
+ */
+const VIEWPORT: Pattern = [
+  "6666666666666666",
+  "6888888888888886",
+  "6877777777777786",
+  "687...5.......86",
+  "687...........86",
+  "687.....4.....86",
+  "687...........86",
+  "687..5........86",
+  "687...........86",
+  "687........5..86",
+  "687...........86",
+  "687...4.......86",
+  "6877777777777786",
+  "6888888888888886",
+  "6666666666666666",
+  "6666666666666666",
+];
+
+/**
+ * ...and a control terminal, standing on the deck.
+ *
+ * The control ROOM half of the report, and it took a second try to find the
+ * lever. The obvious one is Tileset.tree -- a wall cell with nothing beside
+ * it, which is a sarcophagus in the tomb and a tree in the garden. It does not
+ * work here: a terminal standing on a deck has the deck under it, so it is
+ * never alone, and a wall cell that IS alone in a side-on world is a block
+ * floating in mid-air. A console you have to jump to reach is not a console.
+ *
+ * It is not a wall at all, then. It is BACKGROUND -- drawn behind the player,
+ * on the open cell whose southern neighbour is deck -- which is what a bank of
+ * instruments along a corridor wall actually is, and it means walking past one
+ * is walking past one rather than climbing over it. floorFor() already gets
+ * told which of the four sides are wall, for the city's roads, so this asks
+ * the format for nothing at all.
+ */
+const TERMINAL: Pattern = [
+  "................",
+  "................",
+  "................",
+  "................",
+  ".88888888888888.",
+  ".87777777777778.",
+  ".87222222222278.",
+  ".87222222244278.",
+  ".87222244244278.",
+  ".87244244244278.",
+  ".87555555555578.",
+  ".87777777777778.",
+  ".87744755744778.",
+  ".87777777777778.",
+  ".87666666666678.",
+  ".88888888888888.",
+];
+
+/**
+ * Which of the three an open cell gets.
+ *
+ * `key` is the sidesOf() mask -- a bit SET means that side is NOT wall -- plus
+ * ROAD_CAR for the one cell in Tileset.floorOdd that the renderer picks out of
+ * its own coordinates. So:
+ *
+ *     picked, and the deck is directly below   ->  a terminal to walk past
+ *     picked, anywhere else                    ->  a viewport onto the stars
+ *     everything else                          ->  plating
+ *
+ * The two cannot collide: a terminal stands on something and a window does
+ * not, which is also the only arrangement that looks right.
+ */
+export function spaceFloor(key: number): Pattern {
+  if ((key & ROAD_CAR) === 0) return BULKHEAD;
+  return (key & POND_S) === 0 ? TERMINAL : VIEWPORT;
+}
 
 /**
  * The station, seen from the side. The platformer, in orbit.
@@ -1958,7 +2062,11 @@ export const SPACE: Tileset = {
   sub: [12, 13, 14, 16, 17, 1, 2, 3],
   wall: EARTH,
   wallTop: EARTH_TOP,
-  floor: STARS,
+  // The inside of a station: plating, with a window or a bank of instruments
+  // about one open cell in thirteen. See spaceFloor().
+  floor: BULKHEAD,
+  floorFor: spaceFloor,
+  floorOdd: 13,
   ladder: LADDER,
   // Steel, not timber: a wooden ladder in a space station is the one thing in
   // here a child would actually query.
