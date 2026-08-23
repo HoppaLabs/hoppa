@@ -21,7 +21,7 @@ anything a skin has done before and a smaller one than it sounds:
 |---|---|---|
 | engine | dash (platformer) | roam (adventure) |
 | shape | three decks, two ladders | a maze of corridors |
-| wall | soil-and-grass, recoloured | hull panels, 8×4, running bond |
+| wall | soil-and-grass, recoloured | pipe runs, lying along the corridor |
 | background | plating | deck, quiet, grid on dark |
 | hazard | plasma vent (a flame) | acid, pooled |
 | a lone block | — | an egg |
@@ -45,6 +45,26 @@ platform seen from the side. One drawing, both cameras, and that is why there
 is no second tileset.
 
 ## Three things the maze taught
+
+**A hull is not a wall you build.** The first one was STONE's geometry in hull
+colours — panels in a running bond — on the argument that what STONE does is
+legible. It is legible, and it came straight back:
+
+> "The hull just looks like bricks, what about using cabling and pipes instead"
+
+What says *brick* is not the colour, it is the **staggered vertical seam**;
+nothing else in the built world has one. So the walls are pipe runs now, of
+three bores, with no verticals at all, and the deck's plate grid went from
+offset to square. A bracketed version was drawn and went straight back to
+reading as brick — a bracket is a vertical seam drawn thicker.
+
+The pipes run **along** the corridor rather than always across it, which is
+what makes them plumbing rather than rungs. A tile cannot know which way it
+lies, but it is told which of its sides are wall — the mask the ponds and the
+castles are already keyed on — and a wall whose neighbours are east and west
+runs east to west. That one function also draws the egg and the strip light,
+because `wallFor` outranks the renderer's own lone-wall and capped rules, and
+deciding all three off one mask beats fighting the order.
 
 **In a maze the corridor is the subject.** So the wall is the lit thing and the
 floor is the dark thing — the cave's polarity, arrived at again the hard way.

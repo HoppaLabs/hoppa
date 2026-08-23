@@ -1992,71 +1992,108 @@ export const PYRAMID: Tileset = {
 };
 
 /**
- * The station, seen from above: hull panels, eight wide and four tall, laid in
- * a running bond.
+ * The wall of a corridor: pipe runs, along the corridor.
  *
- *     "Maybe the space station should be top down with a maze of corridors,
- *      alien inspired"
+ *     "The hull just looks like bricks, what about using cabling and pipes
+ *      instead"
  *
- * Which is a change of CAMERA, not of paint -- see docs/adr/0073. What it asks
- * of the drawings is the thing the cave settled on day one and this had to
- * learn again: in a maze the corridor is the subject, so the wall is the lit
- * thing and the floor is the dark thing. Both inversions were drawn and looked
- * at. A dark ribbed hull with a lit grating underfoot -- which is the more
- * obviously alien of the two -- came out as mush: wall and floor within a step
- * of each other, and the lanes you are supposed to be reading disappeared.
+ * It did look like bricks, and for a reason worth writing down: the first
+ * version was STONE's geometry with hull colours on it -- panels eight by four
+ * in a running bond -- on the argument that what STONE does is legible. It is
+ * legible. It is also unmistakably masonry, because what says "brick" is not
+ * the colour, it is the STAGGERED VERTICAL SEAM. Nothing else in the built
+ * world has one.
  *
- * So: panels, calm, with a lit lip along the top of each one, and the seams
- * broken half a panel across between courses so a run of wall does not stripe.
- * Almost exactly what STONE does, because what STONE does is legible.
+ * So: no verticals. Pipes of three different bores running along the wall,
+ * each lit on the side the light comes from, with the dark between them doing
+ * the job the mortar used to do. A bracketed version was drawn too and went
+ * straight back to reading as brick -- the brackets ARE vertical seams, drawn
+ * thicker.
+ *
+ * And they run ALONG the corridor rather than always across it, which is what
+ * makes them read as plumbing rather than as rungs. A tile cannot know which
+ * way it lies, but a tile is told which of its sides are wall -- the same
+ * neighbour mask the beach's castles and the garden's ponds are keyed on -- and
+ * a wall whose neighbours are east and west is a wall that runs east to west.
  */
-const HULL: Pattern = [
-  "8888888688888886",
-  "7777777677777776",
-  "7777777677777776",
+const PIPES_ACROSS: Pattern = [
+  "8888888888888888",
+  "7777777777777777",
+  "7777777777777777",
   "6666666666666666",
-  "8886888888868888",
-  "7776777777767777",
-  "7776777777767777",
   "6666666666666666",
-  "8888888688888886",
-  "7777777677777776",
-  "7777777677777776",
+  "8888888888888888",
+  "7777777777777777",
   "6666666666666666",
-  "8886888888868888",
-  "7776777777767777",
-  "7776777777767777",
   "6666666666666666",
+  "8888888888888888",
+  "7777777777777777",
+  "7777777777777777",
+  "6666666666666666",
+  "6666666666666666",
+  "8888888888888888",
+  "7777777777777777",
+];
+
+/** The same run, turned: the bores become columns and the light moves left. */
+const PIPES_ALONG: Pattern = [
+  "8776687668776687",
+  "8776687668776687",
+  "8776687668776687",
+  "8776687668776687",
+  "8776687668776687",
+  "8776687668776687",
+  "8776687668776687",
+  "8776687668776687",
+  "8776687668776687",
+  "8776687668776687",
+  "8776687668776687",
+  "8776687668776687",
+  "8776687668776687",
+  "8776687668776687",
+  "8776687668776687",
+  "8776687668776687",
 ];
 
 /**
- * ...and the same wall where the corridor runs along the near side of it.
+ * ...with the strip light along the near edge, where the corridor is.
  *
- * Two rows of deck light in cyan, then the panels pushed down -- STONE_TOP's
- * shape exactly. It is doing two jobs, and that is deliberate: seen from above
- * it is the strip lighting along a corridor wall, and seen from the SIDE it is
- * the lit edge of a platform, which is what a space level made before the
- * camera turned still needs from it. One drawing, both cameras. See
- * docs/adr/0073 on why there is no second tileset.
+ * Two rows laid OVER the pipes rather than pushing them down. Pushing them
+ * down was the first way and it put a visible step in every pipe wherever a
+ * wall was two cells thick, because the capped cell and the one under it were
+ * then half a bore out of phase with each other.
  */
-const HULL_TOP: Pattern = [
-  "4444444444444444",
-  "4444444444444444",
-  "8888888688888886",
-  "7777777677777776",
-  "7777777677777776",
-  "6666666666666666",
-  "8886888888868888",
-  "7776777777767777",
-  "7776777777767777",
-  "6666666666666666",
-  "8888888688888886",
-  "7777777677777776",
-  "7777777677777776",
-  "6666666666666666",
-  "8886888888868888",
-  "7776777777767777",
-];
+function litAtTop(wall: Pattern): Pattern {
+  return ["4444444444444444", "4444444444444444", ...wall.slice(2)] as Pattern;
+}
+
+const PIPES_ACROSS_LIT: Pattern = litAtTop(PIPES_ACROSS);
+const PIPES_ALONG_LIT: Pattern = litAtTop(PIPES_ALONG);
+
+/**
+ * Which drawing a wall cell gets, from the sides of it that are NOT wall.
+ *
+ * This one function does three jobs that the renderer would otherwise do in
+ * three places, and it does them because it OUTRANKS all three: a tileset that
+ * sets wallFor is asked first, ahead of the lone-wall rule and ahead of the
+ * capped/uncapped split. Rather than fight that order, everything it decides
+ * is decided here, off the one mask:
+ *
+ *     all four sides open   ->  nothing is beside it, so it is an egg
+ *     north side open       ->  the corridor is above, so light the near edge
+ *     east or west is wall  ->  the run lies east-west, so pipes go across
+ *     otherwise             ->  the run lies north-south, so pipes go along
+ *
+ * A junction, wall on every side, gets the across drawing. It is inside a
+ * block of hull where nothing can see it, and picking one costs nothing.
+ */
+export function spaceWall(open: number): Pattern {
+  if (open === (POND_N | POND_E | POND_S | POND_W)) return EGG;
+  const across = (open & POND_E) === 0 || (open & POND_W) === 0;
+  const lit = (open & POND_N) !== 0;
+  if (across) return lit ? PIPES_ACROSS_LIT : PIPES_ACROSS;
+  return lit ? PIPES_ALONG_LIT : PIPES_ALONG;
+}
 
 /**
  * The deck: a grid of plate seams on the dark.
@@ -2066,6 +2103,11 @@ const HULL_TOP: Pattern = [
  * tried, the one this world used as its BACKGROUND when it was a platformer,
  * and in a maze it sat a step too close to the wall: the corridors stopped
  * reading as corridors. Quiet wins.
+ *
+ * The grid is SQUARE rather than offset, and that is the same note the walls
+ * got: "the hull just looks like bricks". A staggered seam is the one thing
+ * that only masonry has, so there is now not one anywhere in this world --
+ * eight-by-eight plates underfoot, pipe runs on the walls.
  *
  * It is still plating side-on, where this same drawing is the wall behind you
  * rather than the floor under you.
@@ -2078,15 +2120,15 @@ const DECK: Pattern = [
   "6.......6.......",
   "6.......6.......",
   "6.......6.......",
+  "6.......6.......",
   "6666666666666666",
-  "....6.......6...",
-  "....6.......6...",
-  "....6.......6...",
-  "....6.......6...",
-  "....6.......6...",
-  "....6.......6...",
-  "6666666666666666",
-  "................",
+  "6.......6.......",
+  "6.......6.......",
+  "6.......6.......",
+  "6.......6.......",
+  "6.......6.......",
+  "6.......6.......",
+  "6.......6.......",
 ];
 
 /**
@@ -2244,12 +2286,15 @@ export const SPACE: Tileset = {
   // 1-5 are the deck light, dark to bright, where the outdoors has its four
   // steps of grass. 6-8 are the hull under it, where the outdoors has soil.
   sub: [12, 13, 14, 16, 17, 1, 2, 3],
-  // Corridor walls, and the strip light along the near side of them.
-  wall: HULL,
-  wallTop: HULL_TOP,
-  // One panel on its own is an egg. The garden's tree rule, and the alien half
-  // of "alien inspired". See EGG.
-  tree: EGG,
+  // Corridor walls: pipe runs, lying along the corridor, with the strip light
+  // on the near edge and an egg where a cell stands on its own. All three come
+  // out of spaceWall(), because wallFor outranks the renderer's own lone-wall
+  // and capped rules -- which is also why there is no `tree` here. These two
+  // are the fallback the renderer keeps for a tileset without a wallFor; they
+  // are what spaceWall() hands back for a wall running east to west.
+  wall: PIPES_ACROSS,
+  wallTop: PIPES_ACROSS_LIT,
+  wallFor: spaceWall,
   // The deck, with a window or a bank of instruments about one cell in
   // thirteen. See spaceFloor().
   floor: DECK,
