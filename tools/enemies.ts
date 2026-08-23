@@ -77,7 +77,7 @@ export const ENEMIES: readonly Enemy[] = [
   {
     name: "goblin",
     glyph: "G",
-    inks: ["#2e7a45", "#4fbb56", "#96e06b", "#cfe8b0", "#ffffff", "#15322a"],
+    inks: ["#1e9241", "#2ec738", "#7be63c", "#b9eb7b", "#ffffff", "#15322a"],
     frames: [
       [
         "................",
@@ -120,7 +120,7 @@ export const ENEMIES: readonly Enemy[] = [
   {
     name: "bat",
     glyph: "B",
-    inks: ["#3d2a6b", "#8b4fc4", "#c98ae8", "#5a3596", "#ffffff", "#181532"],
+    inks: ["#3b1d86", "#802ecf", "#b84dec", "#5521a9", "#ffffff", "#181532"],
     frames: [
       [
         "................",
@@ -167,7 +167,7 @@ export const ENEMIES: readonly Enemy[] = [
     // place it was ever drawn was the outermost ring of the tile -- which is
     // exactly where a rim goes now, so it stopped being a highlight and
     // became a colour nobody used. check() found it the moment the rim did.
-    inks: ["#2f7a5c", "#4fb882", "#8fdc9e", "#d3ecdd", "#ffffff", "#193226", "#ff9f3d"],
+    inks: ["#1f9264", "#2ec577", "#51e26d", "#b7edcd", "#ffffff", "#193226", "#ff9f3d"],
     frames: [
       [
         "................",
@@ -321,7 +321,7 @@ export const GARDEN_CAST: readonly Enemy[] = [
     // three creatures, and the bear wanted one.
     name: "bear",
     glyph: "G",
-    inks: ["#3a2410", "#6b4423", "#8f5f30", "#c9a273", "#ffffff", "#1a1008"],
+    inks: ["#5d340e", "#864a18", "#a3601e", "#d39142", "#ffffff", "#1a1008"],
     frames: [
       [
         "..666......666..",
@@ -369,7 +369,7 @@ export const GARDEN_CAST: readonly Enemy[] = [
     // glance it read as a gamepad. A rabbit is EARS -- tall, upright, lined
     // with pink -- over a round head with a pale muzzle, and a body narrower
     // than the head so there is a neck rather than a box.
-    inks: ["#4a2f16", "#9a6b38", "#c49461", "#e6c9a0", "#ffffff", "#2a1a0d", "#f0a0b4"],
+    inks: ["#6b3c11", "#ac6a22", "#cf8638", "#eab263", "#ffffff", "#2a1a0d", "#f0a0b4"],
     frames: [
       [
         "...6226..6226...",
@@ -412,7 +412,7 @@ export const GARDEN_CAST: readonly Enemy[] = [
   {
     name: "squirrel",
     glyph: "D",
-    inks: ["#6b350c", "#a35314", "#d87a1f", "#ffd0a3", "#ffffff", "#3d1d06"],
+    inks: ["#863e08", "#b4560c", "#df7712", "#ffab5a", "#ffffff", "#3d1d06"],
     frames: [
       [
         ".........66666..",
@@ -470,7 +470,7 @@ export const REEF_CAST: readonly Enemy[] = [
     // "the shark looks like it has two eyes from the side, it should only
     // have one". The mouth is a dark line now, which is all a mouth needs
     // to be at sixteen pixels.
-    inks: ["#2b3a4a", "#546679", "#8fa1b3", "#e8f1f8", "#ffffff", "#0b0f14"],
+    inks: ["#22456b", "#3c648e", "#6f95bb", "#d5e9f8", "#ffffff", "#0b0f14"],
     frames: [
       [
         ".......6........",
@@ -516,7 +516,7 @@ export const REEF_CAST: readonly Enemy[] = [
     // The octopus was a friendly red balloon. A kraken is mass and eyes: a
     // heavy dome, a beak under it, and eight arms that curl differently in
     // each frame so it writhes rather than bobs.
-    inks: ["#2a0f33", "#5a1b52", "#8c2a6b", "#d94f7a", "#ffe066", "#12060f"],
+    inks: ["#450e58", "#78146b", "#a11b74", "#e02d65", "#ffe066", "#12060f"],
     frames: [
       [
         ".....666666.....",
@@ -563,7 +563,7 @@ export const REEF_CAST: readonly Enemy[] = [
     // with the point UP, and fins at that point. Then the eyes, which are
     // the only part a child looks at, and the two long tentacles with a
     // paddle on the end among the shorter arms.
-    inks: ["#5c1526", "#96263f", "#d9455e", "#ffb0a8", "#ffffff", "#1a0710"],
+    inks: ["#790f29", "#a91838", "#e02746", "#ff6d5e", "#ffffff", "#1a0710"],
     frames: [
       [
         ".....664466.....",
@@ -615,7 +615,7 @@ export const BEACH_CAST: readonly Enemy[] = [
     // RED, not the sandy brown it wore on the reef. A brown crab on brown
     // sand is a crab nobody sees coming, and this is the one thing on the
     // beach that hunts you -- the colour is the warning.
-    inks: ["#6b1420", "#a31d2e", "#d82f42", "#ff9f3d", "#ffffff", "#3a0d12"],
+    inks: ["#860e1e", "#b41226", "#df1b31", "#ff9122", "#ffffff", "#3a0d12"],
     frames: [
       [
         ".6666......6666.",
@@ -666,7 +666,7 @@ export const BEACH_CAST: readonly Enemy[] = [
     // triangle with a lump on it, and at sixteen pixels there is nothing in
     // that shape a child recognises. From the SIDE there is: a beak, an eye,
     // a folded wing and two legs, and every one of those says bird on its own.
-    inks: ["#39485c", "#7c8899", "#cdd6e0", "#ffffff", "#ff9f3d", "#0d1014"],
+    inks: ["#294c79", "#647ea3", "#b8cbe1", "#ffffff", "#ff9f3d", "#0d1014"],
     frames: [
       [
         "................",
@@ -713,7 +713,7 @@ export const BEACH_CAST: readonly Enemy[] = [
     // the other way, which is how a jellyfish moves. Eyes, because every
     // other creature here has them and one without read as a bag -- round
     // ones, because two white bars read as a visor.
-    inks: ["#42126b", "#6b1fa8", "#9a3ad5", "#c46ff0", "#ffffff", "#25093a"],
+    inks: ["#4e0c86", "#6e13b8", "#9521dd", "#b53ef3", "#ffffff", "#25093a"],
     frames: [
       [
         "....64444336....",
@@ -764,7 +764,7 @@ export const CITY_CAST: readonly Enemy[] = [
     // is the SHOULDERS, the head between them and the tail behind -- which
     // is plenty, because that reads as a monster from further away than a
     // face does.
-    inks: ["#12521f", "#1c7d2c", "#2fae42", "#ffc23d", "#ff5f4d", "#0a2a12"],
+    inks: ["#0e7122", "#129428", "#1cbd34", "#ffb922", "#ff5f4d", "#0a2a12"],
     frames: [
       [
         "......666.......",
@@ -809,7 +809,7 @@ export const CITY_CAST: readonly Enemy[] = [
     glyph: "B",
     // The flier. Small, wide-winged, and the one that gets over the blocks
     // instead of coming down the street.
-    inks: ["#12521f", "#1c7d2c", "#2fae42", "#ffc23d", "#ff5f4d", "#0a2a12"],
+    inks: ["#0e7122", "#129428", "#1cbd34", "#ffb922", "#ff5f4d", "#0a2a12"],
     frames: [
       [
         "................",
@@ -854,7 +854,7 @@ export const CITY_CAST: readonly Enemy[] = [
     glyph: "D",
     // The low one: a long body on many legs. Legs drawn AFTER the body, or
     // the body covers them and it is a slab with stripes on.
-    inks: ["#12521f", "#1c7d2c", "#2fae42", "#ffc23d", "#ff5f4d", "#0a2a12"],
+    inks: ["#0e7122", "#129428", "#1cbd34", "#ffb922", "#ff5f4d", "#0a2a12"],
     frames: [
       [
         "................",

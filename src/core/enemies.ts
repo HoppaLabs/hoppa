@@ -26,7 +26,7 @@ export const ENEMIES: readonly Enemy[] = [
   {
     name: "goblin",
     glyph: "G",
-    inks: ["#2e7a45", "#4fbb56", "#96e06b", "#cfe8b0", "#ffffff", "#15322a"],
+    inks: ["#1e9241", "#2ec738", "#7be63c", "#b9eb7b", "#ffffff", "#15322a"],
     frames: [
       [
         "................",
@@ -69,7 +69,7 @@ export const ENEMIES: readonly Enemy[] = [
   {
     name: "bat",
     glyph: "B",
-    inks: ["#3d2a6b", "#8b4fc4", "#c98ae8", "#5a3596", "#ffffff", "#181532"],
+    inks: ["#3b1d86", "#802ecf", "#b84dec", "#5521a9", "#ffffff", "#181532"],
     frames: [
       [
         "................",
@@ -112,7 +112,7 @@ export const ENEMIES: readonly Enemy[] = [
   {
     name: "lizard",
     glyph: "D",
-    inks: ["#2f7a5c", "#4fb882", "#8fdc9e", "#d3ecdd", "#ffffff", "#193226", "#ff9f3d"],
+    inks: ["#1f9264", "#2ec577", "#51e26d", "#b7edcd", "#ffffff", "#193226", "#ff9f3d"],
     frames: [
       [
         "................",
@@ -159,7 +159,7 @@ export const GARDEN_CAST: readonly Enemy[] = [
   {
     name: "bear",
     glyph: "G",
-    inks: ["#3a2410", "#6b4423", "#8f5f30", "#c9a273", "#ffffff", "#1a1008"],
+    inks: ["#5d340e", "#864a18", "#a3601e", "#d39142", "#ffffff", "#1a1008"],
     frames: [
       [
         "..666......666..",
@@ -202,7 +202,7 @@ export const GARDEN_CAST: readonly Enemy[] = [
   {
     name: "bunny",
     glyph: "B",
-    inks: ["#4a2f16", "#9a6b38", "#c49461", "#e6c9a0", "#ffffff", "#2a1a0d", "#f0a0b4"],
+    inks: ["#6b3c11", "#ac6a22", "#cf8638", "#eab263", "#ffffff", "#2a1a0d", "#f0a0b4"],
     frames: [
       [
         "...6666..6666...",
@@ -245,7 +245,7 @@ export const GARDEN_CAST: readonly Enemy[] = [
   {
     name: "squirrel",
     glyph: "D",
-    inks: ["#6b350c", "#a35314", "#d87a1f", "#ffd0a3", "#ffffff", "#3d1d06"],
+    inks: ["#863e08", "#b4560c", "#df7712", "#ffab5a", "#ffffff", "#3d1d06"],
     frames: [
       [
         ".........66666..",
@@ -292,7 +292,7 @@ export const REEF_CAST: readonly Enemy[] = [
   {
     name: "shark",
     glyph: "G",
-    inks: ["#2b3a4a", "#546679", "#8fa1b3", "#e8f1f8", "#ffffff", "#0b0f14"],
+    inks: ["#22456b", "#3c648e", "#6f95bb", "#d5e9f8", "#ffffff", "#0b0f14"],
     frames: [
       [
         ".......6........",
@@ -335,7 +335,7 @@ export const REEF_CAST: readonly Enemy[] = [
   {
     name: "kraken",
     glyph: "B",
-    inks: ["#2a0f33", "#5a1b52", "#8c2a6b", "#d94f7a", "#ffe066", "#12060f"],
+    inks: ["#450e58", "#78146b", "#a11b74", "#e02d65", "#ffe066", "#12060f"],
     frames: [
       [
         ".....666666.....",
@@ -378,7 +378,7 @@ export const REEF_CAST: readonly Enemy[] = [
   {
     name: "squid",
     glyph: "D",
-    inks: ["#5c1526", "#96263f", "#d9455e", "#ffb0a8", "#ffffff", "#1a0710"],
+    inks: ["#790f29", "#a91838", "#e02746", "#ff6d5e", "#ffffff", "#1a0710"],
     frames: [
       [
         ".....666666.....",
@@ -425,7 +425,7 @@ export const BEACH_CAST: readonly Enemy[] = [
   {
     name: "crab",
     glyph: "G",
-    inks: ["#6b1420", "#a31d2e", "#d82f42", "#ff9f3d", "#ffffff", "#3a0d12"],
+    inks: ["#860e1e", "#b41226", "#df1b31", "#ff9122", "#ffffff", "#3a0d12"],
     frames: [
       [
         ".6666......6666.",
@@ -468,7 +468,7 @@ export const BEACH_CAST: readonly Enemy[] = [
   {
     name: "gull",
     glyph: "B",
-    inks: ["#39485c", "#7c8899", "#cdd6e0", "#ffffff", "#ff9f3d", "#0d1014"],
+    inks: ["#294c79", "#647ea3", "#b8cbe1", "#ffffff", "#ff9f3d", "#0d1014"],
     frames: [
       [
         "................",
@@ -511,7 +511,7 @@ export const BEACH_CAST: readonly Enemy[] = [
   {
     name: "jellyfish",
     glyph: "D",
-    inks: ["#42126b", "#6b1fa8", "#9a3ad5", "#c46ff0", "#ffffff", "#25093a"],
+    inks: ["#4e0c86", "#6e13b8", "#9521dd", "#b53ef3", "#ffffff", "#25093a"],
     frames: [
       [
         "....66666666....",
@@ -558,7 +558,7 @@ export const CITY_CAST: readonly Enemy[] = [
   {
     name: "kaiju",
     glyph: "G",
-    inks: ["#12521f", "#1c7d2c", "#2fae42", "#ffc23d", "#ff5f4d", "#0a2a12"],
+    inks: ["#0e7122", "#129428", "#1cbd34", "#ffb922", "#ff5f4d", "#0a2a12"],
     frames: [
       [
         "......666.......",
@@ -601,7 +601,7 @@ export const CITY_CAST: readonly Enemy[] = [
   {
     name: "swarmer",
     glyph: "B",
-    inks: ["#12521f", "#1c7d2c", "#2fae42", "#ffc23d", "#ff5f4d", "#0a2a12"],
+    inks: ["#0e7122", "#129428", "#1cbd34", "#ffb922", "#ff5f4d", "#0a2a12"],
     frames: [
       [
         "................",
@@ -644,7 +644,7 @@ export const CITY_CAST: readonly Enemy[] = [
   {
     name: "crawler",
     glyph: "D",
-    inks: ["#12521f", "#1c7d2c", "#2fae42", "#ffc23d", "#ff5f4d", "#0a2a12"],
+    inks: ["#0e7122", "#129428", "#1cbd34", "#ffb922", "#ff5f4d", "#0a2a12"],
     frames: [
       [
         "................",
