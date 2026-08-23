@@ -21,7 +21,7 @@ anything a skin has done before and a smaller one than it sounds:
 |---|---|---|
 | engine | dash (platformer) | roam (adventure) |
 | shape | three decks, two ladders | a maze of corridors |
-| wall | soil-and-grass, recoloured | pipe runs, lying along the corridor |
+| wall | soil-and-grass, recoloured | pipe runs, lying along the corridor, greebled |
 | background | plating | deck, quiet, grid on dark |
 | hazard | plasma vent (a flame) | acid, pooled |
 | a lone block | — | an egg |

@@ -11,6 +11,7 @@ import { Facing } from "./facing.ts";
 import { Stride, Strides, bobs, legShift, strode } from "./stride.ts";
 import { DUST_FRAMES, landed, puffsAt } from "./dust.ts";
 import { dropsAt } from "./pour.ts";
+import { boltedAt, lampLit } from "./greeble.ts";
 import { POP_FRAMES, popAt } from "./pop.ts";
 import { FACE_LEFT, FACE_RIGHT } from "../../engines/types.ts";
 import { BOX_GEM_RAMP, BOX_OPENED, BOX_RAMP, BOX_SHUT } from "../../core/tileset.ts";
@@ -23,7 +24,7 @@ import {
   isTurret,
   onRim,
   seaSides,
-  type Pattern, type Ramp, type Tileset,
+  type Greeble, type Pattern, type Ramp, type Tileset,
   openSides, sidesOf,
 } from "../../core/tileset.ts";
 import {
@@ -1545,6 +1546,8 @@ export class GridRenderer {
   private readonly roads = new Map<number, HTMLCanvasElement>();
   /** One stamp per KIND of building, where a wall is a tower. */
   private readonly towers = new Map<number, HTMLCanvasElement>();
+  /** One stamp per piece of junk bolted to a wall, where a world has any. */
+  private readonly greebles: HTMLCanvasElement[] = [];
   /** One stamp per set of open sides, where a wall joins up with its neighbours. */
   private readonly castles = new Map<number, HTMLCanvasElement>();
 
@@ -1556,6 +1559,43 @@ export class GridRenderer {
    * the one the cars use: two odd multiplies and a xor, which scatters where
    * `x + y` would put every third building in a diagonal stripe.
    */
+  /**
+   * The junk bolted to this wall cell, and its lamp.
+   *
+   * Drawn OVER the wall stamp rather than baked into it, and that is the whole
+   * design. Baking would mean a stamp per wall shape per greeble per blink
+   * state -- sixteen by six by two, near two hundred canvases -- for something
+   * that is one drawImage and one fillRect a cell.
+   *
+   * WHICH one, WHAT colour and HOW FAST are all decided in
+   * src/web/play/greeble.ts, where a test can read them without a browser.
+   * This function paints what it is told.
+   */
+  private paintGreeble(ctx: CanvasRenderingContext2D, x: number, y: number, t: number, open: number): void {
+    const set = this.tiles();
+    const colours = set.greebleLights ?? [];
+    const bolted = boltedAt(x, y, open, this.greebles.length, colours.length);
+    if (bolted === null) return;
+    const stamp = this.greebles[bolted.which];
+    const greeble = (set.greebles as readonly Greeble[] | undefined)?.[bolted.which];
+    if (stamp === undefined || greeble === undefined) return;
+    ctx.drawImage(stamp, x * t, y * t, t, t);
+
+    // The editor redraws only when you change something, so a blinking lamp
+    // would be frozen at whatever the last edit caught it at. Lit, there.
+    if (colours.length > 0 && (!this.spinning || lampLit(bolted, Date.now()))) {
+      const step = t / TILE_PX;
+      const [lx, ly] = greeble.light;
+      ctx.fillStyle = colours[bolted.colour] as string;
+      ctx.fillRect(
+        Math.floor(x * t + lx * step),
+        Math.floor(y * t + ly * step),
+        Math.ceil(step * 2),
+        Math.ceil(step * 2),
+      );
+    }
+  }
+
   private kindAt(x: number, y: number): number {
     const h = (Math.imul(x + 3, 0x9e3779b1) ^ Math.imul(y + 7, 0x85ebca6b)) >>> 0;
     return (h >>> 5) % WALL_KINDS;
@@ -1827,6 +1867,20 @@ export class GridRenderer {
         paintPattern(ctx, set.wallKinds(kind), set.sub, set, t);
         this.towers.set(kind, canvas);
       }
+    }
+
+    // ...and the junk bolted to the walls. One stamp each, drawn once, the
+    // same as everything else here -- what varies per cell is only WHICH.
+    this.greebles.length = 0;
+    for (const greeble of set.greebles ?? []) {
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(t * dpr));
+      canvas.height = Math.max(1, Math.round(t * dpr));
+      const ctx = canvas.getContext("2d");
+      if (ctx === null) continue;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      paintPattern(ctx, greeble.art, set.sub, set, t);
+      this.greebles.push(canvas);
     }
 
     this.stamps = made;
@@ -2896,9 +2950,11 @@ export class GridRenderer {
         // A wall that joins up with its neighbours: which sides are open decides
         // the drawing, exactly as it does for a pond. Costs the wire nothing.
         if (tile === TILE_WALL && this.castles.size > 0) {
-          const built = this.castles.get(sidesOf(tiles, x, y, TILE_WALL));
+          const open = sidesOf(tiles, x, y, TILE_WALL);
+          const built = this.castles.get(open);
           if (built !== undefined) {
             ctx.drawImage(built, x * t, y * t, t, t);
+            this.paintGreeble(ctx, x, y, t, open);
             continue;
           }
         }

@@ -249,6 +249,29 @@ const MUTATIONS: readonly Mutation[] = [
     replace: "",
   },
   {
+    // A junction box screwed to the side of an alien egg. Invisible to a green
+    // suite and obvious on a phone, which is the whole class this file is for.
+    breaks: "the station bolts a vent to an egg",
+    file: "src/web/play/greeble.ts",
+    find: "if (greebles <= 0 || open === ALL_OPEN) return null;",
+    replace: "if (greebles <= 0) return null;",
+  },
+  {
+    // Every lamp on one clock: a wall of machinery becomes one thing flashing.
+    breaks: "every status lamp blinks on the same clock",
+    file: "src/web/play/greeble.ts",
+    find: "    period: 320 + ((h >>> 17) % 7) * 240,",
+    replace: "    period: 320,",
+  },
+  {
+    // The scatter. `x + y` puts every third one on a diagonal -- the exact
+    // failure the car hash was written to avoid, one table along.
+    breaks: "the wall junk lines up in stripes instead of scattering",
+    file: "src/web/play/greeble.ts",
+    find: "  return (Math.imul(x + 5, 0x2545f491) ^ Math.imul(y + 11, 0x9e3779b1)) >>> 0;",
+    replace: "  return ((x + y) * 2654435761) >>> 0;",
+  },
+  {
     // Reported as "I don't think brown airlock good in the sci-fi level" --
     // which is what a world absent from the door table gets. Nothing was an
     // error; it just quietly drew an oak door in orbit.

@@ -59,6 +59,19 @@ export type Ramp = readonly number[];
 
 export const RAMP_MAX = 9;
 
+/**
+ * A piece of clutter bolted to a wall, and where its status lamp sits.
+ *
+ * Purely presentation, like everything else here: greebles are chosen from a
+ * cell's own coordinates, so they cost the wire format nothing and two people
+ * opening the same link see the same wall.
+ */
+export interface Greeble {
+  readonly art: Pattern;
+  /** The lamp's top-left pixel, within the sixteen. */
+  readonly light: readonly [number, number];
+}
+
 /** Stone, seen from above: blocks with mortar between them, offset by row. */
 const STONE: Pattern = [
   "2111111121111111",
@@ -464,6 +477,22 @@ export interface Tileset {
    * the wrong one for a flame.
    */
   readonly fireFrames?: readonly Pattern[];
+  /**
+   * Junk bolted to the walls, if this world has any: vents, boxes, hatches.
+   *
+   * Scattered over the wall cells from each cell's own position rather than
+   * stored anywhere. Only the station has them -- a hull is the one surface in
+   * this game big enough and smooth enough to need breaking up.
+   */
+  readonly greebles?: readonly Greeble[];
+  /**
+   * ...and the colours their status lamps blink in.
+   *
+   * A list rather than one colour: a bank of lamps all the same colour reads
+   * as a decoration, and a bank of different ones reads as machinery nobody
+   * has explained to you, which is the whole point of greebling.
+   */
+  readonly greebleLights?: readonly string[];
   /**
    * A lone wall cell, if this world draws one differently.
    *
@@ -1991,6 +2020,153 @@ export const PYRAMID: Tileset = {
   ground: PALETTE[24] as string,
 };
 
+/** A grille bolted over the run, and a lamp beside it. */
+const VENT: Pattern = [
+  "................",
+  "................",
+  "................",
+  "................",
+  "..888888888888..",
+  "..866666688118..",
+  "..867777688118..",
+  "..866666688888..",
+  "..86777768......",
+  "..86666668......",
+  "..86777768......",
+  "..88888888......",
+  "................",
+  "................",
+  "................",
+  "................",
+];
+
+/** A junction box with the lid on. */
+const JUNCTION: Pattern = [
+  "................",
+  "................",
+  "................",
+  "........8888888.",
+  "........8777778.",
+  "........8766678.",
+  "........8766678.",
+  "........8777778.",
+  "........8888888.",
+  "........8888....",
+  "........8118....",
+  "........8118....",
+  "........8888....",
+  "................",
+  "................",
+  "................",
+];
+
+/** Cable, coiled on its hook. */
+const COIL: Pattern = [
+  "................",
+  "...........8888.",
+  ".......7...8118.",
+  ".......7...8118.",
+  ".......7...8888.",
+  "...7777777777...",
+  "...7........7...",
+  "...7.888888.7...",
+  "...7.8....8.7...",
+  "...7.8.77.8.7...",
+  "...7.8....8.7...",
+  "...7.888888.7...",
+  "...7........7...",
+  "...7777777777...",
+  "................",
+  "................",
+];
+
+/** An inspection hatch, dogged shut at four corners. */
+const HATCH: Pattern = [
+  "................",
+  "................",
+  "................",
+  "................",
+  "....888888888...",
+  "....877777778...",
+  "....876777678...",
+  "....877666778...",
+  "....877686778...",
+  "....877666778...",
+  "....876777678...",
+  ".888877777778...",
+  ".811888888888...",
+  ".8118...........",
+  ".8888...........",
+  "................",
+];
+
+/** A bank of little screens, two of them lit. */
+const READOUT: Pattern = [
+  "................",
+  "................",
+  "................",
+  "....8888........",
+  "....8118........",
+  "....8118........",
+  "....8888........",
+  "................",
+  "...77777777777..",
+  "...76666666667..",
+  "...76336333667..",
+  "...76666666667..",
+  "...77777777777..",
+  "................",
+  "................",
+  "................",
+];
+
+/** A smaller pipe crossing the run, and a valve on it. */
+const CROSSPIPE: Pattern = [
+  "......87........",
+  "......87........",
+  "......87..8888..",
+  "......87..8778..",
+  "......87..8778..",
+  "......87..8888..",
+  "......87........",
+  "......87........",
+  "......87........",
+  "......87........",
+  ".8888.87........",
+  ".8118.87........",
+  ".8118.87........",
+  ".8888.87........",
+  "......87........",
+  "......87........",
+];
+
+/**
+ * The clutter bolted to the hull, and where each one's status lamp sits.
+ *
+ *     "I was thinking more 'GREEBLIES' like in Star Wars and blinking
+ *      lights"
+ *
+ * Which is a real technique with a real name: a big smooth surface reads as
+ * a toy, and the fix is to cover it in small mechanical junk that has no
+ * function and no explanation. So none of these mean anything. They are a
+ * vent, a box, a coil, a hatch, some screens and a pipe going somewhere else,
+ * scattered over about half the wall cells from each cell's own position, so
+ * a corridor is never twice the same and none of it costs the wire format a
+ * bit.
+ *
+ * The lamp is drawn DARK in the art -- an empty socket -- and the renderer
+ * paints the lit colour over it on the frames it is on. That way a light
+ * that is off still reads as a light rather than as a hole. See `light`.
+ */
+export const GREEBLES: readonly Greeble[] = [
+  { art: VENT, light: [11, 5] },
+  { art: JUNCTION, light: [9, 10] },
+  { art: COIL, light: [12, 2] },
+  { art: HATCH, light: [2, 12] },
+  { art: READOUT, light: [5, 4] },
+  { art: CROSSPIPE, light: [2, 11] },
+];
+
 /**
  * The wall of a corridor: pipe runs, along the corridor.
  *
@@ -2295,6 +2471,14 @@ export const SPACE: Tileset = {
   wall: PIPES_ACROSS,
   wallTop: PIPES_ACROSS_LIT,
   wallFor: spaceWall,
+  // ...and junk bolted to about half of them. See GREEBLES.
+  greebles: GREEBLES,
+  // Amber, green, red, cyan. Warm ones mostly, because everything else in
+  // this world is cold and a lamp has to look like it is ON.
+  greebleLights: [
+    PALETTE[28] as string, PALETTE[22] as string,
+    PALETTE[40] as string, PALETTE[16] as string,
+  ],
   // The deck, with a window or a bank of instruments about one cell in
   // thirteen. See spaceFloor().
   floor: DECK,
