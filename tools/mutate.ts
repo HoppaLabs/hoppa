@@ -719,6 +719,66 @@ const MUTATIONS: readonly Mutation[] = [
     find: "export function canSend(code: string): boolean {\n  if (code.trim() === \"\") return false;",
     replace: "export function canSend(code: string): boolean {\n  if (true) return false;",
   },
+
+  {
+    // A trap your friend can see coming is not a trap. Both kinds of box have
+    // to leave the engine as the SAME tile.
+    breaks: "a box holding a monster is drawn differently, so the trap shows",
+    file: "src/engines/roam/v10.ts",
+    find: "      this.tiles[cell] = this.opened[cell] === 1 ? TILE_BOX_OPEN : TILE_BOX;",
+    replace: "      this.tiles[cell] = this.boxEnemy[cell] >= 0 ? TILE_BOX_OPEN : TILE_BOX;",
+  },
+  {
+    // Opening the box before the weapon resolves puts a freshly released bear
+    // inside the same swing's reach: one press opens the box AND kills what
+    // came out. That is a button, not a gamble.
+    breaks: "the swing that opens a box also kills what comes out",
+    file: "src/engines/roam/v10.ts",
+    find: "    this.openBoxAhead(dx, dy);\n  }",
+    replace: "  }",
+  },
+  {
+    breaks: "a monster in a box is loose from the first tick",
+    file: "src/engines/roam/v10.ts",
+    find: "          hp: this.enemyHits | 0, down: 0, hidden: 1,",
+    replace: "          hp: this.enemyHits | 0, down: 0, hidden: 0,",
+  },
+  {
+    // A gem in a box that did not count toward the door would make boxes
+    // decoration: nothing would ever need opening.
+    breaks: "a gem in a box stops counting toward the door",
+    file: "src/engines/roam/v10.ts",
+    find: "      this.collected = (this.collected | (1 << slot)) | 0;",
+    replace: "      this.collected = this.collected | 0;",
+  },
+  {
+    // A box that stopped being a wall would be a hole in the room from the
+    // first tick, and in a side-on game a platform somebody was standing on.
+    breaks: "a shut box is not a wall, so you walk straight through it",
+    file: "src/engines/roam/v10.ts",
+    find: "    return this.opened[idx(cx, cy)] === 0;",
+    replace: "    return true;",
+  },
+  {
+    breaks: "the side-on box cannot be opened by jumping into it",
+    file: "src/engines/dash/v10.ts",
+    find: "          if (!this.openBoxAt(west, head)) this.openBoxAt(east, head);",
+    replace: "          void west; void east; void head;",
+  },
+  {
+    breaks: "the side-on box stops being a wall, so it is not a platform either",
+    file: "src/engines/dash/v10.ts",
+    find: "    return this.opened[idx(cx, cy)] === 0;",
+    replace: "    return true;",
+  },
+  {
+    // The author's choice has to reach the wire, or it is a choice they
+    // appeared to make and the link did not carry.
+    breaks: "every box holds treasure, whatever the author drew",
+    file: "src/core/codec.ts",
+    find: "    if (entry[1] === KIND_BOX) bits.write(entry[2] & 1, BOX_BITS);",
+    replace: "    if (entry[1] === KIND_BOX) bits.write(0, BOX_BITS);",
+  },
 ];
 
 /**

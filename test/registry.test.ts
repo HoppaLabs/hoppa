@@ -56,6 +56,12 @@ test("every build ships: retiring one would break every link that pinned it", ()
     // it shared with the rest -- diagonals, the gap in the rock you nearly
     // lined up with, and the swing you asked for slightly early.
     "swim/5",
+    // roam/10: boxes. A wall until somebody hits it, and the AUTHOR decides
+    // whether a gem or a monster comes out. See adr/0065.
+    "roam/10",
+    // dash/10: the same boxes from the side, opened by jumping into them from
+    // underneath. See adr/0065.
+    "dash/10",
   ]);
 });
 

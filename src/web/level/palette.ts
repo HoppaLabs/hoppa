@@ -13,6 +13,7 @@ import { enemyByGlyph } from "../../core/enemies.ts";
 import { MAX_FLOW, sideOn, type Glyph } from "../../core/draft.ts";
 import {
   GLYPH_BAT, GLYPH_DRAGON,
+  GLYPH_BOX_ENEMY, GLYPH_BOX_TREASURE,
   GLYPH_EXIT, GLYPH_FIRE, GLYPH_FLOOR, GLYPH_FLOW_RIGHT,
   GLYPH_GUARD, GLYPH_LADDER,
   GLYPH_START, GLYPH_TREASURE, GLYPH_WALL,
@@ -79,6 +80,17 @@ export const TOOLS: readonly Tool[] = [
   // what the world draws, because a flame standing on grass looks like a
   // mistake and spikes in a cave look like a floor. See src/core/tileset.ts.
   { glyph: GLYPH_FIRE, label: "fire", names: { outside: "spikes", reef: "urchins", garden: "pond", beach: "sea", city: "fire" }, limit: 10 },
+  // The two surprise boxes. TWO tools, because the author chooses what is in
+  // them -- "I want the author to decide if it's treasure or an enemy" -- and
+  // one tool with a hidden coin flip is a lottery rather than a level.
+  //
+  // They are told apart HERE and nowhere else. In play both draw as the same
+  // shut box, because a trap your friend can see coming is not a trap.
+  //
+  // Only where an engine knows what to do with one. A tool that draws a tile
+  // the game will not open is worse than a tool that is missing.
+  { glyph: GLYPH_BOX_TREASURE, label: "box: gem", names: { garden: "box: flower", beach: "box: shell", city: "box: people" }, engines: ["dash", "roam"], limit: 6 },
+  { glyph: GLYPH_BOX_ENEMY, label: "box: monster", names: { reef: "box: shark", garden: "box: bear", beach: "box: crab", city: "box: kaiju" }, engines: ["dash", "roam"], limit: 6 },
 ];
 
 /**

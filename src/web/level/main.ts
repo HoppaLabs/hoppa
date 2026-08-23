@@ -15,6 +15,7 @@ import {
   ENEMY_GLYPHS,
   GLYPH_BAT, GLYPH_DRAGON,
   FLOW_GLYPHS,
+  GLYPH_BOX_ENEMY, GLYPH_BOX_TREASURE,
   GLYPH_EXIT, GLYPH_FIRE, GLYPH_FLOOR,
   GLYPH_FLOW_DOWN, GLYPH_FLOW_LEFT, GLYPH_FLOW_RIGHT, GLYPH_FLOW_UP,
   GLYPH_GUARD, GLYPH_LADDER,
@@ -45,6 +46,7 @@ import { PACK } from "../../core/pack.ts";
 import {
   TILE_FIRE, TILE_FLOW,
   TILE_ACTOR, TILE_EXIT_LOCKED, TILE_FLOOR, TILE_GUARD,
+  TILE_BOX, TILE_BOX_ENEMY,
   TILE_LADDER, TILE_TREASURE, TILE_WALL,
 } from "../../core/tiles.ts";
 import { loadCharacter, loadDraft, saveDraft } from "../stash.ts";
@@ -86,6 +88,10 @@ const TILE_OF: Record<string, number> = {
   [GLYPH_GUARD]: TILE_GUARD,
   [GLYPH_BAT]: TILE_GUARD,
   [GLYPH_DRAGON]: TILE_GUARD,
+  // The author sees which box is which; the player does not. This is the only
+  // place the two are ever drawn apart -- see TILE_BOX_ENEMY.
+  [GLYPH_BOX_TREASURE]: TILE_BOX,
+  [GLYPH_BOX_ENEMY]: TILE_BOX_ENEMY,
   [GLYPH_LADDER]: TILE_LADDER,
   [GLYPH_FIRE]: TILE_FIRE,
   // All four currents are one tile index; which way each points travels

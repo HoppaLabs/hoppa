@@ -67,6 +67,27 @@ const KIND_FIRE = 4;
 // exactly what one did. Kind 7 is still free.
 const KIND_BAT = 5;
 const KIND_DRAGON = 6;
+/**
+ * A box with something in it, and the LAST of the eight kinds a 3-bit field
+ * holds. There is no ninth without a CODEC_VERSION bump, so this one was spent
+ * on purpose rather than reached for.
+ *
+ * It is also the first kind that carries a PAYLOAD: one bit after the kind,
+ * saying whether the box holds treasure or an enemy. Asked for exactly that
+ * way -- "I want the author to decide if it's treasure or an enemy" -- and the
+ * design it replaced derived the contents from the level's seed for free, which
+ * was cheaper and wrong: a surprise the author cannot aim is a lottery, not a
+ * level.
+ *
+ * THE EXTRA BIT COSTS EVERY EXISTING LINK NOTHING. It is read only when the
+ * kind that was just read is this one, and no code made before today contains
+ * this kind -- so no decoder ever reaches for a bit that is not there. It is
+ * the same trick ladders used: put the new field behind something already on
+ * the wire that says whether to expect it.
+ */
+const KIND_BOX = 7;
+/** Width of that payload. One bit: treasure, or an enemy. */
+const BOX_BITS = 1;
 
 /** Wire kind for each enemy art, indexed as ENEMY_GLYPHS is. */
 const ENEMY_KINDS: readonly number[] = [KIND_GUARD, KIND_BAT, KIND_DRAGON];
@@ -202,20 +223,25 @@ export function encodeLevel(level: Level): string {
   const engine = ENGINE_IDS.indexOf(level.engine);
   if (engine < 0) throw new CodecError(`engine "${level.engine}" has no wire id`);
 
-  const entities: Array<readonly [number, number]> = [];
-  entities.push([idx(level.startX, level.startY), KIND_START]);
-  if (level.exitX >= 0) entities.push([idx(level.exitX, level.exitY), KIND_EXIT]);
+  // [cell, kind] for everything, plus a payload for the kinds that have one.
+  const entities: Array<readonly [number, number, number]> = [];
+  entities.push([idx(level.startX, level.startY), KIND_START, 0]);
+  if (level.exitX >= 0) entities.push([idx(level.exitX, level.exitY), KIND_EXIT, 0]);
   for (let i = 0; i < level.treasureCells.length; i = (i + 1) | 0) {
-    entities.push([level.treasureCells[i] as number, KIND_TREASURE]);
+    entities.push([level.treasureCells[i] as number, KIND_TREASURE, 0]);
   }
   for (let i = 0; i < level.guardCells.length; i = (i + 1) | 0) {
     entities.push([
       level.guardCells[i] as number,
       ENEMY_KINDS[level.guardArt[i] ?? 0] ?? KIND_GUARD,
+      0,
     ]);
   }
   for (let i = 0; i < level.fireCells.length; i = (i + 1) | 0) {
-    entities.push([level.fireCells[i] as number, KIND_FIRE]);
+    entities.push([level.fireCells[i] as number, KIND_FIRE, 0]);
+  }
+  for (let i = 0; i < level.boxCells.length; i = (i + 1) | 0) {
+    entities.push([level.boxCells[i] as number, KIND_BOX, level.boxHolds[i] ?? 0]);
   }
   if (entities.length > MAX_ENTITIES) {
     throw new CodecError(`${entities.length} entities; the wire format holds ${MAX_ENTITIES}`);
@@ -241,9 +267,13 @@ export function encodeLevel(level: Level): string {
 
   bits.write(entities.length, 5);
   for (let i = 0; i < entities.length; i = (i + 1) | 0) {
-    const entry = entities[i] as readonly [number, number];
+    const entry = entities[i] as readonly [number, number, number];
     bits.write(entry[0], 9);
     bits.write(entry[1], 3);
+    // Only a box has anything more to say. A reader knows to expect it because
+    // it has just read the kind, which is why this costs every level without a
+    // box -- and every link ever sent -- exactly nothing.
+    if (entry[1] === KIND_BOX) bits.write(entry[2] & 1, BOX_BITS);
   }
 
   if (carriesLadders(level.engine)) {
@@ -349,6 +379,8 @@ export function decodeLevel(code: string): Level {
     let exitY = -1;
     const fires = new Uint8Array(GRID_AREA);
     const burning: number[] = [];
+    const boxes: number[] = [];
+    const boxHolds: number[] = [];
 
     for (let i = 0; i < count; i = (i + 1) | 0) {
       const cell = bits.read(9);
@@ -356,7 +388,9 @@ export function decodeLevel(code: string): Level {
       if (cell >= GRID_AREA) throw new CodecError(`entity ${i} is off the grid`);
       const x = (cell % GRID_W) | 0;
       const y = ((cell / GRID_W) | 0) | 0;
-      wallBits[cell] = 0; // an entity always stands on open ground
+      // Every entity stands on open ground -- except a box, which IS the
+      // ground being blocked until somebody opens it.
+      wallBits[cell] = kind === KIND_BOX ? 1 : 0;
 
       if (kind === KIND_START) {
         if (startX >= 0) throw new CodecError("two starts");
@@ -378,6 +412,11 @@ export function decodeLevel(code: string): Level {
       } else if (kind === KIND_FIRE) {
         fires[cell] = 1;
         burning.push(cell);
+      } else if (kind === KIND_BOX) {
+        // The payload is read HERE, immediately after its own kind, so a
+        // decoder never reaches for a bit that is not there. See KIND_BOX.
+        boxes.push(cell);
+        boxHolds.push(bits.read(BOX_BITS) | 0);
       } else {
         throw new CodecError(`unknown entity kind ${kind}`);
       }
@@ -451,6 +490,8 @@ export function decodeLevel(code: string): Level {
       currentDirs: Uint8Array.from(flowDirs),
       fireCells,
       fires,
+      boxCells: Int16Array.from(boxes),
+      boxHolds: Uint8Array.from(boxHolds),
     };
   } catch (err) {
     if (err instanceof CodecError) throw err;

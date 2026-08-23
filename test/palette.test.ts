@@ -23,8 +23,8 @@ import { GAMES, enemyArtFor, labelFor, toolsFor, worldFor } from "../src/web/lev
 // are one engine drawn in two worlds, and there is no longer one palette per
 // engine to look up.
 const EXPECTED: Readonly<Record<string, readonly string[]>> = {
-  adventure: ["clear", "wall", "start", "door / exit", "treasure", "goblin", "bat", "lizard", "fire"],
-  platformer: ["clear", "wall", "start", "door / exit", "treasure", "goblin", "bat", "lizard", "ladder", "spikes"],
+  adventure: ["clear", "wall", "start", "door / exit", "treasure", "goblin", "bat", "lizard", "fire", "box: gem", "box: monster"],
+  platformer: ["clear", "wall", "start", "door / exit", "treasure", "goblin", "bat", "lizard", "ladder", "spikes", "box: gem", "box: monster"],
   underwater: ["clear", "rock", "start", "sea chest", "treasure", "shark", "kraken", "squid", "current", "urchins"],
   garden: ["clear", "hedge", "start", "garden door", "flowers", "bear", "bunny", "squirrel", "bridge", "pond"],
   beach: ["clear", "dune", "start", "sea chest", "shells", "crab", "gull", "jellyfish", "jetty", "sea"],

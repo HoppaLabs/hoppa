@@ -25,7 +25,7 @@ const WHO = PRESETS[0] as (typeof PRESETS)[number];
 
 /** Each world, the build that got a body, and the last one without one. */
 const WORLDS = [
-  { engine: "roam", tiles: 0, weighted: 9, before: 8 },
+  { engine: "roam", tiles: 0, weighted: 10, before: 8 },
   { engine: "calm", tiles: 0, weighted: 4, before: 3 },
   { engine: "raze", tiles: 6, weighted: 2, before: 1 },
 ] as const;
@@ -76,6 +76,9 @@ function travel(game: Runner, held: number, ticks: number): { x: number; y: numb
 }
 
 test("every world you look down into is on a build with a body", () => {
+  // `weighted` is the newest build of each, which is where the body landed and
+  // has since carried forward -- roam/10 added boxes on top of roam/9's
+  // movement without touching any of it.
   for (const world of WORLDS) {
     expect({ engine: world.engine, newest: newestBuild(world.engine) })
       .toEqual({ engine: world.engine, newest: world.weighted });

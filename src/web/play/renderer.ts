@@ -12,6 +12,7 @@ import { Stride, Strides, bobs, legShift, strode } from "./stride.ts";
 import { DUST_FRAMES, landed, puffsAt } from "./dust.ts";
 import { dropsAt } from "./pour.ts";
 import { FACE_LEFT, FACE_RIGHT } from "../../engines/types.ts";
+import { BOX_OPENED, BOX_RAMP, BOX_SHUT } from "../../core/tileset.ts";
 import { ONE } from "../../core/fixed.ts";
 import { CASTS, ENEMIES } from "../../core/enemies.ts";
 import {
@@ -30,6 +31,9 @@ import {
   TILE_FROZEN,
   TILE_GUARD_REELING,
   TILE_FIRE,
+  TILE_BOX,
+  TILE_BOX_ENEMY,
+  TILE_BOX_OPEN,
   TILE_LADDER,
   TILE_EXIT_LOCKED,
   TILE_EXIT_OPEN,
@@ -800,6 +804,14 @@ function gemShapes(world: string): readonly Pattern[] {
 export const CHASE_RIM = "#ff4d2e";
 /** Water in the air. Bright enough to read against a cave floor and a lawn. */
 export const WATER_IN_AIR = "#5fc8f5";
+/**
+ * The box a monster is in, in the LEVEL EDITOR and nowhere else.
+ *
+ * The same crate, with the stud burning red instead of gold. The author laid
+ * the trap and is entitled to see where they put it; the player is not, which
+ * is why no engine ever emits TILE_BOX_ENEMY.
+ */
+export const BOX_TRAP_RAMP: readonly number[] = [1, 49, 51, 52, 3, 40];
 export const OUTLINE_INK = 5;
 
 /** The same creature, lit up. Presentation only; no engine is told. */
@@ -955,6 +967,8 @@ export function tileChip(
     tile === TILE_WALL ? (set.wallTop ?? set.wall)
     : tile === TILE_FLOOR ? set.floor
     : tile === TILE_LADDER ? set.ladder
+    : tile === TILE_BOX || tile === TILE_BOX_ENEMY ? (set.box ?? BOX_SHUT)
+    : tile === TILE_BOX_OPEN ? (set.boxOpen ?? BOX_OPENED)
     : tile === TILE_FIRE ? set.fire
     : tile === TILE_FLOW ? (set.flow ?? null)
     : tile === TILE_TREASURE ? (gemShapes(set.name)[0] as Pattern)
@@ -1010,6 +1024,8 @@ export function tileChip(
     const sub = tile === TILE_FLOW ? (set.flowSub ?? set.sub)
       : tile === TILE_FIRE ? set.fireSub
       : tile === TILE_LADDER ? set.ladderSub
+      : tile === TILE_BOX_ENEMY ? BOX_TRAP_RAMP
+      : tile === TILE_BOX || tile === TILE_BOX_OPEN ? (set.boxSub ?? BOX_RAMP)
       : set.sub;
     // The gem and the door carry their own colours rather than the terrain's.
     const own =
@@ -1352,6 +1368,12 @@ export class GridRenderer {
       [TILE_FLOOR, set.floor, set.sub],
       [TILE_LADDER, set.ladder, set.ladderSub],
       [TILE_FIRE, set.fire, set.fireSub],
+      // Boxes carry their own drawing and their own colours, like the ladder:
+      // a box is a made object, not a piece of the place it stands in.
+      [TILE_BOX, set.box ?? BOX_SHUT, set.boxSub ?? BOX_RAMP],
+      [TILE_BOX_OPEN, set.boxOpen ?? BOX_OPENED, set.boxSub ?? BOX_RAMP],
+      // Editor only: the author is allowed to see which box holds a monster.
+      [TILE_BOX_ENEMY, set.box ?? BOX_SHUT, BOX_TRAP_RAMP],
     ];
 
     // Fire gets one stamp per frame. Everything else gets one.

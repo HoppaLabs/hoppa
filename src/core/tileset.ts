@@ -169,6 +169,74 @@ const AIR: Pattern = [
 ];
 
 /** A ladder: two round wooden rails and a rung, tileable end to end. */
+/**
+ * A box with something in it, shut.
+ *
+ * A crate, not a question mark. The question mark is somebody else's sign and
+ * this game draws its own -- but the JOB is the same and the job is what the
+ * shape has to do: say "there is something in here" from across a room, on a
+ * fifteen-pixel tile, to somebody who cannot read.
+ *
+ * So: banded like a crate, bright metal corners so it reads as a made thing
+ * rather than as scenery, and one lit stud in the middle where the eye lands.
+ * The stud is the whole trick -- a plain crate reads as a wall, and a wall is
+ * what a child will walk past.
+ */
+/**
+ * Wood, metal and one lit stud: edge, shadow, face, lit, corner, stud.
+ *
+ * Shared by every world for now. A box is a made object rather than a piece of
+ * the scenery, so unlike the walls it does not want to look like the place it
+ * is standing in -- the same argument the ladder settled.
+ */
+export const BOX_RAMP: Ramp = [1, 49, 51, 52, 3, 28];
+
+export const BOX_SHUT: Pattern = [
+  "5555555555555555",
+  "5444444444444445",
+  "5433333333333345",
+  "5433222222233345",
+  "5432255555522345",
+  "5432533333352345",
+  "5432533553352345",
+  "5432533663352345",
+  "5432533663352345",
+  "5432533553352345",
+  "5432533333352345",
+  "5432255555522345",
+  "5433222222233345",
+  "5433333333333345",
+  "5444444444444445",
+  "5555555555555555",
+];
+
+/**
+ * The same box, opened.
+ *
+ * Still there -- a box that vanished would leave a hole in the wall the author
+ * never drew, and in a side-on room that hole is a platform somebody was
+ * standing on. What changes is the middle: the stud is gone and what is left
+ * is dark, which is what "already had this one" looks like at a glance.
+ */
+export const BOX_OPENED: Pattern = [
+  "5555555555555555",
+  "5333333333333335",
+  "5322222222222235",
+  "5322111111112235",
+  "5321111111111235",
+  "5321111111111235",
+  "5321111111111235",
+  "5321111111111235",
+  "5321111111111235",
+  "5321111111111235",
+  "5321111111111235",
+  "5321111111111235",
+  "5322111111112235",
+  "5322222222222235",
+  "5333333333333335",
+  "5555555555555555",
+];
+
 const LADDER: Pattern = [
   "..1432....1432..",
   "..1432....1432..",
@@ -232,6 +300,22 @@ export interface Tileset {
    * not a thing a ladder is made of.
    */
   readonly ladderSub: Ramp;
+  /**
+   * A box with something in it, and the same box opened.
+   *
+   * Optional: a world that has never been asked for boxes does not have to
+   * draw one, and the renderer falls back to the shared crate. Only dash and
+   * roam offer the tool today.
+   */
+  readonly box?: Pattern;
+  readonly boxOpen?: Pattern;
+  /**
+   * A ramp for the box alone, for the same reason the ladder has one: it is a
+   * different MATERIAL from the ground it stands in. Borrowing the terrain's
+   * ramp made it a stone box underground and a GRASS box outside, which is not
+   * a thing a box is made of.
+   */
+  readonly boxSub?: Ramp;
   /**
    * WHAT the still hazard is, in words.
    *

@@ -101,8 +101,10 @@ function ran(game: Runner, from: number): number {
   return (game.where().x - from) / ONE;
 }
 
-test("dash/9 is what a new level is drawn under, and dash/8 never left", () => {
-  expect(newestBuild("dash")).toBe(9);
+test("dash/9 is superseded, and no dash build ever left", () => {
+  // The assertion is "no longer the newest" rather than a number: this file
+  // tests dash/9 for ever, and dash/10 added boxes on top of it.
+  expect(newestBuild("dash")).toBeGreaterThan(9);
   for (let v = 1; v <= 9; v = (v + 1) | 0) {
     expect({ v, routed: knownBuilds().includes(`dash/${v}`) }).toEqual({ v, routed: true });
   }

@@ -52,4 +52,29 @@ export const TILE_FLOW = 11;
 export const TILE_FROZEN = 12;
 
 // Grows as engines gain tiles; capped at 16 per engine.
-export const TILE_COUNT = 13;
+/**
+ * A box with something in it, shut.
+ *
+ * ONE index for both kinds, and that is the whole design: a box holding a
+ * guard and a box holding a gem have to be indistinguishable in play or there
+ * is no surprise to spring. What is inside is on the wire and in the engine;
+ * it is not in the picture until somebody opens it.
+ */
+export const TILE_BOX = 13;
+/**
+ * The same box, opened and empty. Still there, so the room still reads the way
+ * it was drawn -- a box that vanished would leave a hole in the wall the author
+ * never put there.
+ */
+export const TILE_BOX_OPEN = 14;
+/**
+ * A box the AUTHOR can see has a monster in it. Editor only.
+ *
+ * No engine ever emits this. It exists so the person laying the trap can see
+ * where they put it, and it stops at the edge of the level editor -- which is
+ * exactly the line hard rule 5 draws: the engine says "box", and who is allowed
+ * to know more than that is a question about the screen, not about the game.
+ */
+export const TILE_BOX_ENEMY = 15;
+
+export const TILE_COUNT = 16;

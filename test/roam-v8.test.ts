@@ -176,8 +176,8 @@ test("which fires are out is real state, so a level still replays", () => {
 test("a new top-down level is drawn with water in it", () => {
   // roam/8 brought the bucket; roam/9 kept it and gave the creature a body.
   expect(newestBuild("roam")).toBeGreaterThanOrEqual(8);
-  // dash/9 is the newest now: weight. Spikes still do not go out.
-  expect(newestBuild("dash")).toBe(9);
+  // The side-on game has moved on too, and spikes still do not go out.
+  expect(newestBuild("dash")).toBeGreaterThanOrEqual(9);
 });
 
 test("roam/8's guards still walk, now that no shipped room is on roam/8", () => {

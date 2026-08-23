@@ -21,6 +21,9 @@ import {
   GLYPH_FLOW_LEFT,
   GLYPH_FLOW_RIGHT,
   GLYPH_FLOW_UP,
+  BOX_HOLDS_ENEMY,
+  GLYPH_BOX_ENEMY,
+  GLYPH_BOX_TREASURE,
   GLYPH_GUARD,
   GLYPH_LADDER,
   GLYPH_START,
@@ -65,6 +68,8 @@ export type Glyph =
   | typeof GLYPH_START
   | typeof GLYPH_EXIT
   | typeof GLYPH_TREASURE
+  | typeof GLYPH_BOX_TREASURE
+  | typeof GLYPH_BOX_ENEMY
   | typeof GLYPH_GUARD
   | typeof GLYPH_BAT
   | typeof GLYPH_DRAGON
@@ -427,6 +432,8 @@ export function draftFromLevel(level: {
   fireCells: Int16Array;
   currentCells?: Int16Array;
   currentDirs?: Uint8Array;
+  boxCells?: Int16Array;
+  boxHolds?: Uint8Array;
 }): Draft {
   const cells: Glyph[] = new Array<Glyph>(GRID_AREA);
   for (let i = 0; i < GRID_AREA; i = (i + 1) | 0) {
@@ -454,6 +461,15 @@ export function draftFromLevel(level: {
   const facing = level.currentDirs ?? new Uint8Array(0);
   for (let i = 0; i < flowing.length; i = (i + 1) | 0) {
     cells[flowing[i] as number] = (FLOW_SET[facing[i] ?? 1] ?? GLYPH_FLOW_RIGHT) as Glyph;
+  }
+  // ...and holding what they were drawn holding. Same class of bug as the
+  // enemies losing their kind: opening a level in the editor and saving it
+  // back would otherwise turn every trap into a present.
+  const boxed = level.boxCells ?? new Int16Array(0);
+  const holding = level.boxHolds ?? new Uint8Array(0);
+  for (let i = 0; i < boxed.length; i = (i + 1) | 0) {
+    cells[boxed[i] as number] =
+      ((holding[i] ?? 0) === BOX_HOLDS_ENEMY ? GLYPH_BOX_ENEMY : GLYPH_BOX_TREASURE) as Glyph;
   }
   if (level.exitX >= 0) cells[idx(level.exitX, level.exitY)] = GLYPH_EXIT;
   cells[idx(level.startX, level.startY)] = GLYPH_START;

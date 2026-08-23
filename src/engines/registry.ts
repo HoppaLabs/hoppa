@@ -23,6 +23,8 @@ import { RoamV9, ROAM_V9_BEHAVIOUR } from "./roam/v9.ts";
 import { CalmV4, CALM_V4_BEHAVIOUR } from "./calm/v4.ts";
 import { RazeV2, RAZE_V2_BEHAVIOUR } from "./raze/v2.ts";
 import { SwimV5, SWIM_V5_BEHAVIOUR } from "./swim/v5.ts";
+import { RoamV10, ROAM_V10_BEHAVIOUR } from "./roam/v10.ts";
+import { DashV10, DASH_V10_BEHAVIOUR } from "./dash/v10.ts";
 import { SwimV1, SWIM_V1_BEHAVIOUR } from "./swim/v1.ts";
 import { SwimV2, SWIM_V2_BEHAVIOUR } from "./swim/v2.ts";
 import { SwimV3, SWIM_V3_BEHAVIOUR } from "./swim/v3.ts";
@@ -281,6 +283,24 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
     `swim/${SWIM_V5_BEHAVIOUR}`,
     (level, creature) =>
       creature === undefined ? new SwimV5(level) : new SwimV5(level, creature),
+  ],
+  // roam/10: boxes. A wall until somebody hits it, and what comes out is the
+  // author's choice rather than the seed's -- "I want the author to decide if
+  // it's treasure or an enemy." Both kinds look identical in play, because a
+  // trap your friend can see coming is not a trap.
+  [
+    `roam/${ROAM_V10_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new RoamV10(level) : new RoamV10(level, creature),
+  ],
+  // dash/10: the same boxes, from the side -- and here you open one the way a
+  // side-on game has always opened one, by jumping into it from underneath.
+  // A swing works too, because a box on a ledge you cannot get under would
+  // otherwise be a room nobody can finish.
+  [
+    `dash/${DASH_V10_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new DashV10(level) : new DashV10(level, creature),
   ],
 ]);
 

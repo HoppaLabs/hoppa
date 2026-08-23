@@ -127,8 +127,9 @@ test("every dash build still routes", () => {
   const dash = knownBuilds().filter((build) => build.startsWith("dash/"));
   expect(dash).toContain("dash/7");
   expect(dash).toContain("dash/8");
-  // dash/9 is what a new level is drawn under now -- see test/dash-v9.test.ts.
-  // Nothing ever leaves: dash/8's links still find dash/8.
-  expect(newestBuild("dash")).toBe(9);
+  // Something newer is what a level is drawn under now. Nothing ever leaves:
+  // dash/8's links still find dash/8.
+  expect(newestBuild("dash")).toBeGreaterThan(8);
   expect(dash).toContain("dash/9");
+  expect(dash).toContain("dash/10");
 });

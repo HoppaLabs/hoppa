@@ -40,6 +40,30 @@ export const GLYPH_LADDER = "H";
 export const GLYPH_FIRE = "^";
 
 /**
+ * A box with something in it. Two glyphs, because the AUTHOR chooses what is
+ * inside -- asked for exactly that way:
+ *
+ *     "I want the author to decide if it's treasure or an enemy."
+ *
+ * The first design derived the contents from the level's seed and the cell,
+ * which cost nothing on the wire and was wrong: a surprise the author cannot
+ * aim is a lottery, not a level. Choosing costs one bit per box (see
+ * KIND_BOX in codec.ts) and buys the whole point of the thing -- a child hides
+ * a guard behind the gem their friend is bound to go for.
+ *
+ * TWO GLYPHS rather than one plus a flag because the level text is read by
+ * people: "?" and "!" say which is which at a glance, and the editor gets two
+ * tools that look like the two tools a child already knows.
+ */
+export const GLYPH_BOX_TREASURE = "?";
+export const GLYPH_BOX_ENEMY = "!";
+export const BOX_GLYPHS: readonly string[] = [GLYPH_BOX_TREASURE, GLYPH_BOX_ENEMY];
+
+/** What a box holds. The index into BOX_GLYPHS, and the wire payload bit. */
+export const BOX_HOLDS_TREASURE = 0;
+export const BOX_HOLDS_ENEMY = 1;
+
+/**
  * Water that flows, one glyph per direction.
  *
  * Lower-case letters rather than arrows, because a .lvl file is meant to be
@@ -119,6 +143,24 @@ export interface Level {
   readonly currentDirs: Uint8Array;
   /** GRID_AREA lookup: 1 where a cell is on fire. */
   readonly fires: Uint8Array;
+  /**
+   * Box cell indices in reading order.
+   *
+   * A box is a WALL until it is opened, so unlike every other entity it does
+   * not stand on open ground -- and that is why it is worth its own list
+   * rather than a flag on something existing. Reading order, like the rest,
+   * so two levels with the same boxes encode to the same bytes.
+   */
+  readonly boxCells: Int16Array;
+  /**
+   * What each box holds, in the SAME order: BOX_HOLDS_TREASURE or
+   * BOX_HOLDS_ENEMY.
+   *
+   * NOT presentation, unlike guardArt. What comes out of a box decides whether
+   * the room is harder or easier, so it is on the wire and it reaches the
+   * engine.
+   */
+  readonly boxHolds: Uint8Array;
 }
 
 export class LevelParseError extends Error {}
@@ -184,6 +226,8 @@ export function parseLevel(text: string): Level {
   const burning: number[] = [];
   const flows: number[] = [];
   const flowDirs: number[] = [];
+  const boxes: number[] = [];
+  const boxKinds: number[] = [];
   let startX = -1;
   let startY = -1;
   let exitX = -1;
@@ -232,6 +276,13 @@ export function parseLevel(text: string): Level {
         walls[idx(x, y)] = 0;
         flows.push(idx(x, y));
         flowDirs.push(FLOW_GLYPHS.indexOf(ch) | 0);
+      } else if (BOX_GLYPHS.includes(ch)) {
+        // A box is a WALL until somebody opens it. Every other entity stands on
+        // open ground; this one IS the ground being blocked, which is what
+        // makes it worth hitting.
+        walls[idx(x, y)] = 1;
+        boxes.push(idx(x, y));
+        boxKinds.push(BOX_GLYPHS.indexOf(ch) | 0);
       } else if (ch === GLYPH_FIRE) {
         // Fire stands on open ground, like every other entity. It is not a
         // wall: you CAN walk into it, which is the whole point of it.
@@ -245,6 +296,11 @@ export function parseLevel(text: string): Level {
   }
 
   if (startX < 0) fail(`level has no start glyph "${GLYPH_START}"`);
+
+  const boxCells = new Int16Array(boxes.length);
+  for (let i = 0; i < boxes.length; i = (i + 1) | 0) boxCells[i] = boxes[i] as number;
+  const boxHolds = new Uint8Array(boxes.length);
+  for (let i = 0; i < boxes.length; i = (i + 1) | 0) boxHolds[i] = boxKinds[i] as number;
 
   const treasureCells = new Int16Array(found.length);
   for (let i = 0; i < found.length; i = (i + 1) | 0) {
@@ -292,6 +348,8 @@ export function parseLevel(text: string): Level {
     currentCells,
     currentDirs,
     fires,
+    boxCells,
+    boxHolds,
   };
 }
 

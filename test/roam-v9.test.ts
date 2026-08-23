@@ -66,8 +66,11 @@ function travel(game: Runner, held: number, ticks: number): { x: number; y: numb
 
 // --- weight -------------------------------------------------------------------
 
-test("roam/9 is what a new top-down level is drawn under", () => {
-  expect(newestBuild("roam")).toBe(9);
+test("roam/9 is superseded, and still routed", () => {
+  // This file tests roam/9 for ever: a link that pinned it has to keep playing
+  // the game it was beaten under. The assertion is "no longer the newest"
+  // rather than a version number, which is the lesson swim/3 taught twice.
+  expect(newestBuild("roam")).toBeGreaterThan(9);
 });
 
 test("it takes a moment to get going, where roam/8 was at full speed instantly", () => {
