@@ -142,6 +142,14 @@ const beach = (seed: string) => `hoppa/1 calm seed=${seed} tiles=5 behaviour=5`;
 // game where a strong creature brings a building down. A new engine id rather
 // than roam/9, so no cave level changes -- see src/engines/raze/v1.ts.
 const city = (seed: string) => `hoppa/1 raze seed=${seed} tiles=6 behaviour=2`;
+// The three worlds asked for together -- "Can we also add jungle, ancient
+// Egypt and sci-fi/space levels?" -- each a SKIN over rules that already
+// worked. The jungle is the garden's engine under a canopy, the pyramid is
+// the adventure game inside a tomb, and the station is the platformer in
+// orbit. See src/core/tileset.ts.
+const jungle = (seed: string) => `hoppa/1 calm seed=${seed} tiles=7 behaviour=5`;
+const pyramid = (seed: string) => `hoppa/1 roam seed=${seed} tiles=8 behaviour=10`;
+const station = (seed: string) => `hoppa/1 dash seed=${seed} tiles=9 behaviour=10`;
 
 /* -------------------------------------------------------------------------- */
 
@@ -470,9 +478,140 @@ export const PACK: readonly PackLevel[] = [
     teaches: "get the people to the evac zone, and mind the kaiju",
     text: theCity(),
   },
+  {
+    file: "16-the-jungle.lvl",
+    name: "the jungle",
+    teaches: "cross the creek on the log, pick the fruit, mind the jaguar",
+    text: theJungle(),
+  },
+  {
+    file: "17-the-pyramid.lvl",
+    name: "the pyramid",
+    teaches: "four chambers, four amulets, and traps in the doorways",
+    text: thePyramid(),
+  },
+  {
+    file: "18-the-station.lvl",
+    name: "the station",
+    teaches: "three decks, two ladders, and vents on the floor",
+    text: theStation(),
+  },
 ];
 
 
+
+
+/**
+ * The jungle. The garden's rules under a canopy.
+ *
+ * The same shape of room as the garden and deliberately so -- one creek with
+ * one way over it, fruit gathered in beds rather than scattered, two creatures
+ * that will never come after you and one that will, a long way from where you
+ * start. What is different is what a child sees: shaded earth underfoot, and
+ * green meaning "you cannot walk there" in every cell of it.
+ */
+function theJungle(): string {
+  const room = new Room().border();
+  // A creek down the middle with one log over it, so the room has two halves
+  // and exactly one way between them that does not cost you a heart.
+  room.box(11, 3, 12, 7, "^");
+  room.line(10, 5, 13, 5, "H");
+  // Thickets in three corners, and trees standing apart out on the floor --
+  // a lone wall cell has no wall beside it and draws as a canopy.
+  room.box(2, 2, 4, 3, WALL);
+  room.box(18, 9, 20, 10, WALL);
+  room.put(7, 3, WALL).put(6, 9, WALL).put(16, 3, WALL).put(19, 5, WALL).put(9, 11, WALL);
+  // Fruit, in beds rather than one each.
+  room.put(3, 5, "$").put(2, 6, "$").put(17, 2, "$").put(19, 2, "$");
+  room.put(7, 10, "$").put(16, 11, "$");
+  // The two that will not come after you.
+  room.put(5, 6, "B").put(8, 8, "D").put(17, 7, "D");
+  // One jaguar, a long way from where you start, between you and the flag.
+  room.put(17, 10, "G");
+  room.put(2, 11, "@");
+  room.put(21, 2, ">");
+  return room.text(jungle("jgle"));
+}
+
+/**
+ * The pyramid. Eight chambers, four amulets, and traps in the doorways.
+ *
+ * The adventure game's own shape -- walls that make the room a route rather
+ * than a hall -- with the hazard put where a tomb would put it.
+ *
+ * Spec L5 designed this room more than taste did. A guard in a long corridor
+ * paces it end to end, and the first pyramid was a hall with three guards on
+ * twelve-cell runs. Cutting it into chambers no more than five cells wide
+ * fixed that, and then L5 failed again on ONE guard -- because the doorways
+ * are the only columns open from the top of the room to the bottom, so a
+ * guard standing on one paces all twelve cells vertically. One cell across
+ * and its run is the chamber it is standing in.
+ *
+ * There was a lesson before both of those. The first version put the scarab
+ * beside the start square, and the two SLOW creatures lost the room: Bash and
+ * Vance could not get clear of it. A room the strong creatures cannot win is
+ * a room that does not ship, and none of this was visible by reading it --
+ * see the bot rows in test/pack.test.ts.
+ */
+function thePyramid(): string {
+  const room = new Room().border();
+  // Three thick bands of masonry with doorways through them, staggered so the
+  // room is a route rather than a hall you can see across.
+  for (const y of [2, 3, 4]) room.wallRow(y, [4, 12, 19]);
+  for (const y of [6, 7, 8]) room.wallRow(y, [8, 16, 21]);
+  for (const y of [10, 11]) room.wallRow(y, [3, 11, 18]);
+  // A trap in one doorway of each of the upper bands. A trap in the middle of
+  // a floor is scenery; a trap in a gap you have to walk through is a choice
+  // about which way round you go.
+  room.put(19, 3, "^").put(8, 7, "^");
+  room.put(2, 1, "$").put(21, 5, "$").put(6, 9, "$").put(20, 12, "$");
+  // The guards stand IN the doorways -- which is where a tomb would put them,
+  // and also the only place spec L5 allows. A guard in an open band paces the
+  // whole width of the room; a guard in a one-cell gap through a three-thick
+  // wall has a run of three across and five up and down.
+  // The far-right doorway of the middle band, off the route rather than on
+  // it. In the middle doorway the mummy cost Bash and Vance the room -- the
+  // two SLOW creatures walk into it on the way to everything, and two enemies
+  // plus a chase is more hearts than they have. It is still between you and
+  // one of the four amulets.
+  room.put(21, 7, "G");
+  room.put(16, 7, "B").put(11, 10, "D");
+  room.put(2, 12, "@");
+  room.put(21, 1, ">");
+  return room.text(pyramid("tomb"));
+}
+
+/**
+ * The station. Three decks, two ladders, and vents.
+ *
+ * The tall room's climb, in orbit: ladders on opposite sides so it is a climb
+ * rather than a lift, and a vent on the two decks you spend longest on.
+ *
+ * The core on the top deck was the whole of the difficulty here. A first
+ * version put one on the short ledge at the far left of the MIDDLE deck --
+ * four cells wide, reachable only off the top of a ladder -- and every one of
+ * the four creatures failed the room. It is not that the ledge is unreachable;
+ * it is that fetching it turns a three-floor route into a four-leg one and the
+ * bot runs out of clock. Cores sit where the route already goes.
+ */
+function theStation(): string {
+  const room = new Room().ground();
+  room.deck(5, [18]);
+  room.deck(9, [4]);
+  room.ladder(18, 5, 8);
+  room.ladder(4, 9, 12);
+  room.put(3, 4, "$").put(13, 4, "$").put(20, 8, "$").put(9, 12, "$");
+  // Both vents on the ground floor, not on a deck. A vent has to stand on
+  // something, and the editor builds a room top to bottom -- so one placed on
+  // a deck is painted before the deck under it exists and comes back refused.
+  // A room a child is shown and then stopped from copying is worse than no
+  // room. See "the editor would let a child draw the rooms we ship".
+  room.put(15, 12, "^").put(7, 12, "^");
+  room.put(12, 8, "G").put(19, 12, "D");
+  room.put(2, 12, "@");
+  room.put(20, 4, ">");
+  return room.text(station("stat"));
+}
 
 /**
  * The reef. The one shipped room in the water, and the one that teaches what

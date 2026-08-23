@@ -47,13 +47,18 @@ const gardens = rooms.filter((room) => parseLevel(room.text).engine === "calm");
 // garden" -- see FIRST_SKIN in src/core/tileset.ts.
 const beaches = gardens.filter((room) => parseLevel(room.text).tilesetId === FIRST_SKIN);
 
-test("fifteen rooms ship, and the file on disk is the code in the bundle", () => {
+test("eighteen rooms ship, and the file on disk is the code in the bundle", () => {
   // Six taught the game; three more teach the hazard that does not move; three
-  // are in the water and two are on calm/2.
-  expect(PACK.length).toBe(15);
+  // are in the water and two are on calm/2. The last three are one room each
+  // in the three worlds asked for together -- a jungle, a pyramid and a space
+  // station -- which are skins over rules that already worked, so they add a
+  // place to be rather than a thing to learn.
+  expect(PACK.length).toBe(18);
   // The pack ships no PLACE any more: the garden became a level in adr/0045.
   expect(places).toHaveLength(0);
-  expect(gardens).toHaveLength(2);
+  // ...three, now the jungle is here: the garden, the beach and the jungle are
+  // one engine drawn in three worlds.
+  expect(gardens).toHaveLength(3);
   expect(beaches).toHaveLength(1);
   for (const room of rooms) {
     // The .lvl file is the source; the code is generated from it. If they drift,
@@ -216,7 +221,7 @@ test("the play page is for playing: neither list is on it any more", () => {
 test("but the shipped rooms are still known to be shipped", () => {
   // Which matters for one thing that is NOT a list: a room the game ships with
   // has nobody to send a score back to, so it shares as a level.
-  expect(PACK.length).toBe(15);
+  expect(PACK.length).toBe(18);
   expect(play.includes("const shipped = new Set(PACK.map((room) => room.code));")).toBe(true);
   expect(play.includes("const isShipped = shipped.has(levelCode);")).toBe(true);
 });

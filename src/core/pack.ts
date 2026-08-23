@@ -103,4 +103,22 @@ export const PACK: readonly PackLevel[] = [
     teaches: "get the people to the evac zone, and mind the kaiju",
     code: "EWCYACOpWf___wAAA3re43re63re4wAAA3vW43vW43vW4wAAA1ve61ve4wAAA____uDImpDiEyFaPaRilKKDWteeQcb0dEBF",
   },
+  {
+    slug: "the-jungle",
+    name: "the jungle",
+    teaches: "cross the creek on the log, pick the fruit, mind the jaguar",
+    code: "EVFcADdrCwekIFJCBCDgo6QyQEOkOkOkKBQkIwRCLhgjpQdIUCKSCiGj2kknuowkrVzmRoCynCpDXDZE3E5FnFpMwRzJgCU",
+  },
+  {
+    slug: "the-pyramid",
+    name: "the pyramid",
+    teaches: "four chambers, four amulets, and traps in the doorways",
+    code: "ESKgAFSHjwekgMCg4MCg4MCgmlAgwGEiDAYSIMBgWkYMCg4MCgulBrkQFpDSRqbymiXFXrfeLcWENg",
+  },
+  {
+    slug: "the-station",
+    name: "the station",
+    teaches: "three decks, two ladders, and vents on the floor",
+    code: "ETKkAFINV______-f8MkCfAmFF8D5KkQOhMaNqailKZjmek8l8zwhxBxBxBAhghAhxBxBxBSgFU",
+  },
 ];

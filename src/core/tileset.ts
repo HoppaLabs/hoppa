@@ -1839,27 +1839,35 @@ export const PYRAMID: Tileset = {
  * The side-on game's floor has always been AIR -- nothing at all, so the sky
  * behind it is uninterrupted -- and out here that reads as a flat navy
  * rectangle, which is what space looks like to a telescope and not what it
- * looks like to a nine-year-old. Stars, then, and SPARSE ones, scattered
- * unevenly for the reason the jungle's leaves are: four evenly spaced marks
- * in a sixteen pixel tile is not a starfield, it is graph paper.
+ * looks like to a nine-year-old. Stars, then. Scattered unevenly, for the
+ * reason the jungle's leaves are: evenly spaced marks in a sixteen pixel tile
+ * are not a starfield, they are graph paper.
+ *
+ * And DIM. The first version put nine a tile in the brightest cyan on the
+ * ramp, and a room of it read as static rather than as sky -- because a tile
+ * repeats 336 times across a screen, so nine a tile is three thousand stars
+ * and every one of them at full contrast. Five a tile, four in the hull greys
+ * and one bright, and it reads as depth instead of noise. The jungle's litter
+ * learned the same thing from the other end: a texture drawn under everything
+ * has to be quiet.
  */
 const STARS: Pattern = [
   "................",
-  ".......5........",
+  ".......7........",
   "................",
   "..8.............",
   "................",
-  "............5...",
   "................",
-  ".....8..........",
-  "...............5",
+  "..............7.",
   "................",
-  "........8.......",
   "................",
-  "....5...........",
-  "..............8.",
+  ".....5..........",
   "................",
-  ".........5......",
+  "............8...",
+  "................",
+  "................",
+  "...7............",
+  "................",
 ];
 
 /**
