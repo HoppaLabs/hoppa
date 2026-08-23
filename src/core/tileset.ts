@@ -189,25 +189,49 @@ const AIR: Pattern = [
  * the scenery, so unlike the walls it does not want to look like the place it
  * is standing in -- the same argument the ladder settled.
  */
-export const BOX_RAMP: Ramp = [1, 49, 51, 52, 3, 28];
+export const BOX_RAMP: Ramp = [1, 26, 27, 28, 29, 5];
 
+/**
+ * A box with something in it, shut.
+ *
+ * IT WEARS A QUESTION MARK, and that was asked for twice:
+ *
+ *     "In the game will the boxes have question marks on them?"
+ *     "The box art needs to be more colourful, vibrant, use a question mark
+ *      label, it needs to be more appealing/tempting to hit."
+ *
+ * The first drawing was a brown crate with a small gold stud, drawn that way
+ * out of caution about whose sign a question mark is. That caution was
+ * misplaced: a question mark is a typographic character, not anybody's
+ * expression. What would not be all right is copying somebody's BLOCK -- their
+ * exact colour, their bevel, their rivets, their letterform. This is our
+ * palette, our outline, our "?" and our box.
+ *
+ * And the caution cost the thing its job. A box has one job before it is hit,
+ * which is to be hit: it has to say "there is something in here, come and get
+ * it" from across a room, on a fifteen-pixel tile, to somebody who cannot read.
+ * A brown crate says "scenery", and scenery is what a child walks past.
+ *
+ * So: gold, lit from above, a hard dark edge to lift it off the wall it stands
+ * in, and a white mark in the middle where the eye lands.
+ */
 export const BOX_SHUT: Pattern = [
-  "5555555555555555",
-  "5444444444444445",
-  "5433333333333345",
-  "5433222222233345",
-  "5432255555522345",
-  "5432533333352345",
-  "5432533553352345",
-  "5432533663352345",
-  "5432533663352345",
-  "5432533553352345",
-  "5432533333352345",
-  "5432255555522345",
-  "5433222222233345",
-  "5433333333333345",
-  "5444444444444445",
-  "5555555555555555",
+  "1111111111111111",
+  "1555555555555551",
+  "1544444444444431",
+  "1544446666444431",
+  "1544466446644431",
+  "1544466446644431",
+  "1544444446644431",
+  "1544444466444431",
+  "1544444664444431",
+  "1544444664444431",
+  "1544444444444431",
+  "1544444664444431",
+  "1544444444444431",
+  "1533333333333331",
+  "1222222222222221",
+  "1111111111111111",
 ];
 
 /**
@@ -215,26 +239,27 @@ export const BOX_SHUT: Pattern = [
  *
  * Still there -- a box that vanished would leave a hole in the wall the author
  * never drew, and in a side-on room that hole is a platform somebody was
- * standing on. What changes is the middle: the stud is gone and what is left
- * is dark, which is what "already had this one" looks like at a glance.
+ * standing on. What goes is the colour and the mark: dull, sunken, and plainly
+ * already had. "Nothing in this one" has to read as fast as "something in this
+ * one" did, or a child hits every box in the room twice.
  */
 export const BOX_OPENED: Pattern = [
-  "5555555555555555",
-  "5333333333333335",
-  "5322222222222235",
-  "5322111111112235",
-  "5321111111111235",
-  "5321111111111235",
-  "5321111111111235",
-  "5321111111111235",
-  "5321111111111235",
-  "5321111111111235",
-  "5321111111111235",
-  "5321111111111235",
-  "5322111111112235",
-  "5322222222222235",
-  "5333333333333335",
-  "5555555555555555",
+  "1111111111111111",
+  "1222222222222221",
+  "1233333333333331",
+  "1232222222222331",
+  "1232222222222331",
+  "1232222222222331",
+  "1232222222222331",
+  "1232222222222331",
+  "1232222222222331",
+  "1232222222222331",
+  "1232222222222331",
+  "1232222222222331",
+  "1232222222222331",
+  "1233333333333331",
+  "1333333333333331",
+  "1111111111111111",
 ];
 
 const LADDER: Pattern = [

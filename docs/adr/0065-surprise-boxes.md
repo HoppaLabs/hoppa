@@ -77,6 +77,38 @@ difference is one red stud instead of a gold one. That is precisely the line
 hard rule 5 draws — the engine says "box", and who is allowed to know more than
 that is a question about the screen, not about the game.
 
+## The box wears a question mark
+
+Asked twice:
+
+> In the game will the boxes have question marks on them?
+
+> The box art needs to be more colourful, vibrant, use a question mark label, it
+> needs to be more appealing/tempting to hit.
+
+The first drawing was a brown crate with a small gold stud, drawn that way out of
+caution about whose sign a question mark is. **That caution was misplaced and it
+cost the thing its job.**
+
+A question mark is a typographic character, not anybody's expression. What would
+not be all right is copying somebody's *block* — their exact colour, their bevel,
+their rivets, their letterform. This is our palette, our outline, our "?" and our
+box.
+
+And a box has exactly one job before it is hit, which is *to be hit*. It has to
+say "there is something in here, come and get it" from across a room, on a
+fifteen-pixel tile, to somebody who cannot read. A brown crate says **scenery**,
+and scenery is what a child walks past.
+
+So it is gold, lit from above, with a hard dark edge to lift it off the wall it
+stands in and a white mark in the middle where the eye lands. The opened one
+loses both the colour and the mark: "nothing in this one" has to read as fast as
+"something in this one" did, or a child hits every box in the room twice.
+
+The editor's monster box is **the whole box in red**, not one pixel of it — the
+author reads a room full of these at a glance while laying them out, and a
+difference you have to hunt for is a difference that gets laid wrong.
+
 ## Two ways to knock
 
 | | how you open one |

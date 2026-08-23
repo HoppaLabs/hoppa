@@ -807,11 +807,15 @@ export const WATER_IN_AIR = "#5fc8f5";
 /**
  * The box a monster is in, in the LEVEL EDITOR and nowhere else.
  *
- * The same crate, with the stud burning red instead of gold. The author laid
+ * The same box, the same question mark, RED instead of gold. The author laid
  * the trap and is entitled to see where they put it; the player is not, which
  * is why no engine ever emits TILE_BOX_ENEMY.
+ *
+ * The whole box changes colour rather than one pixel of it, because the author
+ * is reading a whole room of these at a glance while they lay them out -- and
+ * a difference you have to hunt for is a difference that gets laid wrong.
  */
-export const BOX_TRAP_RAMP: readonly number[] = [1, 49, 51, 52, 3, 40];
+export const BOX_TRAP_RAMP: readonly number[] = [1, 38, 39, 40, 29, 5];
 export const OUTLINE_INK = 5;
 
 /** The same creature, lit up. Presentation only; no engine is told. */
