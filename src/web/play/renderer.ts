@@ -455,6 +455,58 @@ const DOOR_OPEN: readonly Pattern[] = [[
   "................",
 ]];
 
+/**
+ * An airlock, for the station.
+ *
+ *     "I don't think brown airlock good in the sci-fi level"
+ *
+ * Quite right: space was absent from both tables below, so it inherited the
+ * shared drawing, which is a padlocked OAK DOOR. A wooden door in a space
+ * station is the one thing in that world a child would actually query.
+ *
+ * The same gap the city and the garden each had in turn, and the reason it
+ * keeps happening is that the fallback is silent -- a new world gets a door
+ * and nobody is told it looks wrong. It is a hatch here: a ring of bolts, a
+ * handle across it, and a glass port lit from inside.
+ */
+const AIRLOCK_SHUT: Pattern = [
+  "................",
+  ".11111111111111.",
+  ".14444545544441.",
+  ".13455522555431.",
+  ".13552222225531.",
+  ".13522666622531.",
+  ".15526666662551.",
+  ".14225555552241.",
+  ".15225555552251.",
+  ".15526666662551.",
+  ".13522666622531.",
+  ".13552222225531.",
+  ".13455522555431.",
+  ".12222545522221.",
+  ".11111111111111.",
+  "................",
+];
+
+const AIRLOCK_OPEN: Pattern = [
+  "................",
+  ".11111111111111.",
+  ".12222333322221.",
+  ".12233344333221.",
+  ".12334444443321.",
+  ".12344444444321.",
+  ".13344444444331.",
+  ".13444444444431.",
+  ".13444444444431.",
+  ".13344444444331.",
+  ".12344444444321.",
+  ".12334444443321.",
+  ".12233344333221.",
+  ".12222333322221.",
+  ".11111111111111.",
+  "................",
+];
+
 /** Frame, face, brass or glow. */
 const DOOR_INKS: Record<string, readonly string[]> = {
   // Oak: edge, shadow, face, lit; then brass and its shine.
@@ -484,6 +536,8 @@ const DOOR_BY_WORLD: Record<string, { shut: Pattern; open: Pattern }> = {
   beach: { shut: CHEST_SHUT, open: CHEST_OPEN },
   // ...and the garden, which had been drawing the dungeon's door on a lawn.
   garden: { shut: GARDEN_DOOR_SHUT, open: GARDEN_DOOR_OPEN },
+  // ...and the station, which had been drawing an oak door in orbit.
+  space: { shut: AIRLOCK_SHUT, open: AIRLOCK_OPEN },
 };
 
 const DOOR_INKS_BY_WORLD: Record<string, Record<string, readonly string[]>> = {
@@ -503,6 +557,13 @@ const DOOR_INKS_BY_WORLD: Record<string, Record<string, readonly string[]>> = {
   beach: {
     shut: ["#2b1a0b", "#6e3407", "#a7510c", "#de7713", "#a57c0c", "#dbaa13"],
     open: ["#2b1a0b", "#6e3407", "#a7510c", "#de7713", "#ffc23d", "#ffe9a3"],
+  },
+  space: {
+    // Hull steel, the ring, and the port lit from inside: sealed.
+    shut: ["#0d1014", "#39485c", "#7c8899", "#cdd6e0", "#b3c0cf", "#3ae3d1"],
+    // Open, and the four inks the shared open door uses: frame, the dark
+    // beyond, glow, and the light you step into.
+    open: ["#0d1014", "#052f2f", "#13b4a5", "#80fdef"],
   },
   garden: {
     // Honey wood, brass, and one pane of glass.
@@ -550,78 +611,78 @@ export function doorShape(world: string, open: boolean): Pattern {
  * whole thing wobbling.
  */
 const FLAG_FURLED: Pattern = [
-  "................",
-  "..33............",
-  "..33............",
-  "..3344..........",
-  "..33244.........",
-  "..332244........",
-  "..332224........",
-  "..332244........",
-  "..33244.........",
-  "..3344..........",
-  "..33............",
-  "..33............",
-  "..33............",
-  ".1331...........",
-  "113311..........",
-  "1111111.........",
+  ".4444...........",
+  ".4334...........",
+  ".4334...........",
+  ".43344..........",
+  ".433244.........",
+  ".4332244........",
+  ".4332224........",
+  ".4332244........",
+  ".433244.........",
+  ".43344..........",
+  ".4334...........",
+  ".4334...........",
+  "443344..........",
+  "4133144.........",
+  "11331144........",
+  "11111114........",
 ];
 
 const FLAG_FLYING: readonly Pattern[] = [
   [
-    "................",
-    "..33............",
-    "..3344444444....",
-    "..3325555554....",
-    "..3325222254....",
-    "..3325222254....",
-    "..3325555554....",
-    "..3344444444....",
-    "..33............",
-    "..33............",
-    "..33............",
-    "..33............",
-    "..33............",
-    ".1331...........",
-    "113311..........",
-    "1111111.........",
+    ".4444...........",
+    ".4334...........",
+    ".43344444444....",
+    ".43325555554....",
+    ".43325222254....",
+    ".43325222254....",
+    ".43325555554....",
+    ".43344444444....",
+    ".4334...........",
+    ".4334...........",
+    ".4334...........",
+    ".4334...........",
+    "443344..........",
+    "4133144.........",
+    "11331144........",
+    "11111114........",
   ],
   [
-    "................",
-    "..33............",
-    "..334444444.....",
-    "..33255555444...",
-    "..33252222554...",
-    "..33252222554...",
-    "..33255555444...",
-    "..334444444.....",
-    "..33............",
-    "..33............",
-    "..33............",
-    "..33............",
-    "..33............",
-    ".1331...........",
-    "113311..........",
-    "1111111.........",
+    ".4444...........",
+    ".4334...........",
+    ".4334444444.....",
+    ".433255555444...",
+    ".433252222554...",
+    ".433252222554...",
+    ".433255555444...",
+    ".4334444444.....",
+    ".4334...........",
+    ".4334...........",
+    ".4334...........",
+    ".4334...........",
+    "443344..........",
+    "4133144.........",
+    "11331144........",
+    "11111114........",
   ],
   [
-    "................",
-    "..33............",
-    "..33...44444....",
-    "..3344455555....",
-    "..3325522225....",
-    "..3325522225....",
-    "..3344455555....",
-    "..33...44444....",
-    "..33............",
-    "..33............",
-    "..33............",
-    "..33............",
-    "..33............",
-    ".1331...........",
-    "113311..........",
-    "1111111.........",
+    ".4444...........",
+    ".4334...........",
+    ".4334.4444444...",
+    ".433444555554...",
+    ".433255222254...",
+    ".433255222254...",
+    ".433444555554...",
+    ".4334.4444444...",
+    ".4334...........",
+    ".4334...........",
+    ".4334...........",
+    ".4334...........",
+    "443344..........",
+    "4133144.........",
+    "11331144........",
+    "11111114........",
   ],
 ];
 
@@ -630,6 +691,29 @@ const FLAGGED: ReadonlySet<string> = new Set(["underground", "outside", "garden"
 
 /**
  * Base, cloth, pole, rim, cloth-mid.
+ *
+ * THE POLE WAS THE SECOND HALF OF THIS AND IT TOOK A SECOND REPORT.
+ *
+ *     "The flag is hard to see in the Egypt levels"
+ *
+ * The measurement below is about the CLOTH, and the cloth was fine -- white
+ * scores 3.83 against the pyramid, better than it manages in the garden or on
+ * the beach. What nobody had measured was the pole, which was #4e2e0f dark
+ * wood, unrimmed, and most of the flag's pixels. Measured the same way:
+ *
+ *                  undergrnd  outside  garden   beach  jungle  pyramid
+ *     dark wood         1.31     1.00    1.32    1.65    1.00     1.07
+ *     pale grey         6.34     1.27    1.21    1.10    3.54     2.60
+ *
+ * 1.00 twice. #4e2e0f IS the jungle's ground colour, and near enough the
+ * pyramid's floor to disappear into it -- the same mistake as the grey flag on
+ * the grey wall, one component along, found by measuring the wrong part of the
+ * object and calling the job done.
+ *
+ * So the pole is pale now, and the rim goes round the WHOLE flag rather than
+ * only the cloth: a two-pixel pale column with a dark edge either side reads
+ * on a dark floor by its middle and on a bright one by its edges. Which is
+ * what the cloth has been doing since the rim went on it.
  *
  * The first version said "bright, because it is the thing you aim at" and then
  * painted the flag #39485c and #7c8899 -- palette 2 and 3, which is the
@@ -671,8 +755,8 @@ const FLAGGED: ReadonlySet<string> = new Set(["underground", "outside", "garden"
  * always matches any colour's brightness. But a flag does not stand in front
  * of a ramp, it stands in one open cell.)
  */
-const FLAG_INKS_SHUT: readonly string[] = ["#2a1a0b", "#ffffff", "#4e2e0f", "#2a1a0b", "#ffffff"];
-const FLAG_INKS_OPEN: readonly string[] = ["#2a1a0b", "#ffd962", "#4e2e0f", "#2a1a0b", "#ffc23d"];
+const FLAG_INKS_SHUT: readonly string[] = ["#2a1a0b", "#ffffff", "#cdd6e0", "#2a1a0b", "#ffffff"];
+const FLAG_INKS_OPEN: readonly string[] = ["#2a1a0b", "#ffd962", "#cdd6e0", "#2a1a0b", "#ffc23d"];
 
 /** The frames this world's exit flies through, or one still drawing. */
 export function doorFrames(world: string, open: boolean): readonly Pattern[] {

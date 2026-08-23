@@ -1742,9 +1742,19 @@ export const JUNGLE: Tileset = {
   name: "jungle",
   hazard: "water",
   // 1-4 are leaf: the dark between, the mass, the lit face, and a specular
-  // where a gap in the canopy lets the sun through. 5-6 are the litter on the
-  // floor, and they are BROWN -- see LITTER.
-  sub: [18, 19, 20, 22, 50, 51, 52, 53],
+  // where a gap in the canopy lets the sun through. 5-6 are the twigs on the
+  // floor, and they stay BROWN even though the floor went green.
+  //
+  // A pale green sprig was tried for the second one and the floor went back to
+  // being a lattice -- the same failure the litter had when it was four evenly
+  // spaced marks, arriving this time through CONTRAST rather than spacing: on
+  // the darkest green in the palette, a near-white green is the brightest
+  // thing in the room and the eye joins them up into rows. Brown on dark green
+  // is about two to one, which is a texture rather than a pattern.
+  //
+  // The whole ramp sits a step brighter than it first did, because the ground
+  // under it went green. See `ground` below.
+  sub: [19, 20, 21, 22, 49, 50, 52, 53],
   wall: BUSH,
   // One on its own is a tree, the garden's rule exactly: a wall cell with no
   // wall beside it, which costs the wire format nothing.
@@ -1761,8 +1771,21 @@ export const JUNGLE: Tileset = {
   // Green water, not blue: this is standing water under trees, and the one
   // thing it must not look like is the sea, which is two skins away.
   fireSub: [12, 13, 14, 15, 5],
-  // Shaded earth. The darkest ground of any world, which is the point.
-  ground: PALETTE[49] as string,
+  // GREEN, and the darkest green there is.
+  //
+  //     "I think the jungle background should be greener"
+  //
+  // It was bare brown earth, on the argument that green has to mean "you
+  // cannot walk there" in every cell -- which is the lesson the garden learned
+  // the hard way, when hedges drawn in the same mid green as the lawn stopped
+  // reading as something you cannot walk through.
+  //
+  // That rule is kept; what changes is which end of the ramp keeps it. The
+  // floor is the DARKEST green in the palette and the foliage above it is the
+  // three brightest, so the two are separated by value rather than by hue --
+  // and a jungle floor is moss and leaf litter in deep shade, not a ploughed
+  // field.
+  ground: PALETTE[18] as string,
 };
 
 /**
