@@ -1201,6 +1201,156 @@ export const PYRAMID_CAST: readonly Enemy[] = [
   },
 ];
 
+/**
+ * The station's three. A machine that walks, a machine that flies, and
+ * whatever it is that got in.
+ */
+export const SPACE_CAST: readonly Enemy[] = [
+  {
+    // Square, because every other creature in this game is round and a robot
+    // only has to be told apart from THEM.
+    //
+    // Limbs lit rather than shadowed. The first cut drew arms and legs in the
+    // darkest ink and they vanished -- space is the one background here that
+    // is darker than a shadow, so the usual way round is exactly wrong.
+    name: "robot",
+    glyph: "G",
+    inks: ["#1a212b", "#39485c", "#7c8899", "#3ae3d1", "#ffffff", "#0d1014"],
+    frames: [
+      [
+        "......6..6......",
+        "......6..6......",
+        "....66366366....",
+        "....64411446....",
+        "....61111116....",
+        "....63333336....",
+        "....63333336....",
+        ".66622222222666.",
+        ".63322222222336.",
+        ".63322444422336.",
+        ".63322444422336.",
+        ".63322222222336.",
+        ".66622222222666.",
+        "....62666626....",
+        "....66....66....",
+        "....66....66....",
+      ],
+      [
+        "......6..6......",
+        "......6..6......",
+        "....66366366....",
+        "....64411446....",
+        "....61111116....",
+        "....63333336....",
+        "....63333336....",
+        ".66622222222666.",
+        ".63322222222336.",
+        ".63322444422336.",
+        ".63322444422336.",
+        ".63322222222336.",
+        ".66322222222366.",
+        "...6266666626...",
+        "...66......66...",
+        "...66......66...",
+      ],
+    ],
+  },
+  {
+    // The rotor hangs off a MAST. Without one the blades came out as two
+    // squares floating either side of the hull, which a child reads as
+    // scenery rather than as a machine about to come at them. And it is three
+    // rows deep for the reason a limb is three columns wide: outline() claims
+    // every pixel touching empty, so a two-deep blade is a solid bar of rim.
+    name: "drone",
+    glyph: "B",
+    inks: ["#26073d", "#6c14b3", "#9f26ea", "#ff432e", "#ffffff", "#1a0526"],
+    frames: [
+      [
+        "................",
+        "................",
+        "................",
+        "6666666666666666",
+        "6333222222223336",
+        "6666662222666666",
+        "......6226......",
+        ".....622226.....",
+        "....62111126....",
+        "....61544516....",
+        "...6214444126...",
+        "....61144116....",
+        "....62111126....",
+        ".....622226.....",
+        "....66666666....",
+        "................",
+      ],
+      [
+        "................",
+        "................",
+        "................",
+        "......6666......",
+        "6666662222666666",
+        "6333222222223336",
+        "6666622222266666",
+        ".....622226.....",
+        "....62111126....",
+        "....61544516....",
+        "...6214444126...",
+        "....61144116....",
+        "....62111126....",
+        ".....622226.....",
+        "....66666666....",
+        "................",
+      ],
+    ],
+  },
+  {
+    // No legs, so the walk beat is the whole body: taller on one frame,
+    // squatter and wider on the other. Two eyes floating in it, because
+    // nothing else about a blob says which way up it is.
+    name: "blob",
+    glyph: "D",
+    inks: ["#0b817a", "#13b4a5", "#3ae3d1", "#80fdef", "#ffffff", "#052f2f"],
+    frames: [
+      [
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+        "......6666......",
+        "....66333366....",
+        "...6555335556...",
+        "..625153351526..",
+        "..625553355526..",
+        "..622222222226..",
+        "..622222222226..",
+        "..622222222226..",
+        "...6222222226...",
+        "..626622226626..",
+        "..66..6666..66..",
+      ],
+      [
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+        "....66666666....",
+        "...6555335556...",
+        "..625153351526..",
+        "..625553355526..",
+        "..622222222226..",
+        "..622222222226..",
+        "..622222222226..",
+        "...6222222226...",
+        "...6666666666...",
+      ],
+    ],
+  },
+];
+
 export const CASTS: Readonly<Record<string, readonly Enemy[]>> = {
   garden: GARDEN_CAST,
   reef: REEF_CAST,
@@ -1208,6 +1358,7 @@ export const CASTS: Readonly<Record<string, readonly Enemy[]>> = {
   city: CITY_CAST,
   jungle: JUNGLE_CAST,
   pyramid: PYRAMID_CAST,
+  space: SPACE_CAST,
 };
 
 /** Every drawing this file holds, for the checks below. */
@@ -1215,6 +1366,7 @@ export const ALL: readonly Enemy[] = [
   ...ENEMIES, ...GARDEN_CAST, ...REEF_CAST, ...BEACH_CAST, ...CITY_CAST,
   ...JUNGLE_CAST,
   ...PYRAMID_CAST,
+  ...SPACE_CAST,
 ];
 
 /**
@@ -1262,7 +1414,7 @@ export function check(): string[] {
   // level stores an enemy as an index and the worlds are alternative art for
   // the same three slots.
   for (const [world, cast] of [["dungeon", ENEMIES], ["garden", GARDEN_CAST], ["reef", REEF_CAST], ["beach", BEACH_CAST],
-    ["city", CITY_CAST], ["jungle", JUNGLE_CAST], ["pyramid", PYRAMID_CAST]] as const) {
+    ["city", CITY_CAST], ["jungle", JUNGLE_CAST], ["pyramid", PYRAMID_CAST], ["space", SPACE_CAST]] as const) {
     if (cast.length !== ENEMIES.length) {
       wrong.push(`${world}: ${cast.length} creatures, want ${ENEMIES.length}`);
     }
@@ -1428,6 +1580,9 @@ function enemiesModule(): string {
   lines.push("");
   lines.push("export const PYRAMID_CAST: readonly Enemy[] = [");
   write(PYRAMID_CAST);
+  lines.push("");
+  lines.push("export const SPACE_CAST: readonly Enemy[] = [");
+  write(SPACE_CAST);
   lines.push("/** Which cast a world uses. Anything not named here uses the dungeon three. */");
   lines.push("export const CASTS: Readonly<Record<string, readonly Enemy[]>> = {");
   lines.push("  garden: GARDEN_CAST,");
@@ -1436,6 +1591,7 @@ function enemiesModule(): string {
   lines.push("  city: CITY_CAST,");
   lines.push("  jungle: JUNGLE_CAST,");
   lines.push("  pyramid: PYRAMID_CAST,");
+  lines.push("  space: SPACE_CAST,");
   lines.push("};");
   lines.push("");
   lines.push("/** The enemy a level glyph means, or undefined. */");

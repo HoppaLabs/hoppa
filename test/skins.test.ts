@@ -59,9 +59,16 @@ test("a skin is chosen by number, whatever engine is carrying it", () => {
 });
 
 test("an unknown skin number falls back rather than failing", () => {
-  // A link from a future build asking for tileset 9 should still play. It gets
-  // its engine's world, which is what it would have got before skins existed.
-  expect(tilesetFor(false, "calm", 9).name).toBe(GARDEN.name);
+  // A link from a future build asking for a skin this build has never heard of
+  // should still play. It gets its engine's world, which is what it would have
+  // got before skins existed at all.
+  //
+  // 14 and 15 rather than the next free number. This test used to say 9, and
+  // it broke the day the space station claimed 9 -- which is the test being
+  // invalidated by exactly the thing it exists to be independent of. The
+  // field is four bits, so 15 is the highest number that can ever be asked
+  // for and there is nowhere left for a skin to grow into it from below.
+  expect(tilesetFor(false, "calm", 14).name).toBe(GARDEN.name);
   expect(tilesetFor(false, "roam", 15).name).toBe(UNDERGROUND.name);
 });
 

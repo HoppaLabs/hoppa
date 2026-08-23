@@ -128,7 +128,7 @@ test("every game is reachable, named, and routed", () => {
   // source, which stopped finding it the moment the palette moved to its own
   // file, and would have gone on passing if the picker had been deleted from
   // one file and left in the other.
-  const named = ["adventure", "platformer", "underwater", "garden", "beach", "city", "jungle", "pyramid"];
+  const named = ["adventure", "platformer", "underwater", "garden", "beach", "city", "jungle", "pyramid", "space"];
   // GAMES lists BUILDS and carries calm twice, so compare against the engines
   // it names rather than its rows.
   const engines = [...new Set(GAMES.map((game) => game.engine))];

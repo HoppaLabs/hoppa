@@ -1509,6 +1509,10 @@ export class GridRenderer {
       return;
     }
     if (!this.sideOn) return;
+    // ...and only where this world HAS weather. "Side-on" used to be the whole
+    // test, which was the same question right up until the side-on game got a
+    // space station and put two clouds in orbit. See Tileset.weather.
+    if (tilesetFor(this.sideOn, this.world, this.skin).weather !== "clouds") return;
     // One art pixel, the same size as every other art pixel on the screen --
     // see artUnit(). The clouds used to be drawn at a fifth of a tile each,
     // which made them three times chunkier than the creature standing under

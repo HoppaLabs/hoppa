@@ -467,6 +467,19 @@ export interface Tileset {
   readonly flow?: Pattern;
   /** A ramp for the current alone: it is light on water, not stone. */
   readonly flowSub?: Ramp;
+  /**
+   * Whether anything drifts across the sky behind this world.
+   *
+   * Stated rather than assumed. The side-on game has drawn clouds since it had
+   * a sky, and the day a space station arrived it drew two of them in orbit --
+   * because "is this side-on" had been standing in for "does this place have
+   * weather", and for one world those were the same question.
+   *
+   * Absent means nothing drifts, which is the right default for anywhere a
+   * new world might be: a cave, a tomb, a vacuum. A world that wants sky has
+   * to say so.
+   */
+  readonly weather?: "clouds";
   /** Painted behind everything, for the parts a pattern leaves transparent. */
   readonly ground: string;
 }
@@ -996,6 +1009,8 @@ export const OUTSIDE: Tileset = {
   // both the sky and the green it is standing on.
   // Metal, lit from the left, on a shadow it casts into its own tile.
   fireSub: [0, 1, 2, 3, 4, 5],
+  // The one world with weather in it. See Tileset.weather.
+  weather: "clouds",
   ground: "#8fc4e8",
 };
 
@@ -1818,8 +1833,75 @@ export const PYRAMID: Tileset = {
   ground: PALETTE[24] as string,
 };
 
+/**
+ * Space, behind the station.
+ *
+ * The side-on game's floor has always been AIR -- nothing at all, so the sky
+ * behind it is uninterrupted -- and out here that reads as a flat navy
+ * rectangle, which is what space looks like to a telescope and not what it
+ * looks like to a nine-year-old. Stars, then, and SPARSE ones, scattered
+ * unevenly for the reason the jungle's leaves are: four evenly spaced marks
+ * in a sixteen pixel tile is not a starfield, it is graph paper.
+ */
+const STARS: Pattern = [
+  "................",
+  ".......5........",
+  "................",
+  "..8.............",
+  "................",
+  "............5...",
+  "................",
+  ".....8..........",
+  "...............5",
+  "................",
+  "........8.......",
+  "................",
+  "....5...........",
+  "..............8.",
+  "................",
+  ".........5......",
+];
+
+/**
+ * The station, seen from the side. The platformer, in orbit.
+ *
+ * Fifth skin, and the one that leans hardest on a drawing meaning something
+ * else. The outdoor world is soil with a bright cap of grass on top, and what
+ * a platform in a space station is, is exactly that shape: a dark mass you
+ * cannot enter with a lit edge you land on. So EARTH and EARTH_TOP become
+ * hull plating with a strip of deck lighting along the top, and not one pixel
+ * was moved to do it -- only the ramp under them.
+ *
+ * The lit edge is CYAN rather than white on purpose. It is the line a child
+ * aims their feet at, and every other bright thing in this game is warm.
+ */
+export const SPACE: Tileset = {
+  id: 9,
+  name: "space",
+  hazard: "fire",
+  // 1-5 are the deck light, dark to bright, where the outdoors has its four
+  // steps of grass. 6-8 are the hull under it, where the outdoors has soil.
+  sub: [12, 13, 14, 16, 17, 1, 2, 3],
+  wall: EARTH,
+  wallTop: EARTH_TOP,
+  floor: STARS,
+  ladder: LADDER,
+  // Steel, not timber: a wooden ladder in a space station is the one thing in
+  // here a child would actually query.
+  ladderSub: [6, 4, 3, 2],
+  // A plasma vent. The flame's own drawing and the flame's own flicker --
+  // what makes it read as machinery rather than as fire is that it is the
+  // wrong COLOUR for fire, which at this size is the whole of the trick.
+  fire: FLAME,
+  fireFrames: FLAME_FRAMES,
+  // Deep blue edge up to a white core: the way a gas flame is lit, which is
+  // the opposite way round from the cave's coal fire.
+  fireSub: [8, 9, 10, 15, 16, 5],
+  ground: PALETTE[6] as string,
+};
+
 export const TILESETS: readonly Tileset[] = [
-  UNDERGROUND, OUTSIDE, REEF, GARDEN, BEACH, CITY, JUNGLE, PYRAMID,
+  UNDERGROUND, OUTSIDE, REEF, GARDEN, BEACH, CITY, JUNGLE, PYRAMID, SPACE,
 ];
 
 /**
@@ -1838,7 +1920,7 @@ export const TILESETS: readonly Tileset[] = [
 export const FIRST_SKIN = 5;
 
 /** The skins a level can ask for by number, by id. */
-const SKINS: Readonly<Record<number, Tileset>> = { 5: BEACH, 6: CITY, 7: JUNGLE, 8: PYRAMID };
+const SKINS: Readonly<Record<number, Tileset>> = { 5: BEACH, 6: CITY, 7: JUNGLE, 8: PYRAMID, 9: SPACE };
 
 /**
  * The tileset for a world.
