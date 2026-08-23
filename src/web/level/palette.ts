@@ -89,8 +89,8 @@ export const TOOLS: readonly Tool[] = [
   //
   // Only where an engine knows what to do with one. A tool that draws a tile
   // the game will not open is worse than a tool that is missing.
-  { glyph: GLYPH_BOX_TREASURE, label: "box: gem", names: { garden: "box: flower", beach: "box: shell", city: "box: people" }, engines: ["dash", "roam"], limit: 6 },
-  { glyph: GLYPH_BOX_ENEMY, label: "box: monster", names: { reef: "box: shark", garden: "box: bear", beach: "box: crab", city: "box: kaiju" }, engines: ["dash", "roam"], limit: 6 },
+  { glyph: GLYPH_BOX_TREASURE, label: "box: gem", names: { garden: "box: flower", beach: "box: shell", city: "box: people" }, engines: ["dash", "roam", "calm", "swim"], limit: 6 },
+  { glyph: GLYPH_BOX_ENEMY, label: "box: monster", names: { reef: "box: shark", garden: "box: bear", beach: "box: crab", city: "box: kaiju" }, engines: ["dash", "roam", "calm", "swim"], limit: 6 },
 ];
 
 /**

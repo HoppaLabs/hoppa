@@ -66,8 +66,9 @@ function travel(game: Runner, held: number, ticks: number): { x: number; y: numb
   return { x: (game.where().x - fromX) / ONE, y: (game.where().y - fromY) / ONE };
 }
 
-test("swim/5 is what a new reef is drawn under", () => {
-  expect(newestBuild("swim")).toBe(5);
+test("swim/5 is superseded, and still routed", () => {
+  // This file tests swim/5 for ever. swim/6 added boxes on top of it.
+  expect(newestBuild("swim")).toBeGreaterThan(5);
 });
 
 test("THE WATER IS UNTOUCHED: a straight swim is tick-for-tick swim/4's", () => {

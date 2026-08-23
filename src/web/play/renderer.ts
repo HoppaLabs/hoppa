@@ -11,8 +11,9 @@ import { Facing } from "./facing.ts";
 import { Stride, Strides, bobs, legShift, strode } from "./stride.ts";
 import { DUST_FRAMES, landed, puffsAt } from "./dust.ts";
 import { dropsAt } from "./pour.ts";
+import { POP_FRAMES, popAt } from "./pop.ts";
 import { FACE_LEFT, FACE_RIGHT } from "../../engines/types.ts";
-import { BOX_OPENED, BOX_RAMP, BOX_SHUT } from "../../core/tileset.ts";
+import { BOX_GEM_RAMP, BOX_OPENED, BOX_RAMP, BOX_SHUT } from "../../core/tileset.ts";
 import { ONE } from "../../core/fixed.ts";
 import { CASTS, ENEMIES } from "../../core/enemies.ts";
 import {
@@ -33,6 +34,7 @@ import {
   TILE_FIRE,
   TILE_BOX,
   TILE_BOX_ENEMY,
+  TILE_BOX_GEM,
   TILE_BOX_OPEN,
   TILE_LADDER,
   TILE_EXIT_LOCKED,
@@ -971,7 +973,7 @@ export function tileChip(
     tile === TILE_WALL ? (set.wallTop ?? set.wall)
     : tile === TILE_FLOOR ? set.floor
     : tile === TILE_LADDER ? set.ladder
-    : tile === TILE_BOX || tile === TILE_BOX_ENEMY ? (set.box ?? BOX_SHUT)
+    : tile === TILE_BOX || tile === TILE_BOX_ENEMY || tile === TILE_BOX_GEM ? (set.box ?? BOX_SHUT)
     : tile === TILE_BOX_OPEN ? (set.boxOpen ?? BOX_OPENED)
     : tile === TILE_FIRE ? set.fire
     : tile === TILE_FLOW ? (set.flow ?? null)
@@ -1029,6 +1031,7 @@ export function tileChip(
       : tile === TILE_FIRE ? set.fireSub
       : tile === TILE_LADDER ? set.ladderSub
       : tile === TILE_BOX_ENEMY ? BOX_TRAP_RAMP
+      : tile === TILE_BOX_GEM ? BOX_GEM_RAMP
       : tile === TILE_BOX || tile === TILE_BOX_OPEN ? (set.boxSub ?? BOX_RAMP)
       : set.sub;
     // The gem and the door carry their own colours rather than the terrain's.
@@ -1058,6 +1061,35 @@ export function tileChip(
  * gem and the door have colours of their own, so they come here instead. Both
  * land on whole pixels the same way.
  */
+/**
+ * Where row `i` of a sixteen-pixel pattern lands, and how tall it is, when the
+ * tile it has to fill is not sixteen pixels.
+ *
+ * THE TOP ROW USED TO BE THE ONE THAT DIED. Both painters did
+ * `Math.floor(i * size / 16)` with a height of `Math.ceil(step)`, and on the
+ * fifteen-pixel tile this game actually draws at, floor(0) and floor(0.9375)
+ * are both ZERO -- so row 1 was painted straight over row 0 and every pattern
+ * lost its first line. Reported as "in the side level it looks like the
+ * treasure is being cropped at the top", which is exactly what it was: a gem
+ * is a diamond and its first row is the point.
+ *
+ * Sixteen rows will not fit in fifteen and one of them has to go. What can be
+ * chosen is WHICH. Rounding instead of flooring moves the collision to the
+ * middle of the pattern, where a lost row is a lost row rather than a lost
+ * silhouette -- a gem keeps its point and its tip, and gives up one line across
+ * its waist where nobody can see it.
+ *
+ * The height is the distance to where the NEXT row starts, so the rows tile
+ * exactly: no overlap painting over a neighbour, no seam letting the ground
+ * through. The squeezed-out row comes back as height zero and simply is not
+ * drawn.
+ */
+function rowAt(i: number, size: number): { top: number; height: number } {
+  const top = Math.round((i * size) / TILE_PX);
+  const next = Math.round(((i + 1) * size) / TILE_PX);
+  return { top, height: (next - top) | 0 };
+}
+
 function paintInked(
   ctx: CanvasRenderingContext2D,
   pattern: Pattern,
@@ -1066,21 +1098,19 @@ function paintInked(
   top: number,
   size: number,
 ): void {
-  const step = size / TILE_PX;
   for (let y = 0; y < TILE_PX; y++) {
     const row = pattern[y] as string;
+    const down = rowAt(y, size);
+    if (down.height === 0) continue;
     for (let x = 0; x < TILE_PX; x++) {
       const ch = row[x] as string;
       if (ch === ".") continue;
       const ink = inks[ch.charCodeAt(0) - 49];
       if (ink === undefined) continue;
+      const across = rowAt(x, size);
+      if (across.height === 0) continue;
       ctx.fillStyle = ink;
-      ctx.fillRect(
-        left + Math.floor(x * step),
-        top + Math.floor(y * step),
-        Math.ceil(step),
-        Math.ceil(step),
-      );
+      ctx.fillRect(left + across.top, top + down.top, across.height, down.height);
     }
   }
 }
@@ -1092,14 +1122,17 @@ function paintPattern(
   set: Tileset,
   size: number,
 ): void {
-  const step = size / TILE_PX;
   for (let y = 0; y < TILE_PX; y++) {
     const row = pattern[y] as string;
+    const down = rowAt(y, size);
+    if (down.height === 0) continue;
     for (let x = 0; x < TILE_PX; x++) {
       const ink = inkOf(set, row[x] as string, sub);
       if (ink === null) continue;
+      const across = rowAt(x, size);
+      if (across.height === 0) continue;
       ctx.fillStyle = ink;
-      ctx.fillRect(Math.floor(x * step), Math.floor(y * step), Math.ceil(step), Math.ceil(step));
+      ctx.fillRect(across.top, down.top, across.height, down.height);
     }
   }
 }
@@ -1188,6 +1221,9 @@ export class GridRenderer {
   private squash = 0;
   private wasAirborne = false;
   private lastVy = 0;
+  /** Frames left of a gem coming out of a box, and which cell it came from. */
+  private pop = 0;
+  private popCell = -1;
   /** Frames of landing dust left to draw, and the feet it was thrown from. */
   private dust = 0;
   private dustX = 0;
@@ -1233,6 +1269,8 @@ export class GridRenderer {
     // against the last frame of the run before it, which is a whole room away.
     this.stride.forget();
     this.strides.forget();
+    this.pop = 0;
+    this.popCell = -1;
     this.sideOn = sideOn;
     this.world = engine;
     this.skin = tilesetId | 0;
@@ -1378,6 +1416,7 @@ export class GridRenderer {
       [TILE_BOX_OPEN, set.boxOpen ?? BOX_OPENED, set.boxSub ?? BOX_RAMP],
       // Editor only: the author is allowed to see which box holds a monster.
       [TILE_BOX_ENEMY, set.box ?? BOX_SHUT, BOX_TRAP_RAMP],
+      [TILE_BOX_GEM, set.box ?? BOX_SHUT, BOX_GEM_RAMP],
     ];
 
     // Fire gets one stamp per frame. Everything else gets one.
@@ -1832,6 +1871,18 @@ export class GridRenderer {
     this.under = under;
   }
 
+  /**
+   * A box just gave up a gem, at this cell.
+   *
+   * Told rather than worked out: the page reads the engine once a tick and the
+   * board draws sixty times a second, so a renderer that tried to spot this
+   * for itself would either miss it or draw it every frame until the next tick.
+   */
+  gemCameOut(cell: number): void {
+    this.pop = POP_FRAMES;
+    this.popCell = cell | 0;
+  }
+
   setSprite(sprite: Sprite | null): void {
     this.sprite = sprite;
     this.stamp = null;
@@ -2264,6 +2315,34 @@ export class GridRenderer {
     // drop on the beats where the legs are out, which is where a walking body
     // actually is.
     const ay = Math.round(px(actor.y) + size / 2 - drawH) + drop;
+    // A gem coming out of a box. Over the board and under the creature, so
+    // walking into your own reward does not hide it. See ./pop.ts.
+    if (this.pop > 0 && this.popCell >= 0) {
+      const shown = popAt(POP_FRAMES - this.pop);
+      if (shown !== null) {
+        this.stampGems(t);
+        const gem = this.gemStamps[0];
+        const unit = artUnit(t);
+        const cx = (this.popCell % GRID_W) * t + t / 2;
+        const cy = ((this.popCell / GRID_W) | 0) * t + t / 2;
+        const side = shown.size * unit;
+        ctx.globalAlpha = shown.fade;
+        if (gem !== undefined) {
+          ctx.drawImage(
+            gem,
+            Math.round(cx - side / 2),
+            Math.round(cy - shown.rise * unit - side / 2),
+            side, side,
+          );
+        } else {
+          ctx.fillStyle = this.ink(TILE_TREASURE);
+          ctx.fillRect(Math.round(cx - side / 2), Math.round(cy - shown.rise * unit - side / 2), side, side);
+        }
+        ctx.globalAlpha = 1;
+      }
+      this.pop -= 1;
+    }
+
     // The floor noticing, drawn UNDER the creature so it never covers the feet
     // it came off. See ./dust.ts.
     if (this.dust > 0) {

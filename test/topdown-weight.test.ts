@@ -23,10 +23,26 @@ import { STUN_TICKS } from "../src/core/steer.ts";
 
 const WHO = PRESETS[0] as (typeof PRESETS)[number];
 
-/** Each world, the build that got a body, and the last one without one. */
+/**
+ * EVERY build that has the body, and the last one without it.
+ *
+ * Every build, not just the newest, and that is the third time this file's
+ * shape has had to be argued about. It used to name one version per world --
+ * whatever was newest -- and each time a newer build landed on top (calm/4 then
+ * calm/5, roam/9 then roam/10) the tests quietly walked off the older one and
+ * mutations in it started SURVIVING. Nothing about those builds had changed;
+ * they are still routed for every link that pinned them. The tests had stopped
+ * looking.
+ *
+ * The same trap caught roam/8's guards and then `freeze-water`'s whole file.
+ * The rule, learned three times: a test of behaviour that older builds still
+ * have must name them, and `newestBuild()` is the wrong default for it.
+ */
 const WORLDS = [
+  { engine: "roam", tiles: 0, weighted: 9, before: 8 },
   { engine: "roam", tiles: 0, weighted: 10, before: 8 },
   { engine: "calm", tiles: 0, weighted: 4, before: 3 },
+  { engine: "calm", tiles: 0, weighted: 5, before: 3 },
   { engine: "raze", tiles: 6, weighted: 2, before: 1 },
 ] as const;
 
@@ -76,12 +92,14 @@ function travel(game: Runner, held: number, ticks: number): { x: number; y: numb
 }
 
 test("every world you look down into is on a build with a body", () => {
-  // `weighted` is the newest build of each, which is where the body landed and
-  // has since carried forward -- roam/10 added boxes on top of roam/9's
-  // movement without touching any of it.
-  for (const world of WORLDS) {
-    expect({ engine: world.engine, newest: newestBuild(world.engine) })
-      .toEqual({ engine: world.engine, newest: world.weighted });
+  // What matters is that the NEWEST of each is one of the builds listed above
+  // as having the body -- not that it is any particular number. Later builds
+  // add things on top (roam/10 and calm/5 added boxes) without touching the
+  // movement underneath.
+  for (const engine of new Set(WORLDS.map((w) => w.engine))) {
+    const bodied = WORLDS.filter((w) => w.engine === engine).map((w) => w.weighted);
+    expect({ engine, onOne: bodied.includes(newestBuild(engine) as never) })
+      .toEqual({ engine, onOne: true });
   }
 });
 
@@ -89,8 +107,8 @@ test("all three take a moment to get going, where the build before did not", () 
   for (const world of WORLDS) {
     const old = travel(start(world, world.before), HELD_RIGHT, 4).x;
     const now = travel(start(world, world.weighted), HELD_RIGHT, 4).x;
-    expect({ engine: world.engine, slower: now < old * 0.8, moving: now > 0 })
-      .toEqual({ engine: world.engine, slower: true, moving: true });
+    expect({ engine: `${world.engine}/${world.weighted}`, slower: now < old * 0.8, moving: now > 0 })
+      .toEqual({ engine: `${world.engine}/${world.weighted}`, slower: true, moving: true });
   }
 });
 
@@ -98,8 +116,8 @@ test("all three reach the same top speed, so no room got slower to cross", () =>
   for (const world of WORLDS) {
     const old = travel(start(world, world.before), HELD_RIGHT, 40).x;
     const now = travel(start(world, world.weighted), HELD_RIGHT, 40).x;
-    expect({ engine: world.engine, kept: now > old * 0.9 })
-      .toEqual({ engine: world.engine, kept: true });
+    expect({ engine: `${world.engine}/${world.weighted}`, kept: now > old * 0.9 })
+      .toEqual({ engine: `${world.engine}/${world.weighted}`, kept: true });
   }
 });
 
@@ -108,8 +126,8 @@ test("all three carry on for a moment after you let go", () => {
     const game = start(world, world.weighted);
     travel(game, HELD_RIGHT, 20);
     const coast = travel(game, HELD_NONE, 10).x;
-    expect({ engine: world.engine, coasted: coast > 0.1 })
-      .toEqual({ engine: world.engine, coasted: true });
+    expect({ engine: `${world.engine}/${world.weighted}`, coasted: coast > 0.1 })
+      .toEqual({ engine: `${world.engine}/${world.weighted}`, coasted: true });
   }
 });
 
@@ -118,14 +136,14 @@ test("in none of them is a diagonal a speed boost any more", () => {
     const straight = travel(start(world, world.weighted), HELD_RIGHT, 40).x;
     const d = travel(start(world, world.weighted), HELD_RIGHT | HELD_DOWN, 40);
     const across = Math.sqrt(d.x * d.x + d.y * d.y);
-    expect({ engine: world.engine, fair: across < straight * 1.05 })
-      .toEqual({ engine: world.engine, fair: true });
+    expect({ engine: `${world.engine}/${world.weighted}`, fair: across < straight * 1.05 })
+      .toEqual({ engine: `${world.engine}/${world.weighted}`, fair: true });
 
     const oldStraight = travel(start(world, world.before), HELD_RIGHT, 40).x;
     const oldD = travel(start(world, world.before), HELD_RIGHT | HELD_DOWN, 40);
     const oldAcross = Math.sqrt(oldD.x * oldD.x + oldD.y * oldD.y);
-    expect({ engine: world.engine, wasFaster: oldAcross > oldStraight * 1.3 })
-      .toEqual({ engine: world.engine, wasFaster: true });
+    expect({ engine: `${world.engine}/${world.weighted}`, wasFaster: oldAcross > oldStraight * 1.3 })
+      .toEqual({ engine: `${world.engine}/${world.weighted}`, wasFaster: true });
   }
 });
 
@@ -149,16 +167,16 @@ test("all three walk you into line with a doorway you nearly missed", () => {
       if (getsThrough(world, world.weighted, true, nudge)) now = (now + 1) | 0;
       if (getsThrough(world, world.before, true, nudge)) before = (before + 1) | 0;
     }
-    expect({ engine: world.engine, better: now > before + 1 })
-      .toEqual({ engine: world.engine, better: true });
+    expect({ engine: `${world.engine}/${world.weighted}`, better: now > before + 1 })
+      .toEqual({ engine: `${world.engine}/${world.weighted}`, better: true });
   }
 });
 
 test("...and none of them lets you past a wall with no door in it", () => {
   for (const world of WORLDS) {
     for (let nudge = 0; nudge <= 20; nudge = (nudge + 1) | 0) {
-      expect({ engine: world.engine, nudge, through: getsThrough(world, world.weighted, false, nudge) })
-        .toEqual({ engine: world.engine, nudge, through: false });
+      expect({ engine: `${world.engine}/${world.weighted}`, nudge, through: getsThrough(world, world.weighted, false, nudge) })
+        .toEqual({ engine: `${world.engine}/${world.weighted}`, nudge, through: false });
     }
   }
 });
@@ -170,8 +188,8 @@ test("...nor even shuffles you sideways there", () => {
     for (let i = 0; i < 70; i = (i + 1) | 0) game.step(HELD_RIGHT);
     const parked = game.where().y;
     for (let i = 0; i < 40; i = (i + 1) | 0) game.step(HELD_RIGHT);
-    expect({ engine: world.engine, y: game.where().y })
-      .toEqual({ engine: world.engine, y: parked });
+    expect({ engine: `${world.engine}/${world.weighted}`, y: game.where().y })
+      .toEqual({ engine: `${world.engine}/${world.weighted}`, y: parked });
   }
 });
 
@@ -191,17 +209,17 @@ function swings(game: Runner, down: (tick: number) => boolean): number {
 test("all three remember a swing asked for during the last one", () => {
   for (const world of WORLDS) {
     expect({
-      engine: world.engine,
+      engine: `${world.engine}/${world.weighted}`,
       now: swings(start(world, world.weighted), (t) => t === 0 || t === 3),
       before: swings(start(world, world.before), (t) => t === 0 || t === 3),
-    }).toEqual({ engine: world.engine, now: 2, before: 1 });
+    }).toEqual({ engine: `${world.engine}/${world.weighted}`, now: 2, before: 1 });
   }
 });
 
 test("...and in none of them does letting go buy one more swing", () => {
   for (const world of WORLDS) {
-    expect({ engine: world.engine, count: swings(start(world, world.weighted), (t) => t < 12) })
-      .toEqual({ engine: world.engine, count: 2 });
+    expect({ engine: `${world.engine}/${world.weighted}`, count: swings(start(world, world.weighted), (t) => t < 12) })
+      .toEqual({ engine: `${world.engine}/${world.weighted}`, count: 2 });
   }
 });
 
@@ -219,17 +237,17 @@ function hitByAGuard(world: World, behaviour: number): Runner | null {
 test("all three throw you when you are hit, rather than teleporting you", () => {
   for (const world of WORLDS) {
     const game = hitByAGuard(world, world.weighted);
-    expect({ engine: world.engine, hit: game !== null }).toEqual({ engine: world.engine, hit: true });
+    expect({ engine: `${world.engine}/${world.weighted}`, hit: game !== null }).toEqual({ engine: `${world.engine}/${world.weighted}`, hit: true });
     if (game === null) continue;
     // Still holding RIGHT, straight back into the guard, and still going left
     // -- and unable to even turn round while the stun lasts.
-    expect({ engine: world.engine, facing: game.where().facing })
-      .toEqual({ engine: world.engine, facing: FACE_RIGHT });
+    expect({ engine: `${world.engine}/${world.weighted}`, facing: game.where().facing })
+      .toEqual({ engine: `${world.engine}/${world.weighted}`, facing: FACE_RIGHT });
     for (let i = 0; i < STUN_TICKS - 1; i = (i + 1) | 0) {
       const before = game.where().x;
       game.step(HELD_LEFT);
-      expect({ engine: world.engine, i, back: game.where().x < before, facing: game.where().facing })
-        .toEqual({ engine: world.engine, i, back: true, facing: FACE_RIGHT });
+      expect({ engine: `${world.engine}/${world.weighted}`, i, back: game.where().x < before, facing: game.where().facing })
+        .toEqual({ engine: `${world.engine}/${world.weighted}`, i, back: true, facing: FACE_RIGHT });
     }
   }
 });
@@ -247,7 +265,7 @@ test("...where the build before moved you a whole cell in one tick", () => {
         break;
       }
     }
-    expect({ engine: world.engine, teleported: jump > 1 })
-      .toEqual({ engine: world.engine, teleported: true });
+    expect({ engine: `${world.engine}/${world.weighted}`, teleported: jump > 1 })
+      .toEqual({ engine: `${world.engine}/${world.weighted}`, teleported: true });
   }
 });

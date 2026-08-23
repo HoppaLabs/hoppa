@@ -708,6 +708,18 @@ function listen(): void {
 
 function paint(): void {
   if (moving !== null) {
+    // A box that just paid out. Read once a TICK, because that is how often
+    // the engine can have opened one -- the board draws sixty times a second
+    // and would otherwise restart the animation on every frame of it.
+    const boxes = moving as unknown as {
+      justOpened?: () => boolean;
+      openedCell?: () => number;
+      openedWasGem?: () => boolean;
+    };
+    if (boxes.justOpened?.() === true && boxes.openedWasGem?.() === true) {
+      renderer.gemCameOut(boxes.openedCell?.() ?? -1);
+    }
+
     renderer.drawMoving(
       moving.render(),
       {

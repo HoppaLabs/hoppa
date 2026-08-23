@@ -171,3 +171,55 @@ Both mine, both the same shape — a test that failed while the code was fine:
   for a tap, which does not reach a box two rows up. The head-bump test tapped,
   and read as the bump not working — the same trap that cost three wrong guesses
   in `0058`.
+
+## Every world except the city
+
+> All levels except city should have mystery boxes.
+
+`calm/5` (garden and beach) and `swim/6` (reef) join `dash/10` and `roam/10`.
+The city is the one world left out, and it is the right one to leave out: it
+already has buildings a strong creature brings down, and a crate in the street
+would be one more thing to hit rather than a surprise.
+
+Underwater the box behaves exactly as it does everywhere else — the weapon is
+the only way in, because nothing falls in that game and there is no jumping into
+one from below.
+
+## The gem has to be seen coming out
+
+> It needs to be clear they got a gem. At the moment it happens so quick you
+> don't realise it was a gem and it looks empty, at least on the from above
+> levels.
+
+The cause was in the engine's favour rather than against it: a gem in a box goes
+**straight into your purse**, because the box was a wall and the cell it leaves
+behind is somewhere you have not stood — a gem you had to go back for would read
+as one you had missed. So nothing was ever dropped on the floor, and from above,
+where there is no gravity to sell the moment, opening a gem box looked exactly
+like opening an empty one.
+
+The counter did go up. **A counter going up is not an event**: a child watching
+their creature does not have the treasure line in their eye, and the whole reason
+boxes are worth having is the moment you find out.
+
+So the gem is drawn coming out — up fast, then hanging, then fading, about half
+a second. It is drawn *after* the fact, which is worth being clear about: by the
+time it runs, the box is open and the player has already seen what was inside.
+Nothing in it can tell anybody what is in a box that is still shut.
+
+## Not yet: boxes in the shipped rooms
+
+A child only meets a box today in a level they draw or are sent, because **no
+shipped room has one** — and that is a real gap in "kids will like surprising
+their friends", since nobody meets the mechanic first.
+
+The blocker is the bot, and it is worth writing down rather than working around.
+A gem in a box counts toward the door; the bot only swings at an enemy standing
+next to it, and a box is a **wall**, so the bot routes around one and never
+faces it. A shipped room with a gem box in it would be a room the bot can never
+finish, and the bot clearing every room with every creature is the check that
+stops an unplayable level shipping.
+
+Monster boxes would be safe today — they gate nothing. The honest fix is to
+teach the bot to knock on a box that stands between it and a gem it still needs,
+and that is its own piece of work.

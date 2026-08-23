@@ -76,5 +76,18 @@ export const TILE_BOX_OPEN = 14;
  * to know more than that is a question about the screen, not about the game.
  */
 export const TILE_BOX_ENEMY = 15;
+/**
+ * A box the AUTHOR can see holds a gem. Editor only, like TILE_BOX_ENEMY.
+ *
+ * Both of the editor's boxes are their own index, and neither is the one the
+ * game draws. That is deliberate: if the gem box in the editor were painted
+ * the same colour as the box in PLAY, then anybody who had ever opened the
+ * editor would know that a box of that colour holds a gem -- and the author of
+ * a level is exactly the person most likely to have opened the editor.
+ *
+ * So the player's box is a third colour that means nothing: it is not the
+ * editor's yes and it is not the editor's no.
+ */
+export const TILE_BOX_GEM = 16;
 
-export const TILE_COUNT = 16;
+export const TILE_COUNT = 17;

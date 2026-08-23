@@ -1,50 +1,21 @@
-// Roam, behaviour version 10. From above, real time.
+// calm/5: the garden and the beach, with mystery boxes in them.
 //
-// v10 puts boxes in the room.
+//     "All levels except city should have mystery boxes."
 //
-//     "What about if we had question mark boxes like in Mario -- it gives you
-//      treasure or maybe unleashes an enemy? Kids will like surprising their
-//      friends."
-//     "I want the author to decide if it's treasure or an enemy."
+// A copy of calm/4, not an edit of it (hard rule 3). What is added is roam/10's
+// boxes, unchanged: a WALL until somebody hits it, holding a gem or a monster,
+// and which one is the AUTHOR's choice and travels in the link.
 //
-// A box is a WALL until somebody hits it. That is the whole mechanic and it is
-// why it is worth having: it blocks the way, so you have to deal with it, and
-// dealing with it is a gamble the person who drew the room already knows the
-// answer to.
+// Both kinds look identical in play. A trap your friend can see coming is not
+// a trap; the editor draws them apart because the author is the one person
+// entitled to know.
 //
-// WHAT COMES OUT IS THE AUTHOR'S CHOICE, AND IT IS ON THE WIRE
+// Everything else is calm/4 exactly: the same body, the same wand freezing the
+// same pond, the same bear that means it.
 //
-// The first design derived the contents from the level's seed and the cell,
-// which cost nothing at all and was wrong: a surprise the author cannot aim is
-// a lottery, not a level. The whole point is the child who hides a bear behind
-// the gem their friend is bound to go for. One bit per box, in the link.
-//
-// BOTH KINDS LOOK THE SAME IN PLAY
-//
-// The engine emits TILE_BOX for a box holding a gem and TILE_BOX for a box
-// holding a bear. It has to: a trap your friend can see coming is not a trap.
-// The level editor draws them apart because the author is the one person
-// entitled to know, and that is a fact about the screen rather than about the
-// game -- which is exactly the line hard rule 5 draws.
-//
-// A GEM IN A BOX IS A GEM
-//
-// It counts toward the level's treasure and therefore toward the door. That is
-// what stops boxes being decoration: a room can put a gem in a box and mean it,
-// and the friend has to open the thing to get out. The slots come after the
-// level's own gems in the same mask, so a room may hold eight between them.
-//
-// A MONSTER IN A BOX IS ALREADY IN THE ROOM
-//
-// It is built at construction like every other enemy and simply not let out
-// yet, because an engine that allocates on a tick is an engine whose replay
-// depends on when things happened. Nothing is created here; a door is opened.
-//
-// roam/9 stays and stays exact. Every link ever sent still replays.
-
 import { hashInit, hashInt32 } from "../../core/hash.ts";
 import { GRID_H, GRID_W, idx } from "../../core/grid.ts";
-import { BOX_HOLDS_ENEMY, isFire, isWall, type Level } from "../../core/level.ts";
+import { BOX_HOLDS_ENEMY, isFire, isLadder, isWall, type Level } from "../../core/level.ts";
 import { patrolsFor, type Patrol } from "../../core/patrol.ts";
 import { BRUK, type Creature } from "../../core/creature.ts";
 import { ONE, cellCentre, chebyshev, clamp, sign, toCell, towards } from "../../core/fixed.ts";
@@ -53,9 +24,10 @@ import {
   walkAccelFor, walkDragFor, worthSlipping,
 } from "../../core/steer.ts";
 import {
-  TILE_ACTOR, TILE_EXIT_LOCKED, TILE_EXIT_OPEN, TILE_FIRE, TILE_FLOOR,
+  TILE_ACTOR, TILE_EXIT_LOCKED, TILE_EXIT_OPEN, TILE_FIRE, TILE_FLOOR, TILE_FROZEN,
   TILE_BOX, TILE_BOX_OPEN,
   TILE_GUARD, TILE_GUARD_REELING, TILE_TREASURE, TILE_WALL,
+  TILE_LADDER,
 } from "../../core/tiles.ts";
 import {
   FACE_DOWN, FACE_DX, FACE_DY, FACE_LEFT, FACE_RIGHT, FACE_UP,
@@ -64,7 +36,7 @@ import {
   type Capability, type Engine, type Status,
 } from "../types.ts";
 
-export const ROAM_V10_BEHAVIOUR = 10;
+export const CALM_V5_BEHAVIOUR = 5;
 
 /** Ticks before the dark takes you. 30 a second, so two minutes. */
 export const TICK_CAP = 3600;
@@ -135,6 +107,26 @@ const HITS_BY_PIP: readonly number[] = [4, 3, 3, 2, 2, 1];
  * short it would just be a worse sword, and nobody would ever pick it.
  */
 const FREEZE_BY_PIP: readonly number[] = [90, 110, 130, 150, 170, 190];
+
+/**
+ * How long a wand holds WATER solid, by strength pips.
+ *
+ * The same numbers as the enemy freeze on purpose. A wand does one thing --
+ * it makes a dangerous thing safe for a while -- and a child who has learned
+ * how long a frozen bear stays frozen has learned how long a frozen pond
+ * stays frozen. Two different durations would be two things to learn for no
+ * reason.
+ *
+ * Long enough to cross what you can freeze: at no pips it is three seconds,
+ * and a pond is at most MAX_FIRE cells across.
+ */
+const ICE_BY_PIP: readonly number[] = [90, 110, 130, 150, 170, 190];
+
+/** How long this creature's wand holds water. Zero for a sword. */
+export function iceTicksFor(creature: Creature): number {
+  if (creature.weapon !== "wand") return 0;
+  return ICE_BY_PIP[pipOf(creature.caps.FORCE)] as number;
+}
 /**
  * How close to its home cell an enemy has to be before it counts as back on
  * patrol. Half a cell -- the corridor walk snaps it the rest of the way.
@@ -223,9 +215,20 @@ export function downTicksFor(creature: Creature): number {
     : (STUN_BY_PIP[pipOf(creature.caps.FORCE)] as number);
 }
 
+/** Index into ENEMY_GLYPHS. 0 is the bear, and only the bear does anything. */
+const BEAR = 0;
+
 interface Enemy {
   x: number;
   y: number;
+  /**
+   * Which of the three it is, straight off the level.
+   *
+   * Read HERE and nowhere else in the project -- see the note at the top. It
+   * is fixed level data, so two replays of one log agree about it without it
+   * joining the hash, exactly as the walls do.
+   */
+  art: number;
   /** Which way along its corridor it walks: +1 or -1. */
   dir: number;
   stun: number;
@@ -237,18 +240,16 @@ interface Enemy {
   /**
    * 1 while it is still inside a box.
    *
-   * It exists from the first tick, standing where its box stands, taking no
-   * part in anything -- an engine that allocated an enemy mid-run would be an
-   * engine whose replay depended on WHEN something happened, and every enemy
-   * after it in the list would shift. Opening the box clears this flag; that
-   * is the whole of "unleashing" one.
+   * Built at construction like every other enemy and simply not let out yet:
+   * an engine that allocated one mid-run would be an engine whose replay
+   * depended on when things happened.
    */
   hidden: number;
 }
 
-export class RoamV10 implements Engine {
-  readonly id = "roam" as const;
-  readonly behaviourVersion = ROAM_V10_BEHAVIOUR;
+export class CalmV5 implements Engine {
+  readonly id = "calm" as const;
+  readonly behaviourVersion = CALM_V5_BEHAVIOUR;
   readonly consumes = CONSUMES;
 
   private readonly level: Level;
@@ -273,7 +274,7 @@ export class RoamV10 implements Engine {
   private swing: number;
   /** Ticks left of the pour, for the picture. 0 when not pouring. */
   private pour: number;
-  /** Sideways and downward speed, in subcells per tick. New in v9. */
+  /** Speed on each axis, in subcells per tick. New in this build. */
   private vx: number;
   private vy: number;
   /** Ticks the player has no say, after being thrown by a hit. */
@@ -291,14 +292,7 @@ export class RoamV10 implements Engine {
   private readonly boxEnemy: Int16Array;
   /** True on the tick a box was opened. Presentation only. */
   private openedThisTick = false;
-  /**
-   * Which cell that was, and whether a gem came out of it.
-   *
-   * Presentation only, and it is a fact about a tick that has already
-   * happened: by the time the page reads this, the box is open and the player
-   * has SEEN what was in it. Nothing here tells anybody what is in a box that
-   * is still shut.
-   */
+  /** Which cell that was, and whether a gem came out. Presentation only. */
   private openedCellAt = -1;
   private openedGave = false;
   /**
@@ -309,6 +303,19 @@ export class RoamV10 implements Engine {
    * paved with it.
    */
   private readonly doused: Uint8Array;
+  /**
+   * Ticks of ice left on each entry in level.fireCells, or 0 for open water.
+   *
+   * Int16 rather than a flag, because unlike dousing this WEARS OFF -- which is
+   * the whole character of a wand. Authoritative state: two runs of the same
+   * log have to agree about which cells were solid when somebody walked over
+   * them, or a shared level does not replay.
+   */
+  private readonly ice: Int16Array;
+  /** How long this creature's wand holds it. Zero for a sword. */
+  private readonly iceTicks: number;
+  /** True on the tick a wave froze water. Presentation only. */
+  private frozeWaterThisTick = false;
   private mercy: number;
   private status: Status;
   private allTreasure: number;
@@ -322,7 +329,7 @@ export class RoamV10 implements Engine {
 
   constructor(level: Level, creature: Creature = BRUK) {
     if (level.treasureCells.length > MAX_TREASURE) {
-      throw new Error(`level has ${level.treasureCells.length} treasures; roam v10 holds ${MAX_TREASURE}`);
+      throw new Error(`level has ${level.treasureCells.length} treasures; roam v5 holds ${MAX_TREASURE}`);
     }
     this.level = level;
     this.creature = creature;
@@ -348,6 +355,8 @@ export class RoamV10 implements Engine {
     this.swingBuffer = 0;
     this.actWasDown = false;
     this.doused = new Uint8Array(level.fireCells.length);
+    this.ice = new Int16Array(level.fireCells.length);
+    this.iceTicks = iceTicksFor(creature) | 0;
     this.mercy = 0;
     this.status = STATUS_PLAYING;
     this.allTreasure = ((1 << level.treasureCells.length) - 1) | 0;
@@ -363,14 +372,14 @@ export class RoamV10 implements Engine {
       this.enemies.push({
         x: cellCentre(home % GRID_W),
         y: cellCentre((home / GRID_W) | 0),
+        art: (this.level.guardArt[i] ?? BEAR) | 0,
         dir: 1, stun: 0, chasing: 0,
         hp: this.enemyHits | 0, down: 0, hidden: 0,
       });
     }
 
-    // The boxes. A gem in a box takes a treasure slot AFTER the level's own
-    // gems -- the mask is a shipped-link concern, so the room's own treasure
-    // keeps the bits it has always had and boxes take what is left.
+    // The boxes. A gem in one takes a treasure slot AFTER the level's own, so
+    // the room's gems keep the bits they have always had.
     let slot = level.treasureCells.length | 0;
     for (let i = 0; i < level.boxCells.length; i = (i + 1) | 0) {
       const cell = level.boxCells[i] as number;
@@ -380,6 +389,10 @@ export class RoamV10 implements Engine {
           x: cellCentre(cell % GRID_W),
           y: cellCentre((cell / GRID_W) | 0),
           dir: 1, stun: 0, chasing: 0,
+          // Whatever the garden's first creature is. A box does not carry an
+          // art of its own on the wire -- one bit says gem or monster and that
+          // is all -- so what comes out is the world's own first beast.
+          art: 0,
           hp: this.enemyHits | 0, down: 0, hidden: 1,
         });
       } else {
@@ -388,7 +401,7 @@ export class RoamV10 implements Engine {
       }
     }
     if (slot > MAX_TREASURE) {
-      throw new Error(`level has ${slot} gems counting boxes; roam v10 holds ${MAX_TREASURE}`);
+      throw new Error(`level has ${slot} gems counting boxes; this build holds ${MAX_TREASURE}`);
     }
     this.allTreasure = ((1 << slot) - 1) | 0;
   }
@@ -408,6 +421,8 @@ export class RoamV10 implements Engine {
     this.openedThisTick = false;
     this.openedCellAt = -1;
     this.openedGave = false;
+    this.frozeWaterThisTick = false;
+    this.thaw();
     if (this.mercy > 0) this.mercy = (this.mercy - 1) | 0;
     if (this.swing > 0) this.swing = (this.swing - 1) | 0;
     if (this.pour > 0) this.pour = (this.pour - 1) | 0;
@@ -422,17 +437,14 @@ export class RoamV10 implements Engine {
       this.douse();
     }
 
-    // A swing starts when the button goes down; holding it does not flail.
+    // A swing starts when the button goes down; holding it does not flail --
+    // and a press that arrived DURING the last swing is remembered for a few
+    // ticks rather than dropped on the floor, which is felt as the game
+    // ignoring you rather than as you being early. The buffer arms on the EDGE
+    // of the press, so leaning on the button still does not flail.
     //
-    // v9 also REMEMBERS a press that arrived during the last swing. A swing
-    // lasts eight ticks and a child mashing the button lands the second press
-    // inside the first, where it used to be dropped on the floor -- which is
-    // felt as the game ignoring you, not as you being early. The buffer arms on
-    // the EDGE of the press, so leaning on the button still does not flail.
-    //
-    // The bucket deliberately does NOT get this. Pouring is a commitment you
-    // make with the clock, not a reflex, and a remembered pour would empty the
-    // bucket at a fire you had already decided to walk past.
+    // The bucket deliberately does not get this. Pouring is a commitment you
+    // make with the clock, not a reflex.
     const actDown = (buttons & HELD_ACT) !== 0;
     this.swingBuffer = bufferedFor(actDown, this.actWasDown, this.swingBuffer);
     this.actWasDown = actDown;
@@ -440,6 +452,11 @@ export class RoamV10 implements Engine {
       this.swing = SWING_TICKS;
       this.swingBuffer = 0;
       this.strike();
+      // The same wave, at the water. A wand makes dangerous things safe for a
+      // while; a pond is a dangerous thing. Asked for in those words: "use the
+      // wand to freeze water". No new button and no new held bit -- one wave,
+      // one verb, and a sword simply cannot do it (iceTicksFor is 0).
+      this.freezeWater();
     }
 
     this.moveEnemies();
@@ -470,15 +487,15 @@ export class RoamV10 implements Engine {
   }
 
   /**
-   * Walking, with a body.
+   * Walking, with a body. Identical to roam/9's -- see that file and
+   * src/core/steer.ts for the arguments about every number in it.
    *
    * The buttons no longer say where you are, they say which way you are being
-   * pushed. Four ticks to full speed and three to a stop, both scaled to the
+   * pushed: four ticks to full speed and three to a stop, both scaled to the
    * creature's own speed so a fast creature is still fast rather than merely
-   * slower to start. See src/core/steer.ts for the numbers and the arguments
-   * about them.
+   * slower to start.
    *
-   * Being thrown by a hit is the same mechanism with the buttons ignored: the
+   * Being thrown by a hit is the same mechanism with the buttons ignored. The
    * knock is a velocity like any other and the same friction eats it.
    */
   private walk(buttons: number): void {
@@ -519,12 +536,14 @@ export class RoamV10 implements Engine {
    * instead of sticking to it -- and rounding a corner when you are going
    * straight at one and only just missing it.
    *
-   * "Going straight at it" is the other axis being stopped. While you are
-   * still drifting diagonally you are steering, and a game that quietly
-   * corrected your aim mid-turn would be worse than one that did not.
+   * "Going straight at it" is the other axis being stopped. While you are still
+   * drifting diagonally you are steering, and a game that quietly corrected
+   * your aim mid-turn would be worse than one that did not.
    *
-   * The nudge is only taken if the destination fits AND the nudge itself fits,
-   * so this can never post you through the corner of a wall.
+   * The test is whether being PROPERLY lined up would open the way, not merely
+   * whether one nudge happens to clear it -- so leaning on the button walks you
+   * into line over a few ticks, and a wall with no gap in it still stops you
+   * dead because the middle of the row does not fit either.
    */
   private slide(): void {
     const straightX = this.vy === 0;
@@ -536,22 +555,8 @@ export class RoamV10 implements Engine {
       else {
         const step = straightX ? alignStep(this.y) : 0;
         const ny = (this.y + step) | 0;
-        // The test is whether being PROPERLY lined up would open the way --
-        // "there is a door here and you are nearly in it" -- and not merely
-        // whether one nudge happens to clear it. The first version asked the
-        // second question and was barely better than no help at all: it
-        // widened a 32-subcell window to 48, because a near miss of 84 needs
-        // four nudges and the first three each looked like a failure.
-        //
-        // Asking about the middle of the row instead means leaning on the
-        // button walks you into line over a few ticks, and a wall with no door
-        // in it still stops you dead, because the middle of the row does not
-        // fit either.
         if (worthSlipping(step) && this.fits(nx, middleOf(this.y)) && this.fits(this.x, ny)) {
           this.y = ny;
-          // And through, if lining up was all it needed. The speed is NOT
-          // thrown away while lining up: you kept walking, you just walked
-          // into the door frame.
           if (this.fits(nx, this.y)) this.x = nx;
         } else {
           // A wall takes the speed you carried into it. Keeping it would mean
@@ -577,21 +582,34 @@ export class RoamV10 implements Engine {
     }
   }
 
+  /** Does a body centred here clear the walls? */
   /**
    * Is this cell still a wall?
    *
-   * EVERYTHING asks through here -- the player's fits(), the enemies', the
-   * sword's reach -- because a box stops being a wall the moment it is opened
-   * and there must be exactly one place that knows it. raze/1 learned this the
-   * same way when buildings started coming down.
+   * EVERYTHING asks through here, because a box stops being a wall the moment
+   * it is opened and there must be exactly one place that knows it.
    */
   private wallAt(cx: number, cy: number): boolean {
     if (!isWall(this.level, cx, cy)) return false;
     return this.opened[idx(cx, cy)] === 0;
   }
 
-  /** Does a body centred here clear the walls? */
   private fits(x: number, y: number): boolean {
+    // A pond is water, not a flame: you walk ROUND one, or over a bridge. It is
+    // the same entity the other worlds draw as fire, and this is the one engine
+    // that makes it solid. See adr/0040.
+    {
+      const pondX = toCell(x);
+      const pondY = toCell(y);
+      // ...unless it has frozen over, which is the whole point of calm/3. In
+      // the garden a pond is SOLID rather than painful, so ice does not stop
+      // the water hurting you -- there was never any hurt -- it is a way
+      // ACROSS. A plank does the same thing permanently; a wand does it for
+      // as long as the ice lasts.
+      if (isFire(this.level, pondX, pondY)
+        && !isLadder(this.level, pondX, pondY)
+        && this.alight(pondX, pondY)) return false;
+    }
     const left = toCell((x - BODY) | 0);
     const right = toCell((x + BODY) | 0);
     const top = toCell((y - BODY) | 0);
@@ -623,8 +641,11 @@ export class RoamV10 implements Engine {
 
       // Hysteresis: it takes SIGHT to notice you and LOSE_INTEREST to forget,
       // so a guard does not flicker between chasing and strolling on the line.
+      // Only the bear looks up. A bunny that gives chase is not a bunny, and a
+      // garden where everything converges on you is not a garden.
       const distance = chebyshev(enemy.x, enemy.y, this.x, this.y);
-      const near = enemy.chasing !== 0 ? distance <= LOSE_INTEREST : distance <= SIGHT;
+      const near = enemy.art === BEAR
+        && (enemy.chasing !== 0 ? distance <= LOSE_INTEREST : distance <= SIGHT);
       enemy.chasing = near ? 1 : 0;
 
       if (near) {
@@ -730,12 +751,13 @@ export class RoamV10 implements Engine {
     return this.fits(x, y);
   }
 
+  /** The sword. Strength decides how long what you hit stays down. */
   /**
    * Knock on the box in front of you, if there is one.
    *
-   * The cell you are FACING, and only that one. A swing that opened every box
-   * within reach would let a child clear a wall of them from one press, and
-   * the gamble is supposed to be taken one box at a time.
+   * The cell you are FACING, and only that one: a swing that opened every box
+   * within reach would let a child clear a wall of them from one press, and the
+   * gamble is supposed to be taken one box at a time.
    */
   private openBoxAhead(dx: number, dy: number): void {
     const ax = (toCell(this.x) + dx) | 0;
@@ -751,29 +773,25 @@ export class RoamV10 implements Engine {
     this.openedThisTick = true;
     this.openedCellAt = cell | 0;
     this.openedGave = slot >= 0;
-    if (slot >= 0) {
-      // The gem is IN your hand, not on the floor: the box was a wall, so the
-      // cell it leaves behind is somewhere you have not stepped yet, and a gem
-      // you have to go back for is a gem that reads as having been missed.
-      this.collected = (this.collected | (1 << slot)) | 0;
-    }
-    if (seat >= 0) {
-      const out = this.enemies[seat] as Enemy;
-      out.hidden = 0;
-    }
+    if (slot >= 0) this.collected = (this.collected | (1 << slot)) | 0;
+    if (seat >= 0) (this.enemies[seat] as Enemy).hidden = 0;
   }
 
-  /** The sword. Strength decides how long what you hit stays down. */
   private strike(): void {
     const dx = FACE_DX[this.facing] as number;
     const dy = FACE_DY[this.facing] as number;
-
 
     for (let i = 0; i < this.enemies.length; i = (i + 1) | 0) {
       const enemy = this.enemies[i] as Enemy;
       if (enemy.down !== 0) continue;
       if (enemy.hidden !== 0) continue;
       if (enemy.stun > 0) continue;
+      // THE SWORD PASSES THROUGH anything that is not the bear. calm/1 shipped
+      // with a working one by inheritance and five swings cleared every bunny
+      // in the garden; the answer then was to take the weapon away, and the
+      // answer now that there is a bear to use it on is that it only cuts the
+      // bear.
+      if (enemy.art !== BEAR) continue;
 
       // Measured from YOU, not from the blade's tip.
       //
@@ -820,18 +838,10 @@ export class RoamV10 implements Engine {
       if (this.enemyFits(enemy.x, shoveY)) enemy.y = towards(enemy.y, shoveY, ONE);
     }
 
-    // ...and LAST, the box in front of you.
-    //
-    // Last, not first, and that is the difference between a surprise and a
-    // formality: opening it first put a freshly released bear inside the same
-    // swing's reach, so one press opened the box AND killed what came out.
-    // Measured -- the enemy arrived already down. A box you can defuse in the
-    // act of opening is not a gamble, it is a button.
-    //
-    // A WAND opens one exactly as well as a sword does. The wand is the weapon
-    // that cannot finish anything, and handing a child a weapon that also
-    // cannot open the box in the doorway would be a mean joke. Opening is not
-    // killing; it is knocking on something.
+    // ...and LAST, the box in front of you. Last, because opening it first
+    // would put a freshly released enemy inside the same swing's reach: one
+    // press would open the box AND kill what came out, which is a button
+    // rather than a gamble. Measured in roam/10, where it arrived already down.
     this.openBoxAhead(dx, dy);
   }
 
@@ -842,6 +852,8 @@ export class RoamV10 implements Engine {
       if (enemy.down !== 0) continue;
       if (enemy.hidden !== 0) continue;
       if (enemy.stun > 0) continue;
+      // Walking into a bunny is walking into a bunny.
+      if (enemy.art !== BEAR) continue;
       if (chebyshev(enemy.x, enemy.y, this.x, this.y) > BODY + BODY) continue;
 
       this.hp = (this.hp - 1) | 0;
@@ -850,16 +862,15 @@ export class RoamV10 implements Engine {
 
       // THROWN, not teleported.
       //
-      // v8 moved you two whole cells on the tick you were hit. Same
+      // The old build moved you two whole cells on the tick you were hit. Same
       // destination, completely different reading: you do not see yourself
       // thrown, you see yourself somewhere else, and a child watching that
-      // cannot tell being hit from the game glitching. Now it is a velocity
-      // and the ordinary friction eats it over about two cells -- roughly
-      // where v8 put you, but arriving there in front of you.
+      // cannot tell being hit from the game glitching. Now it is a velocity and
+      // the ordinary friction eats it over about two cells.
       //
-      // The stun is shorter than the slide on purpose. You get the wheel back
-      // while still moving, so the hit ends with you steering out of it rather
-      // than waiting for the game to give you a turn.
+      // The stun is shorter than the slide on purpose, so you get the wheel
+      // back while still moving and steer out of the hit rather than waiting
+      // for the game to give you a turn.
       const knock = knockback(enemy.x, enemy.y, this.x, this.y);
       this.vx = knock.vx;
       this.vy = knock.vy;
@@ -912,13 +923,86 @@ export class RoamV10 implements Engine {
     }
   }
 
+  /** One tick off every sheet of ice. */
+  private thaw(): void {
+    for (let i = 0; i < this.ice.length; i = (i + 1) | 0) {
+      const left = this.ice[i] as number;
+      if (left > 0) this.ice[i] = (left - 1) | 0;
+    }
+  }
+
+  /**
+   * Wave the wand at the water in front of you, and the WHOLE POND goes solid.
+   *
+   * The pond, not the cell. Freezing one square at a time would mean standing
+   * in the water to reach the next one, taking a heart for each square of a
+   * crossing -- which is not a way across, it is a slower way of drowning. A
+   * pond is one thing to look at and it is one thing to freeze.
+   *
+   * Flood-filled through touching water only, so two ponds either side of a
+   * path stay two ponds. Bounded by MAX_FIRE, so the walk is a handful of
+   * cells however it is written.
+   */
+  private freezeWater(): void {
+    if (this.iceTicks === 0) return;
+    const ax = (toCell(this.x) + (FACE_DX[this.facing] as number)) | 0;
+    const ay = (toCell(this.y) + (FACE_DY[this.facing] as number)) | 0;
+    // The one you are facing, or the one you are standing in -- somebody who
+    // has just walked into a pond is not thinking about which way they face.
+    const from = this.waterAt(ax, ay) >= 0
+      ? this.waterAt(ax, ay)
+      : this.waterAt(toCell(this.x), toCell(this.y));
+    if (from < 0) return;
+
+    const burning = this.level.fireCells;
+    const reached = new Uint8Array(burning.length);
+    const queue: number[] = [from];
+    reached[from] = 1;
+    for (let at = 0; at < queue.length; at = (at + 1) | 0) {
+      const which = queue[at] as number;
+      const cell = burning[which] as number;
+      const cx = (cell % GRID_W) | 0;
+      const cy = ((cell / GRID_W) | 0) | 0;
+      for (let side = 0; side < 4; side = (side + 1) | 0) {
+        const nx = (cx + (FACE_DX[side] as number)) | 0;
+        const ny = (cy + (FACE_DY[side] as number)) | 0;
+        const next = this.waterAt(nx, ny);
+        if (next < 0 || reached[next] === 1) continue;
+        reached[next] = 1;
+        queue.push(next);
+      }
+    }
+
+    for (let i = 0; i < queue.length; i = (i + 1) | 0) {
+      const which = queue[i] as number;
+      if (this.doused[which] === 1) continue;
+      this.ice[which] = this.iceTicks | 0;
+      this.frozeWaterThisTick = true;
+    }
+  }
+
+  /** Which entry of fireCells is at this cell, or -1. */
+  private waterAt(cx: number, cy: number): number {
+    if (cx < 0 || cx >= GRID_W || cy < 0 || cy >= GRID_H) return -1;
+    const cell = idx(cx, cy);
+    const burning = this.level.fireCells;
+    for (let i = 0; i < burning.length; i = (i + 1) | 0) {
+      if ((burning[i] as number) === cell) return i;
+    }
+    return -1;
+  }
+
   /** True when this fire is still burning: everything else asks through here. */
   private alight(cx: number, cy: number): boolean {
     if (!isFire(this.level, cx, cy)) return false;
     const cell = idx(cx, cy);
     const burning = this.level.fireCells;
     for (let i = 0; i < burning.length; i = (i + 1) | 0) {
-      if ((burning[i] as number) === cell) return this.doused[i] === 0;
+      // Out for good, or solid for now: either way it cannot hurt you, and
+      // everything that asks about the hazard asks through here.
+      if ((burning[i] as number) === cell) {
+        return this.doused[i] === 0 && (this.ice[i] as number) === 0;
+      }
     }
     return false;
   }
@@ -928,6 +1012,14 @@ export class RoamV10 implements Engine {
     const cx = toCell(this.x);
     const cy = toCell(this.y);
     if (cx < 0 || cx >= GRID_W || cy < 0 || cy >= GRID_H) return;
+    // A BRIDGED pond is a bridge. fits() already lets you walk onto one -- that
+    // is what a bridge is for -- and this then charged you a heart for doing
+    // it, every MERCY_TICKS, for as long as the crossing took.
+    //
+    // Found by moving the bear around the room and watching the damage not
+    // change: all three creatures finished on the same hearts wherever it
+    // stood, which meant the bear was never what was hurting them.
+    if (isLadder(this.level, cx, cy)) return;
     // A fire that has been put out is a floor tile that used to be dangerous.
     if (!this.alight(cx, cy)) return;
 
@@ -960,16 +1052,22 @@ export class RoamV10 implements Engine {
     const burning = this.level.fireCells;
     for (let i = 0; i < burning.length; i = (i + 1) | 0) {
       if (this.doused[i] === 1) continue; // out, and it stays out
-      this.tiles[burning[i] as number] = TILE_FIRE;
+      // Ice is its own tile: walkable now, water again in a moment, and a
+      // child crossing it has to be able to see which it is.
+      this.tiles[burning[i] as number] =
+        (this.ice[i] as number) > 0 ? TILE_FROZEN : TILE_FIRE;
+    }
+    // The planks, over the water. Drawn after the ponds so a bridged cell is a
+    // bridge -- which is also the order fits() reads them in.
+    const planks = this.level.ladders;
+    for (let i = 0; i < planks.length; i = (i + 1) | 0) {
+      if (planks[i] === 1) this.tiles[i] = TILE_LADDER;
     }
     const cells = this.level.treasureCells;
     for (let i = 0; i < cells.length; i = (i + 1) | 0) {
       if ((this.collected & (1 << i)) === 0) this.tiles[cells[i] as number] = TILE_TREASURE;
     }
-    // The boxes, over the wall they are standing in as. ONE tile for both
-    // kinds: what is inside is the author's business until somebody opens it.
-    // An opened one stays on the board rather than vanishing -- a box that
-    // disappeared would leave a hole in the wall the author never drew.
+    // The boxes, over the wall they stand in as. ONE tile for both kinds.
     const boxes = this.level.boxCells;
     for (let i = 0; i < boxes.length; i = (i + 1) | 0) {
       const cell = boxes[i] as number;
@@ -1001,16 +1099,16 @@ export class RoamV10 implements Engine {
     h = hashInt32(h, this.hp);
     h = hashInt32(h, this.swing);
     h = hashInt32(h, this.pour);
-    // Velocity, the stun and the swing buffer are all AUTHORITATIVE: two
-    // clients replaying the same log have to agree about how fast the creature
-    // was already going, or they part company on the next wall.
+    // Velocity, the stun and the swing buffer are AUTHORITATIVE: two clients
+    // replaying the same log have to agree how fast the creature was already
+    // going, or they part company at the next wall.
     h = hashInt32(h, this.vx);
     h = hashInt32(h, this.vy);
     h = hashInt32(h, this.stun);
     h = hashInt32(h, this.swingBuffer);
     h = hashInt32(h, this.actWasDown ? 1 : 0);
-    // Which boxes are open is authoritative: it decides what is a wall, what
-    // is in your purse and what is loose in the room.
+    // Which boxes are open decides what is a wall, what is in your purse and
+    // what is loose in the room. Authoritative, so it is hashed.
     for (let i = 0; i < this.opened.length; i = (i + 1) | 0) {
       h = hashInt32(h, this.opened[i] as number);
     }
@@ -1018,6 +1116,12 @@ export class RoamV10 implements Engine {
     // must agree about it, or a shared level would not replay.
     for (let i = 0; i < this.doused.length; i = (i + 1) | 0) {
       h = hashInt32(h, this.doused[i] as number);
+    }
+    // ...and so is which are frozen, and for how much longer. A sheet of ice
+    // decides whether a step lands on ground or in water, so a replay that
+    // disagreed about it would disagree about the hearts.
+    for (let i = 0; i < this.ice.length; i = (i + 1) | 0) {
+      h = hashInt32(h, this.ice[i] as number);
     }
     h = hashInt32(h, this.mercy);
     h = hashInt32(h, this.status);
@@ -1076,7 +1180,7 @@ export class RoamV10 implements Engine {
   openedCell(): number { return this.openedCellAt; }
   /** Did a gem come out of it? Presentation only. */
   openedWasGem(): boolean { return this.openedGave; }
-  /** How many boxes are still shut, for anybody who wants to say so. */
+  /** How many boxes are still shut. Presentation only. */
   boxesLeft(): number {
     let n = 0;
     const boxes = this.level.boxCells;

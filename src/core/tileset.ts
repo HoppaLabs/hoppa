@@ -189,7 +189,21 @@ const AIR: Pattern = [
  * the scenery, so unlike the walls it does not want to look like the place it
  * is standing in -- the same argument the ladder settled.
  */
-export const BOX_RAMP: Ramp = [1, 26, 27, 28, 29, 5];
+/**
+ * The box as the PLAYER sees it: orange, and orange on purpose.
+ *
+ *     "The player sees an orange ? box, whilst the author sees yellow or red
+ *      depending on what they picked."
+ *
+ * Three colours rather than two, and the third one is the whole point. The
+ * editor draws a gem box gold and a monster box red; if the game drew the gold
+ * one, then a child who had ever laid a box themselves would know at a glance
+ * which boxes in a friend's level were safe. Orange is neither answer.
+ */
+export const BOX_RAMP: Ramp = [1, 32, 33, 34, 35, 5];
+
+/** The same box in the EDITOR, where gold means there is a gem in it. */
+export const BOX_GEM_RAMP: Ramp = [1, 26, 27, 28, 29, 5];
 
 /**
  * A box with something in it, shut.

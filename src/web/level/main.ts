@@ -46,7 +46,7 @@ import { PACK } from "../../core/pack.ts";
 import {
   TILE_FIRE, TILE_FLOW,
   TILE_ACTOR, TILE_EXIT_LOCKED, TILE_FLOOR, TILE_GUARD,
-  TILE_BOX, TILE_BOX_ENEMY,
+  TILE_BOX_ENEMY, TILE_BOX_GEM,
   TILE_LADDER, TILE_TREASURE, TILE_WALL,
 } from "../../core/tiles.ts";
 import { loadCharacter, loadDraft, saveDraft } from "../stash.ts";
@@ -90,7 +90,7 @@ const TILE_OF: Record<string, number> = {
   [GLYPH_DRAGON]: TILE_GUARD,
   // The author sees which box is which; the player does not. This is the only
   // place the two are ever drawn apart -- see TILE_BOX_ENEMY.
-  [GLYPH_BOX_TREASURE]: TILE_BOX,
+  [GLYPH_BOX_TREASURE]: TILE_BOX_GEM,
   [GLYPH_BOX_ENEMY]: TILE_BOX_ENEMY,
   [GLYPH_LADDER]: TILE_LADDER,
   [GLYPH_FIRE]: TILE_FIRE,

@@ -62,6 +62,9 @@ test("every build ships: retiring one would break every link that pinned it", ()
     // dash/10: the same boxes from the side, opened by jumping into them from
     // underneath. See adr/0065.
     "dash/10",
+    // calm/5 and swim/6: the same boxes in the garden, the beach and the reef.
+    // Every world except the city has them. See adr/0065.
+    "calm/5", "swim/6",
   ]);
 });
 

@@ -25,9 +25,9 @@ import { GAMES, enemyArtFor, labelFor, toolsFor, worldFor } from "../src/web/lev
 const EXPECTED: Readonly<Record<string, readonly string[]>> = {
   adventure: ["clear", "wall", "start", "door / exit", "treasure", "goblin", "bat", "lizard", "fire", "box: gem", "box: monster"],
   platformer: ["clear", "wall", "start", "door / exit", "treasure", "goblin", "bat", "lizard", "ladder", "spikes", "box: gem", "box: monster"],
-  underwater: ["clear", "rock", "start", "sea chest", "treasure", "shark", "kraken", "squid", "current", "urchins"],
-  garden: ["clear", "hedge", "start", "garden door", "flowers", "bear", "bunny", "squirrel", "bridge", "pond"],
-  beach: ["clear", "dune", "start", "sea chest", "shells", "crab", "gull", "jellyfish", "jetty", "sea"],
+  underwater: ["clear", "rock", "start", "sea chest", "treasure", "shark", "kraken", "squid", "current", "urchins", "box: gem", "box: shark"],
+  garden: ["clear", "hedge", "start", "garden door", "flowers", "bear", "bunny", "squirrel", "bridge", "pond", "box: flower", "box: bear"],
+  beach: ["clear", "dune", "start", "sea chest", "shells", "crab", "gull", "jellyfish", "jetty", "sea", "box: shell", "box: crab"],
   city: ["clear", "building", "start", "evac zone", "people", "kaiju", "swarmer", "crawler", "fire"],
 };
 

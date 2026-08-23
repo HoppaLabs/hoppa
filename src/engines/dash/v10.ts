@@ -299,6 +299,16 @@ export class DashV10 implements Engine {
   private readonly boxWalker: Int16Array;
   /** True on the tick a box was opened. Presentation only. */
   private openedThisTick = false;
+  /**
+   * Which cell that was, and whether a gem came out of it.
+   *
+   * Presentation only, and it is a fact about a tick that has already
+   * happened: by the time the page reads this, the box is open and the player
+   * has SEEN what was in it. Nothing here tells anybody what is in a box that
+   * is still shut.
+   */
+  private openedCellAt = -1;
+  private openedGave = false;
   private readonly run: number;
   private readonly jump: number;
   private readonly reach: number;
@@ -425,6 +435,8 @@ export class DashV10 implements Engine {
     const buttons = held | 0;
     this.stompedThisTick = false;
     this.openedThisTick = false;
+    this.openedCellAt = -1;
+    this.openedGave = false;
     this.hurtThisTick = false;
     this.struckThisTick = false;
     this.killedThisTick = false;
@@ -828,6 +840,8 @@ export class DashV10 implements Engine {
 
     this.opened[cell] = 1;
     this.openedThisTick = true;
+    this.openedCellAt = cell | 0;
+    this.openedGave = slot >= 0;
     if (slot >= 0) {
       // Straight into your hand. The box was a wall, so the cell it leaves is
       // somewhere you have not stood; a gem you had to come back for would
@@ -1101,6 +1115,10 @@ export class DashV10 implements Engine {
   justStomped(): boolean { return this.stompedThisTick; }
   /** True on the tick a box was opened. Presentation only. */
   justOpened(): boolean { return this.openedThisTick; }
+  /** Which cell it was, or -1. Presentation only. */
+  openedCell(): number { return this.openedCellAt; }
+  /** Did a gem come out of it? Presentation only. */
+  openedWasGem(): boolean { return this.openedGave; }
   /** How many boxes are still shut. Presentation only. */
   boxesLeft(): number {
     let n = 0;

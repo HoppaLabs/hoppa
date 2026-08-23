@@ -25,6 +25,8 @@ import { RazeV2, RAZE_V2_BEHAVIOUR } from "./raze/v2.ts";
 import { SwimV5, SWIM_V5_BEHAVIOUR } from "./swim/v5.ts";
 import { RoamV10, ROAM_V10_BEHAVIOUR } from "./roam/v10.ts";
 import { DashV10, DASH_V10_BEHAVIOUR } from "./dash/v10.ts";
+import { CalmV5, CALM_V5_BEHAVIOUR } from "./calm/v5.ts";
+import { SwimV6, SWIM_V6_BEHAVIOUR } from "./swim/v6.ts";
 import { SwimV1, SWIM_V1_BEHAVIOUR } from "./swim/v1.ts";
 import { SwimV2, SWIM_V2_BEHAVIOUR } from "./swim/v2.ts";
 import { SwimV3, SWIM_V3_BEHAVIOUR } from "./swim/v3.ts";
@@ -301,6 +303,20 @@ const BUILDS: ReadonlyMap<string, Build> = new Map<string, Build>([
     `dash/${DASH_V10_BEHAVIOUR}`,
     (level, creature) =>
       creature === undefined ? new DashV10(level) : new DashV10(level, creature),
+  ],
+  // calm/5 and swim/6: the same boxes in the garden, the beach and the reef.
+  // "All levels except city should have mystery boxes" -- the city is the one
+  // world where a crate in the street would be one more thing to smash, and it
+  // already has buildings to bring down.
+  [
+    `calm/${CALM_V5_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new CalmV5(level) : new CalmV5(level, creature),
+  ],
+  [
+    `swim/${SWIM_V6_BEHAVIOUR}`,
+    (level, creature) =>
+      creature === undefined ? new SwimV6(level) : new SwimV6(level, creature),
   ],
 ]);
 

@@ -15,8 +15,8 @@ export const NEWEST_BUILD: Readonly<Record<string, number>> = {
   delve: 5,
   roam: 10,
   dash: 10,
-  swim: 5,
-  calm: 4,
+  swim: 6,
+  calm: 5,
   raze: 2,
 };
 
