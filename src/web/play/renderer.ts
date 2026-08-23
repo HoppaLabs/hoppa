@@ -458,9 +458,9 @@ const DOOR_OPEN: readonly Pattern[] = [[
 /** Frame, face, brass or glow. */
 const DOOR_INKS: Record<string, readonly string[]> = {
   // Oak: edge, shadow, face, lit; then brass and its shine.
-  shut: ["#2a1a0d", "#4a2f16", "#6f4823", "#9a6b38", "#a37c14", "#ffc23d"],
+  shut: ["#2b1a0b", "#4e2e0f", "#764516", "#a46724", "#a57c0c", "#ffc23d"],
   // The way through: frame, the dark beyond, glow, the light you walk into.
-  open: ["#2a1a0d", "#12306b", "#2f7a4a", "#6fe08a"],
+  open: ["#2b1a0b", "#0c2f73", "#1d7c3f", "#44e66b"],
 };
 
 /**
@@ -489,26 +489,26 @@ const DOOR_BY_WORLD: Record<string, { shut: Pattern; open: Pattern }> = {
 const DOOR_INKS_BY_WORLD: Record<string, Record<string, readonly string[]>> = {
   city: {
     // Waiting: the tarmac round it, a dull pad, and the H unlit.
-    shut: ["#1a212b", "#39485c", "#4a5c6f", "#7c8899", "#a37c14"],
+    shut: ["#172130", "#2a4870", "#375d84", "#6e89ae", "#a57c0c"],
     // Cleared for lift: the pad lit, the H white, the corner lights on.
-    open: ["#0a2a12", "#1c7d2c", "#2fae42", "#bff0a8", "#ffffff"],
+    open: ["#082b11", "#117e23", "#1cb032", "#9ef973", "#ffffff"],
   },
   reef: {
     // Oak and brass, sunk long enough to have gone dark.
-    shut: ["#2a1a0d", "#4a2f16", "#6f4823", "#9a6b38", "#a37c14", "#c78a1c"],
+    shut: ["#2b1a0b", "#4e2e0f", "#764516", "#a46724", "#a57c0c", "#cb8911"],
     // ...and the same chest with the lid back and the light out of it.
-    open: ["#2a1a0d", "#4a2f16", "#8a5a12", "#c78a1c", "#ffc23d", "#ffe9a3"],
+    open: ["#2b1a0b", "#4e2e0f", "#8d590b", "#cb8911", "#ffc23d", "#ffe9a3"],
   },
   // Washed up rather than sunk, so the wood is warmer and the brass brighter.
   beach: {
-    shut: ["#2a1a0d", "#6b350c", "#a35314", "#d87a1f", "#a37c14", "#d8ab1f"],
-    open: ["#2a1a0d", "#6b350c", "#a35314", "#d87a1f", "#ffc23d", "#ffe9a3"],
+    shut: ["#2b1a0b", "#6e3407", "#a7510c", "#de7713", "#a57c0c", "#dbaa13"],
+    open: ["#2b1a0b", "#6e3407", "#a7510c", "#de7713", "#ffc23d", "#ffe9a3"],
   },
   garden: {
     // Honey wood, brass, and one pane of glass.
-    shut: ["#3a2412", "#7a4a1f", "#b8762f", "#e0a25c", "#a37c14", "#ffc23d", "#cfe9f7"],
+    shut: ["#3d230e", "#804713", "#c1721e", "#f19c3b", "#a57c0c", "#ffc23d", "#c4ebff"],
     // The leaf, then the sunlight through the gap. See GARDEN_DOOR_OPEN.
-    open: ["#3a2412", "#5c3a18", "#8a5a28", "#8a6a1c", "#ffc23d", "#ffe9a3"],
+    open: ["#3d230e", "#61380f", "#915719", "#8d6911", "#ffc23d", "#ffe9a3"],
   },
 };
 
@@ -553,13 +553,13 @@ const FLAG_FURLED: Pattern = [
   "................",
   "..33............",
   "..33............",
-  "..33............",
-  "..332...........",
-  "..3322..........",
-  "..33222.........",
-  "..3322..........",
-  "..332...........",
-  "..33............",
+  "..3344..........",
+  "..33244.........",
+  "..332244........",
+  "..332224........",
+  "..332244........",
+  "..33244.........",
+  "..3344..........",
   "..33............",
   "..33............",
   "..33............",
@@ -573,10 +573,10 @@ const FLAG_FLYING: readonly Pattern[] = [
     "................",
     "..33............",
     "..3344444444....",
-    "..3345555554....",
-    "..3345444454....",
-    "..3345444454....",
-    "..3345555554....",
+    "..3325555554....",
+    "..3325222254....",
+    "..3325222254....",
+    "..3325555554....",
     "..3344444444....",
     "..33............",
     "..33............",
@@ -591,10 +591,10 @@ const FLAG_FLYING: readonly Pattern[] = [
     "................",
     "..33............",
     "..334444444.....",
-    "..33455555444...",
-    "..33454444554...",
-    "..33454444554...",
-    "..33455555444...",
+    "..33255555444...",
+    "..33252222554...",
+    "..33252222554...",
+    "..33255555444...",
     "..334444444.....",
     "..33............",
     "..33............",
@@ -610,8 +610,8 @@ const FLAG_FLYING: readonly Pattern[] = [
     "..33............",
     "..33...44444....",
     "..3344455555....",
-    "..3345544445....",
-    "..3345544445....",
+    "..3325522225....",
+    "..3325522225....",
     "..3344455555....",
     "..33...44444....",
     "..33............",
@@ -628,9 +628,51 @@ const FLAG_FLYING: readonly Pattern[] = [
 /** Which worlds get a flag. The city and the reef keep what they were given. */
 const FLAGGED: ReadonlySet<string> = new Set(["underground", "outside", "garden", "beach"]);
 
-/** Pole, base, cloth, cloth-lit. Bright, because it is the thing you aim at. */
-const FLAG_INKS_SHUT: readonly string[] = ["#39485c", "#7c8899", "#6b7688", "#8b95a5", "#59636f"];
-const FLAG_INKS_OPEN: readonly string[] = ["#39485c", "#7c8899", "#8d6a2f", "#ffc23d", "#ffe9a3"];
+/**
+ * Base, cloth, pole, rim, cloth-mid.
+ *
+ * The first version said "bright, because it is the thing you aim at" and then
+ * painted the flag #39485c and #7c8899 -- palette 2 and 3, which is the
+ * underground wall's own ramp. The comment and the colours disagreed and the
+ * colours won: the exit was a grey scratch on grey stone. It shipped like that
+ * and it took looking at a screenshot to see it.
+ *
+ * Two things came out of measuring it against what is actually BEHIND the flag
+ * -- its own tile's floor and the lit face of the wall beside it -- in each of
+ * the four worlds that fly one.
+ *
+ *                    underground   outside   garden   beach
+ *     white                 9.31      1.87     1.78    1.61
+ *     gold (as shipped)     5.78      1.16     1.10    1.00
+ *     blue                  2.22      1.90     1.24    1.10
+ *     crimson               1.96      1.68     1.10    1.24
+ *
+ * The first is that white wins for the furled flag, and it is the only
+ * candidate that cannot clash by hue because it has none -- which is what
+ * decides it, with backdrops of grey stone, pale sky, green grass and gold
+ * sand. It also says the right thing with no second drawing to learn: a plain
+ * white flag hanging limp, and the same flag GOLD and flying.
+ *
+ * The second is that NO hue is good enough on its own. Look down the columns
+ * rather than across: garden and beach are bad for everything, because their
+ * floors are bright -- #6fd968 grass and #ffc23d sand -- so a cloth light
+ * enough to read on stone is lost on them, and gold scores 1.00 on a beach
+ * because on a beach gold IS the floor. That is not a colour problem and no
+ * choice of colour fixes it.
+ *
+ * So the cloth got the thing every enemy sprite has had all along and the flag
+ * never did: a RIM. A dark edge reads against a bright floor and a bright
+ * cloth reads against a dark one, so one of the two always carries it, in
+ * every world, in both states. The pole is dark wood for the same reason.
+ *
+ * (The first attempt at the measurement took the worst contrast against every
+ * ink in the terrain ramp and scored eight candidates at 1.00, white included.
+ * Of course it did -- every ramp runs dark to light, so something in one
+ * always matches any colour's brightness. But a flag does not stand in front
+ * of a ramp, it stands in one open cell.)
+ */
+const FLAG_INKS_SHUT: readonly string[] = ["#2a1a0b", "#ffffff", "#4e2e0f", "#2a1a0b", "#ffffff"];
+const FLAG_INKS_OPEN: readonly string[] = ["#2a1a0b", "#ffd962", "#4e2e0f", "#2a1a0b", "#ffc23d"];
 
 /** The frames this world's exit flies through, or one still drawing. */
 export function doorFrames(world: string, open: boolean): readonly Pattern[] {
