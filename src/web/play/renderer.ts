@@ -626,7 +626,7 @@ const FLAG_FLYING: readonly Pattern[] = [
 ];
 
 /** Which worlds get a flag. The city and the reef keep what they were given. */
-const FLAGGED: ReadonlySet<string> = new Set(["underground", "outside", "garden", "beach", "jungle"]);
+const FLAGGED: ReadonlySet<string> = new Set(["underground", "outside", "garden", "beach", "jungle", "pyramid"]);
 
 /**
  * Base, cloth, pole, rim, cloth-mid.

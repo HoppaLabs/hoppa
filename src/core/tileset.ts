@@ -1750,8 +1750,76 @@ export const JUNGLE: Tileset = {
   ground: PALETTE[49] as string,
 };
 
+/**
+ * A pillar, seen from above: one column and the light falling round it.
+ *
+ * The tomb's answer to the garden's tree, and the same rule decides where it
+ * goes -- a wall cell with no wall beside it. A room a child paints with a
+ * long drag is a corridor wall; a room they tap four times is a hall with
+ * four columns in it, and neither costs the wire format a single bit.
+ */
+const PILLAR: Pattern = [
+  "................",
+  ".....111111.....",
+  "...1133333311...",
+  "..133444444331..",
+  "..134444444431..",
+  ".13444433444431.",
+  ".13444333344431.",
+  ".13443322334431.",
+  ".13443322334431.",
+  ".13444333344431.",
+  ".13444433444431.",
+  "..134444444431..",
+  "..133444444331..",
+  "...1133333311...",
+  ".....111111.....",
+  "................",
+];
+
+/**
+ * The pyramid, seen from above. The adventure game, inside a tomb.
+ *
+ * Fourth skin, and the cheapest of them: a tomb is stone blocks lit by
+ * torchlight, and stone blocks are the one thing this project has had since
+ * day one. The whole world is the dungeon's own drawings on a sand ramp --
+ * which is the trick the reef established and wrote down ("EARTH lit in teal
+ * is a reef, and nobody had to draw a second set of rocks"), used a fourth
+ * time because it keeps being true.
+ *
+ * What is NOT borrowed is the hazard and the pillar, and that is deliberate:
+ * those are the two things a child looks straight at. A cave says danger with
+ * a flame; a tomb says it with a floor that has spikes in it, which is the
+ * one thing every nine-year-old already knows about tombs.
+ */
+export const PYRAMID: Tileset = {
+  id: 8,
+  name: "pyramid",
+  hazard: "spikes",
+  // Darkest first, same five roles the cave has: pit, mortar, shadow, face,
+  // lit edge. Sandstone rather than granite, and that is the entire recolour.
+  sub: [24, 25, 26, 27, 28],
+  wall: STONE,
+  wallTop: STONE_TOP,
+  // One on its own is a column. See PILLAR.
+  tree: PILLAR,
+  floor: GROUND,
+  ladder: LADDER,
+  // Rope, not wood: pale against the sandstone it hangs on, where the cave's
+  // timber would be one more brown among the browns.
+  ladderSub: [24, 53, 52, 50],
+  // A spike trap. Not a flame -- a cave already has the flame, and two worlds
+  // whose danger is the same orange triangle are one world painted twice.
+  fire: SPIKES,
+  // Dark metal with a bright tip, the way the outdoor spikes are lit. On gold
+  // sandstone it is the darkest thing in the room, which is what you want of
+  // the one tile that hurts.
+  fireSub: [0, 1, 2, 3, 4, 5],
+  ground: PALETTE[24] as string,
+};
+
 export const TILESETS: readonly Tileset[] = [
-  UNDERGROUND, OUTSIDE, REEF, GARDEN, BEACH, CITY, JUNGLE,
+  UNDERGROUND, OUTSIDE, REEF, GARDEN, BEACH, CITY, JUNGLE, PYRAMID,
 ];
 
 /**
@@ -1770,7 +1838,7 @@ export const TILESETS: readonly Tileset[] = [
 export const FIRST_SKIN = 5;
 
 /** The skins a level can ask for by number, by id. */
-const SKINS: Readonly<Record<number, Tileset>> = { 5: BEACH, 6: CITY, 7: JUNGLE };
+const SKINS: Readonly<Record<number, Tileset>> = { 5: BEACH, 6: CITY, 7: JUNGLE, 8: PYRAMID };
 
 /**
  * The tileset for a world.

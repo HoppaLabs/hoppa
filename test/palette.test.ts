@@ -30,6 +30,7 @@ const EXPECTED: Readonly<Record<string, readonly string[]>> = {
   beach: ["clear", "dune", "start", "flag", "shells", "crab", "gull", "jellyfish", "jetty", "sea", "box: shell", "box: crab"],
   city: ["clear", "building", "start", "evac zone", "people", "kaiju", "swarmer", "crawler", "fire"],
   jungle: ["clear", "trees", "start", "flag", "fruit", "jaguar", "frog", "monkey", "log", "creek", "box: fruit", "box: jaguar"],
+  pyramid: ["clear", "blocks", "start", "flag", "amulets", "mummy", "scarab", "jackal", "spike trap", "box: amulet", "box: mummy"],
 };
 
 test("every game's palette reads the way it should", () => {

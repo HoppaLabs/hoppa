@@ -1052,18 +1052,169 @@ export const JUNGLE_CAST: readonly Enemy[] = [
   },
 ];
 
+/**
+ * The tomb's three. What is inside a pyramid, as a nine-year-old lists it.
+ */
+export const PYRAMID_CAST: readonly Enemy[] = [
+  {
+    // Arms out in front, which is the whole silhouette -- and the one pose
+    // every child already draws when you say the word.
+    //
+    // The bandages are painted only where there is already a body under them.
+    // Drawn as plain rows they ran the full width of the tile and the mummy
+    // came out with bars of gold floating in the air beside it: a band is a
+    // marking ON something, not a line across a room.
+    name: "mummy",
+    glyph: "G",
+    inks: ["#3d2f04", "#a57c0c", "#ffd962", "#e11d33", "#ffffff", "#2b1a0b"],
+    frames: [
+      [
+        "................",
+        "......6666......",
+        ".....633336.....",
+        "....62222226....",
+        "....61111116....",
+        "....64111146....",
+        "....61111116....",
+        ".66622222222666.",
+        ".63333333333336.",
+        ".66622222222666.",
+        "....62222226....",
+        "....63333336....",
+        "....62222226....",
+        "....62222226....",
+        "....63333336....",
+        "....66666666....",
+      ],
+      [
+        "................",
+        "......6666......",
+        ".....622226.....",
+        "....63333336....",
+        "....61111116....",
+        "....64111146....",
+        "....61111116....",
+        "....62222226....",
+        ".66622222222666.",
+        ".63333333333336.",
+        ".66622222222666.",
+        "....62222226....",
+        "....63333336....",
+        "....62222226....",
+        "....62222226....",
+        "....66666666....",
+      ],
+    ],
+  },
+  {
+    // A jewel before it is an insect, which is the right way round for a
+    // tomb: the gold is what a child sees, and the six legs are what makes
+    // it move like a beetle rather than slide like a stone.
+    name: "scarab",
+    glyph: "B",
+    inks: ["#052f2f", "#0b817a", "#13b4a5", "#ffba25", "#ffffff", "#0a1a1a"],
+    frames: [
+      [
+        "......6666......",
+        "......6446......",
+        ".....644446.....",
+        ".....622226.....",
+        ".....622226.....",
+        "666.62222226.666",
+        "...6223113226...",
+        "...6223113226...",
+        "6664423113244666",
+        "..644231132446..",
+        "..622231132226..",
+        "6662223113222666",
+        "...6443113446...",
+        "....66311366....",
+        "......6116......",
+        "......6666......",
+      ],
+      [
+        "......6666......",
+        "......6446......",
+        ".....644446.....",
+        ".....622226.....",
+        ".....622226.....",
+        "....62222226....",
+        "6666223113226666",
+        "...6223113226...",
+        "6664423113244666",
+        "..644231132446..",
+        "6662223113222666",
+        "...6223113226...",
+        "...6443113446...",
+        "....66311366....",
+        "......6116......",
+        "......6666......",
+      ],
+    ],
+  },
+  {
+    // Ears tall and tapered, and THREE pixels wide rather than two --
+    // outline() claims every pixel that touches empty, so a two-wide ear is
+    // all rim and no ear. Drawn as plain bars it read as a bat, which is a
+    // creature this game already has downstairs.
+    name: "jackal",
+    glyph: "D",
+    inks: ["#26073d", "#430c72", "#9f26ea", "#ffba25", "#ffffff", "#1a0526"],
+    frames: [
+      [
+        "....6......6....",
+        "...66......66...",
+        "...66......66...",
+        "..636......636..",
+        "..636..66..636..",
+        "..633663366336..",
+        "..663333333366..",
+        "....64333346....",
+        "....62333326....",
+        "....63333336....",
+        "....63333336....",
+        "....64444446....",
+        "...6332222336...",
+        "...6333333336...",
+        "...6322222236...",
+        "...6666666666...",
+      ],
+      [
+        "....6......6....",
+        "...66......66...",
+        "...66......66...",
+        "..636......636..",
+        "..636..66..636..",
+        "..633663366336..",
+        "..663333333366..",
+        "....64333346....",
+        "....62333326....",
+        "....63333336....",
+        "....63333336....",
+        "...6444444446...",
+        "...6332222336...",
+        "...6333333336...",
+        "...6622222266...",
+        ".....666666.....",
+      ],
+    ],
+  },
+];
+
 export const CASTS: Readonly<Record<string, readonly Enemy[]>> = {
   garden: GARDEN_CAST,
   reef: REEF_CAST,
   beach: BEACH_CAST,
   city: CITY_CAST,
   jungle: JUNGLE_CAST,
+  pyramid: PYRAMID_CAST,
 };
 
 /** Every drawing this file holds, for the checks below. */
 export const ALL: readonly Enemy[] = [
   ...ENEMIES, ...GARDEN_CAST, ...REEF_CAST, ...BEACH_CAST, ...CITY_CAST,
   ...JUNGLE_CAST,
+  ...PYRAMID_CAST,
 ];
 
 /**
@@ -1111,7 +1262,7 @@ export function check(): string[] {
   // level stores an enemy as an index and the worlds are alternative art for
   // the same three slots.
   for (const [world, cast] of [["dungeon", ENEMIES], ["garden", GARDEN_CAST], ["reef", REEF_CAST], ["beach", BEACH_CAST],
-    ["city", CITY_CAST], ["jungle", JUNGLE_CAST]] as const) {
+    ["city", CITY_CAST], ["jungle", JUNGLE_CAST], ["pyramid", PYRAMID_CAST]] as const) {
     if (cast.length !== ENEMIES.length) {
       wrong.push(`${world}: ${cast.length} creatures, want ${ENEMIES.length}`);
     }
@@ -1274,6 +1425,9 @@ function enemiesModule(): string {
   lines.push("export const JUNGLE_CAST: readonly Enemy[] = [");
   write(JUNGLE_CAST);
 
+  lines.push("");
+  lines.push("export const PYRAMID_CAST: readonly Enemy[] = [");
+  write(PYRAMID_CAST);
   lines.push("/** Which cast a world uses. Anything not named here uses the dungeon three. */");
   lines.push("export const CASTS: Readonly<Record<string, readonly Enemy[]>> = {");
   lines.push("  garden: GARDEN_CAST,");
@@ -1281,6 +1435,7 @@ function enemiesModule(): string {
   lines.push("  beach: BEACH_CAST,");
   lines.push("  city: CITY_CAST,");
   lines.push("  jungle: JUNGLE_CAST,");
+  lines.push("  pyramid: PYRAMID_CAST,");
   lines.push("};");
   lines.push("");
   lines.push("/** The enemy a level glyph means, or undefined. */");

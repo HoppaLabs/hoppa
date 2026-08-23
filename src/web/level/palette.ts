@@ -59,7 +59,7 @@ export const TOOLS: readonly Tool[] = [
   // tool you reach for most and the one you want before you have decided what
   // you are drawing, and it was sitting second behind the wall.
   { glyph: GLYPH_FLOOR, label: "clear", rubber: true },
-  { glyph: GLYPH_WALL, label: "wall", names: { reef: "rock", garden: "hedge", beach: "dune", city: "building", jungle: "trees" } },
+  { glyph: GLYPH_WALL, label: "wall", names: { reef: "rock", garden: "hedge", beach: "dune", city: "building", jungle: "trees", pyramid: "blocks" } },
   { glyph: GLYPH_START, label: "start" },
   // Every game, again. It was withheld from the garden while calm/1 was the
   // only one there was: that build has no win, so it drew a door and never
@@ -71,20 +71,20 @@ export const TOOLS: readonly Tool[] = [
   // and for a day after that four of these buttons still said door while the
   // game drew a flag. The word a child taps has to be the thing they get.
   { glyph: GLYPH_EXIT, label: "flag", names: { city: "evac zone", reef: "sea chest" } },
-  { glyph: GLYPH_TREASURE, label: "treasure", names: { garden: "flowers", beach: "shells", city: "people", jungle: "fruit" }, limit: 8 },
+  { glyph: GLYPH_TREASURE, label: "treasure", names: { garden: "flowers", beach: "shells", city: "people", jungle: "fruit", pyramid: "amulets" }, limit: 8 },
   // Three enemies, one tool each. They walk, chase and die exactly alike --
   // what changes is what a child sees walking towards them, which at nine
   // years old is most of what an enemy IS.
-  { glyph: GLYPH_GUARD, label: "goblin", names: { reef: "shark", garden: "bear", beach: "crab", city: "kaiju", jungle: "jaguar" }, limit: 10 },
-  { glyph: GLYPH_BAT, label: "bat", names: { reef: "kraken", garden: "bunny", beach: "gull", city: "swarmer", jungle: "frog" }, limit: 10 },
-  { glyph: GLYPH_DRAGON, label: "lizard", names: { reef: "squid", garden: "squirrel", beach: "jellyfish", city: "crawler", jungle: "monkey" }, limit: 10 },
+  { glyph: GLYPH_GUARD, label: "goblin", names: { reef: "shark", garden: "bear", beach: "crab", city: "kaiju", jungle: "jaguar", pyramid: "mummy" }, limit: 10 },
+  { glyph: GLYPH_BAT, label: "bat", names: { reef: "kraken", garden: "bunny", beach: "gull", city: "swarmer", jungle: "frog", pyramid: "scarab" }, limit: 10 },
+  { glyph: GLYPH_DRAGON, label: "lizard", names: { reef: "squid", garden: "squirrel", beach: "jellyfish", city: "crawler", jungle: "monkey", pyramid: "jackal" }, limit: 10 },
   { glyph: GLYPH_LADDER, label: "ladder", names: { garden: "bridge", beach: "jetty", jungle: "log" }, engines: ["dash", "calm"] },
   // One tool, four directions. Drag it and the water goes the way you dragged.
   { glyph: GLYPH_FLOW_RIGHT, label: "current", engines: ["swim"], limit: MAX_FLOW },
   // One tool, two names. It is the same entity either way -- what changes is
   // what the world draws, because a flame standing on grass looks like a
   // mistake and spikes in a cave look like a floor. See src/core/tileset.ts.
-  { glyph: GLYPH_FIRE, label: "fire", names: { outside: "spikes", reef: "urchins", garden: "pond", beach: "sea", city: "fire", jungle: "creek" }, limit: 10 },
+  { glyph: GLYPH_FIRE, label: "fire", names: { outside: "spikes", reef: "urchins", garden: "pond", beach: "sea", city: "fire", jungle: "creek", pyramid: "spike trap" }, limit: 10 },
   // The two surprise boxes. TWO tools, because the author chooses what is in
   // them -- "I want the author to decide if it's treasure or an enemy" -- and
   // one tool with a hidden coin flip is a lottery rather than a level.
@@ -94,8 +94,8 @@ export const TOOLS: readonly Tool[] = [
   //
   // Only where an engine knows what to do with one. A tool that draws a tile
   // the game will not open is worse than a tool that is missing.
-  { glyph: GLYPH_BOX_TREASURE, label: "box: gem", names: { garden: "box: flower", beach: "box: shell", city: "box: people", jungle: "box: fruit" }, engines: ["dash", "roam", "calm", "swim"], limit: 6 },
-  { glyph: GLYPH_BOX_ENEMY, label: "box: monster", names: { reef: "box: shark", garden: "box: bear", beach: "box: crab", city: "box: kaiju", jungle: "box: jaguar" }, engines: ["dash", "roam", "calm", "swim"], limit: 6 },
+  { glyph: GLYPH_BOX_TREASURE, label: "box: gem", names: { garden: "box: flower", beach: "box: shell", city: "box: people", jungle: "box: fruit", pyramid: "box: amulet" }, engines: ["dash", "roam", "calm", "swim"], limit: 6 },
+  { glyph: GLYPH_BOX_ENEMY, label: "box: monster", names: { reef: "box: shark", garden: "box: bear", beach: "box: crab", city: "box: kaiju", jungle: "box: jaguar", pyramid: "box: mummy" }, engines: ["dash", "roam", "calm", "swim"], limit: 6 },
 ];
 
 /**
@@ -142,6 +142,12 @@ export const GAMES = [
   // garden is a lawn in the sun; a jungle is shaded earth with the foliage
   // above it catching what gets through. See JUNGLE in src/core/tileset.ts.
   { engine: "calm", label: "jungle", tiles: 7 },
+  // The pyramid: the adventure game, inside a tomb. The cheapest of the three
+  // and unashamedly so -- a tomb is stone blocks by torchlight, and stone
+  // blocks are the one thing this project has had since day one. What is not
+  // borrowed is the hazard and the pillar, which are the two things a child
+  // looks straight at. See PYRAMID in src/core/tileset.ts.
+  { engine: "roam", label: "pyramid", tiles: 8 },
 ] as const;
 
 /** The world a game is drawn in, by name -- which cast of creatures it holds. */
