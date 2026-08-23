@@ -7,6 +7,25 @@
 //
 // Every level here is verified by tools/verify-pack.ts: L1-L5, and then beaten
 // by the bot with all three ready-made creatures.
+//
+// SURPRISE BOXES ARE IN EVERY ROOM THAT CAN HOLD ONE.
+//
+// They shipped in the editor and appeared in none of these, which meant the
+// best new thing in the game was invisible to any child who never opened the
+// editor -- and these rooms are where a child learns what the game contains.
+// So each has one holding a gem and one holding something with teeth.
+//
+// WHERE they go was searched for rather than chosen, because a box is a WALL
+// until it is hit: drop one in the wrong cell and the room stops being
+// winnable, silently. Every placement below was put through the same two gates
+// the rooms are: the spec verifier, then the bot with all four creatures. The
+// first search took the first legal cell in scan order and put every box in a
+// top-left corner -- legal, and somewhere no child will ever walk -- so the
+// candidates are now ranked by how close they are to something the player is
+// already going to, and the first one that survives both gates wins.
+//
+// The garden was at the eight-treasure cap, so its box REPLACES a flower
+// rather than adding a ninth. A gem in a box counts toward the door.
 
 import { GRID_H, GRID_W } from "../src/core/grid.ts";
 import { encodeLevel } from "../src/core/codec.ts";
@@ -181,6 +200,9 @@ function firstSteps(): string {
   room.put(5, 10, "^").put(19, 3, "^");
   room.put(4, 2, "$").put(20, 2, "$").put(12, 3, "$");
   room.put(3, 11, "@").put(19, 11, ">");
+  // A gem in one, something with teeth in the other.
+  room.put(12, 4, "?").put(4, 4, "!");
+
   return room.text(roam("1aa1"));
 }
 
@@ -202,6 +224,9 @@ function theLongWay(): string {
   // in, and everything here is twenty cells wide.
   room.put(3, 10, "$").put(20, 3, "$").put(3, 3, "$");
   room.put(3, 12, "@").put(12, 12, ">");
+  // A gem in one, something with teeth in the other.
+  room.put(3, 5, "?").put(20, 5, "!");
+
   return room.text(roam("2bb2"));
 }
 
@@ -222,6 +247,9 @@ function fourCorners(): string {
   room.put(2, 1, "$").put(21, 1, "$").put(2, 9, "$").put(21, 9, "$");
   room.put(3, 3, "B").put(15, 7, "G");
   room.put(11, 12, "@").put(18, 12, ">");
+  // A gem in one, something with teeth in the other.
+  room.put(1, 1, "?").put(21, 8, "!");
+
   return room.text(roam("3cc3"));
 }
 
@@ -253,6 +281,9 @@ function upAndOver(): string {
   room.put(5, 12, "#").put(5, 11, "$");
   room.put(12, 7, "$").put(17, 7, "$");
   room.put(2, 12, "@").put(21, 7, ">");
+  // A gem in one, something with teeth in the other.
+  room.put(11, 7, "?").put(16, 7, "!");
+
   return room.text(dash("4dd4"));
 }
 
@@ -271,6 +302,9 @@ function theTallRoom(): string {
   room.put(3, 4, "$").put(20, 8, "$").put(9, 12, "$");
   room.put(12, 8, "D");
   room.put(2, 12, "@").put(20, 4, ">");
+  // A gem in one, something with teeth in the other.
+  room.put(4, 4, "?").put(19, 8, "!");
+
   return room.text(dash("5ee5"));
 }
 
@@ -298,6 +332,9 @@ function theGauntlet(): string {
   // shipped rooms are tuned tightly enough that boxes want a room designed
   // around them rather than boxes dropped into a room that was not.
   room.put(9, 12, "@").put(20, 12, ">");
+  // A gem in one, something with teeth in the other.
+  room.put(2, 5, "?").put(14, 5, "!");
+
   return room.text(roam("6ff6"));
 }
 
@@ -317,6 +354,9 @@ function theHotFloor(): string {
   room.line(9, 3, 14, 3, "^");
   room.put(2, 2, "$").put(21, 2, "$").put(11, 10, "$");
   room.put(3, 11, "@").put(20, 11, ">");
+  // A gem in one, something with teeth in the other.
+  room.put(11, 8, "?").put(2, 1, "!");
+
   return room.text(roam("7gg7"));
 }
 
@@ -342,6 +382,9 @@ function theNarrowWay(): string {
   room.put(3, 3, "B");
   room.put(2, 1, "$").put(21, 1, "$").put(2, 9, "$").put(21, 9, "$");
   room.put(11, 12, "@").put(19, 12, ">");
+  // A gem in one, something with teeth in the other.
+  room.put(20, 9, "?").put(1, 1, "!");
+
   return room.text(roam("8hh8"));
 }
 
@@ -384,6 +427,9 @@ function mindTheSpikes(): string {
   // the one a child reaches last.
   room.put(7, 7, "$").put(16, 7, "$").put(21, 7, "$").put(8, 12, "$");
   room.put(2, 12, "@").put(22, 7, ">");
+  // A gem in one, something with teeth in the other.
+  room.put(6, 7, "?").put(10, 7, "!");
+
   return room.text(dash("9ii9"));
 }
 
@@ -530,6 +576,9 @@ function theJungle(): string {
   room.put(17, 10, "G");
   room.put(2, 11, "@");
   room.put(21, 2, ">");
+  // A gem in one, something with teeth in the other.
+  room.put(7, 9, "?").put(17, 3, "!");
+
   return room.text(jungle("jgle"));
 }
 
@@ -585,6 +634,9 @@ function thePyramid(): string {
   room.put(11, 7, "B").put(17, 7, "D");
   room.put(2, 7, "@");
   room.put(22, 1, ">");
+  // A gem in one, something with teeth in the other.
+  room.put(2, 3, "?").put(2, 11, "!");
+
   return room.text(pyramid("tomb"));
 }
 
@@ -617,6 +669,9 @@ function theStation(): string {
   room.put(12, 8, "G").put(19, 12, "D");
   room.put(2, 12, "@");
   room.put(20, 4, ">");
+  // A gem in one, something with teeth in the other.
+  room.put(4, 4, "?").put(12, 4, "!");
+
   return room.text(station("stat"));
 }
 
@@ -680,6 +735,9 @@ function theReef(): string {
   room.put(3, 2, "$").put(20, 3, "$").put(17, 12, "$");
 
   room.put(2, 1, "@").put(21, 11, ">");
+  // A gem in one, something with teeth in the other.
+  room.put(20, 5, "?").put(3, 5, "!");
+
   return room.text(swim("ssss"));
 }
 
@@ -731,6 +789,9 @@ function theTallRocks(): string {
   room.put(11, 1, "$").put(7, 9, "$").put(16, 8, "$").put(21, 11, "$");
 
   room.put(2, 1, "@").put(21, 2, ">");
+  // A gem in one, something with teeth in the other.
+  room.put(15, 8, "?").put(6, 9, "!");
+
   return room.text(swim("rock"));
 }
 
@@ -794,6 +855,9 @@ function theWreck(): string {
   room.put(9, 5, "$").put(15, 11, "$").put(21, 10, "$").put(2, 11, "$");
 
   room.put(2, 1, "@").put(21, 2, ">");
+  // A gem in one, something with teeth in the other.
+  room.put(8, 6, "?").put(1, 11, "!");
+
   return room.text(swim("wrck"));
 }
 
@@ -850,7 +914,10 @@ function theGarden(): string {
 
   // A second bed, south-east, tucked against a short hedge.
   room.box(16, 10, 19, 10, WALL);
-  room.put(17, 11, "$").put(18, 11, "$").put(20, 11, "$");
+  // Two flowers where there were three: the garden is at the treasure cap, so
+  // its surprise box REPLACES one rather than adding a ninth. Same count, one
+  // of them now a thing you have to open.
+  room.put(17, 11, "$").put(18, 11, "$");
 
   // Two more trees loose on the lawn, so the middle is not bare.
   room.put(11, 4, WALL).put(12, 9, WALL);
@@ -877,6 +944,9 @@ function theGarden(): string {
   // was asked for with one. See adr/0045.
   room.put(2, 2, "@");
   room.put(21, 12, ">");
+  // A gem in one, something with teeth in the other.
+  room.put(8, 7, "?").put(17, 2, "!");
+
   return room.text(calm("cccc"));
 }
 
@@ -958,6 +1028,9 @@ function theBeach(): string {
 
   room.put(2, 1, "@");
   room.put(22, 1, ">");
+  // A gem in one, something with teeth in the other.
+  room.put(17, 5, "?").put(11, 10, "!");
+
   return room.text(beach("bbbb"));
 }
 
