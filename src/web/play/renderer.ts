@@ -514,13 +514,137 @@ const DOOR_INKS_BY_WORLD: Record<string, Record<string, readonly string[]>> = {
 
 /** The drawing this world's way out uses, in the state it is in. */
 export function doorShape(world: string, open: boolean): Pattern {
+  // A flagged world's still drawing is the first frame of its flag, so that
+  // shape and inks can never disagree: doorInks() answers for the flag, and a
+  // caller that took the door's shape with the flag's colours would paint
+  // through an ink array that is not there. Which is a silent hole in the
+  // picture rather than a crash, and those are the expensive ones.
+  if (FLAGGED.has(world)) return doorFrames(world, open)[0] as Pattern;
   const own = DOOR_BY_WORLD[world];
   if (own !== undefined) return open ? own.open : own.shut;
   return (open ? DOOR_OPEN[0] : DOOR_SHUT[0]) as Pattern;
 }
 
+/**
+ * The way out, as a flag on a pole.
+ *
+ *     "Maybe instead of doors and exits we should have flags that flutter,
+ *      except for the city and underwater levels?"
+ *
+ * A door is a thing you go THROUGH, and in a room seen from above there is no
+ * through -- the exit is a square you stand on, drawn as a door lying flat,
+ * which is a picture of the wrong verb. A flag is a thing you REACH, which is
+ * exactly what the exit is in every one of these games.
+ *
+ * It also solves a problem the door had quietly: a shut door and an open door
+ * are two drawings a child has to learn. A flag says the same thing with the
+ * one thing every flag already does -- it is limp when there is nothing to
+ * celebrate and it flies when there is.
+ *
+ * THE CITY AND THE REEF KEEP WHAT THEY HAVE. A landing pad is where a jaeger
+ * is airlifted out and a sea chest is what you are down there for; neither is
+ * a thing you plant a flag on, and both were asked for by name.
+ *
+ * Three frames, cycled by the same clock the flames use. The pole never moves;
+ * only the cloth does, which is what makes it read as wind rather than as the
+ * whole thing wobbling.
+ */
+const FLAG_FURLED: Pattern = [
+  "................",
+  "..33............",
+  "..33............",
+  "..33............",
+  "..332...........",
+  "..3322..........",
+  "..33222.........",
+  "..3322..........",
+  "..332...........",
+  "..33............",
+  "..33............",
+  "..33............",
+  "..33............",
+  ".1331...........",
+  "113311..........",
+  "1111111.........",
+];
+
+const FLAG_FLYING: readonly Pattern[] = [
+  [
+    "................",
+    "..33............",
+    "..3344444444....",
+    "..3345555554....",
+    "..3345444454....",
+    "..3345444454....",
+    "..3345555554....",
+    "..3344444444....",
+    "..33............",
+    "..33............",
+    "..33............",
+    "..33............",
+    "..33............",
+    ".1331...........",
+    "113311..........",
+    "1111111.........",
+  ],
+  [
+    "................",
+    "..33............",
+    "..334444444.....",
+    "..33455555444...",
+    "..33454444554...",
+    "..33454444554...",
+    "..33455555444...",
+    "..334444444.....",
+    "..33............",
+    "..33............",
+    "..33............",
+    "..33............",
+    "..33............",
+    ".1331...........",
+    "113311..........",
+    "1111111.........",
+  ],
+  [
+    "................",
+    "..33............",
+    "..33...44444....",
+    "..3344455555....",
+    "..3345544445....",
+    "..3345544445....",
+    "..3344455555....",
+    "..33...44444....",
+    "..33............",
+    "..33............",
+    "..33............",
+    "..33............",
+    "..33............",
+    ".1331...........",
+    "113311..........",
+    "1111111.........",
+  ],
+];
+
+/** Which worlds get a flag. The city and the reef keep what they were given. */
+const FLAGGED: ReadonlySet<string> = new Set(["underground", "outside", "garden", "beach"]);
+
+/** Pole, base, cloth, cloth-lit. Bright, because it is the thing you aim at. */
+const FLAG_INKS_SHUT: readonly string[] = ["#39485c", "#7c8899", "#6b7688", "#8b95a5", "#59636f"];
+const FLAG_INKS_OPEN: readonly string[] = ["#39485c", "#7c8899", "#8d6a2f", "#ffc23d", "#ffe9a3"];
+
+/** The frames this world's exit flies through, or one still drawing. */
+export function doorFrames(world: string, open: boolean): readonly Pattern[] {
+  if (!FLAGGED.has(world)) return [doorShape(world, open)];
+  return open ? FLAG_FLYING : [FLAG_FURLED];
+}
+
+export function flagged(world: string): boolean {
+  return FLAGGED.has(world);
+}
+
 /** ...and its colours. */
 export function doorInks(world: string, open: boolean): readonly string[] {
+  if (FLAGGED.has(world)) return open ? FLAG_INKS_OPEN : FLAG_INKS_SHUT;
   const own = DOOR_INKS_BY_WORLD[world];
   const key = open ? "open" : "shut";
   return (own?.[key] ?? DOOR_INKS[key]) as readonly string[];
@@ -2441,9 +2565,16 @@ export class GridRenderer {
         if (tile === TILE_EXIT_LOCKED || tile === TILE_EXIT_OPEN) {
           const open = tile === TILE_EXIT_OPEN;
           this.paintUnder(x, y);
+          // A flag flies on the same clock the flames burn on, and stands
+          // still in the editor for the same reason a gem does not spin there:
+          // a still picture of a level should be a still picture.
+          const frames = doorFrames(this.tiles().name, open);
+          const beat = this.spinning && frames.length > 1
+            ? flameFrame(y * GRID_W + x, frames.length)
+            : 0;
           paintInked(
             ctx,
-            doorShape(this.tiles().name, open),
+            (frames[beat] ?? frames[0]) as Pattern,
             doorInks(this.tiles().name, open),
             x * t,
             y * t,
