@@ -97,7 +97,24 @@ test("...and the pad no longer hides it in the games that have it", () => {
   // that copied it since.
   expect(html).toContain("#pad.one #swing { display: none; }");
   expect(html).not.toContain("#pad.one #swing, #pad.one #water { display: none; }");
-  // ...and it has somewhere of its own to sit when the action button takes
-  // the middle, or the fix is two buttons on top of each other.
-  expect(html).toContain("#pad.one #water { top: 0; right: 0; }");
+  // ...and it has somewhere of its own to sit, "or the fix is two buttons on
+  // top of each other."
+  //
+  // WHICH IS WHAT HAPPENED. That line is the previous version of this test,
+  // and it went on to check only that the bucket had A RULE -- not that the
+  // rule put it anywhere free. The centred action button and the cornered
+  // bucket overlapped by 24 pixels square, 27 on a small screen, and a tap in
+  // that corner went to whichever was on top. Reported as "the controls are
+  // too fiddly".
+  //
+  // The cluster is a two-by-two grid now, so cells cannot overlap and the only
+  // way to collide is to be handed the same cell. That is what this asks.
+  expect(html).toContain("#keys {\n    display: grid;");
+  const cell = (selector: string): string => {
+    const at = html.indexOf(`${selector} { grid-area:`);
+    expect({ selector, found: at >= 0 }).toEqual({ selector, found: true });
+    const from = html.indexOf("grid-area:", at) + "grid-area:".length;
+    return (html.slice(from, html.indexOf(";", from)) as string).trim();
+  };
+  expect(cell("#pad.one #water")).not.toEqual(cell("#pad.one #wait"));
 });

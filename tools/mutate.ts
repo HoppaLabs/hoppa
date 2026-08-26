@@ -266,6 +266,39 @@ const MUTATIONS: readonly Mutation[] = [
     replace: 'new Set(["underground", "outside", "jungle", "pyramid", "garden"])',
   },
   {
+    // "jungle and garden are too similar" -- because the jungle was drawn with
+    // the garden's hedge, pixel for pixel, and only the ramp differed.
+    breaks: "the jungle goes back to being the garden's hedge",
+    file: "src/core/tileset.ts",
+    find: "  wall: CANOPY,",
+    replace: "  wall: BUSH,",
+  },
+  {
+    // "beach and Egypt are too similar" -- four of the tomb's five palette
+    // steps were the beach's, so a dune and a tomb block were the same yellow.
+    breaks: "the tomb goes back to being built out of beach sand",
+    file: "src/core/tileset.ts",
+    find: "  sub: [30, 31, 32, 33, 34],",
+    replace: "  sub: [24, 25, 26, 27, 28],",
+  },
+  {
+    // The bucket and the action button on top of each other, which is what
+    // shipped for days: a tap in the overlap went to whichever was on top.
+    // Reported as "the controls are too fiddly".
+    breaks: "the bucket is handed the action button's own cell",
+    file: "src/web/play/index.html",
+    find: "  #pad.one #water { grid-area: 2 / 1; }",
+    replace: "  #pad.one #water { grid-area: 1 / 2; }",
+  },
+  {
+    // ...and the rule the handset has always claimed and did not keep: the
+    // weapon in the same place whichever game it is.
+    breaks: "the weapon moves cell between the side-on game and the top-down one",
+    file: "src/web/play/index.html",
+    find: "  #pad.one #wait { grid-area: 1 / 2; }",
+    replace: "  #pad.one #wait { grid-area: 2 / 1; }",
+  },
+  {
     // A junction box screwed to the side of an alien egg. Invisible to a green
     // suite and obvious on a phone, which is the whole class this file is for.
     breaks: "the station bolts a vent to an egg",

@@ -143,3 +143,53 @@ test("every world's cast is its own, so nobody fights a goblin in space", () => 
   }
   console.log(`\n${rows.join("\n")}`);
 });
+
+test("a world that borrows another's wall must not borrow its colours too", () => {
+  //     "jungle and garden are too similar"
+  //
+  // They were the SAME DRAWING -- the jungle used the garden's hedge, pixel
+  // for pixel, and the garden's bush for a lone cell -- with an overlapping
+  // ramp under it. Same shape and same hue is one world painted twice, and the
+  // frame round the room is the biggest thing on screen, so that is what gets
+  // compared.
+  //
+  // Borrowing a drawing is fine and this project does it deliberately: the
+  // tomb is the cave's stonework, the reef is the outdoor ground "lit in
+  // teal". What makes those work is that not one palette step is shared. So
+  // that is the rule -- borrow the shape or borrow the colours, not both.
+  const rows: string[] = [];
+  for (let i = 0; i < TILESETS.length; i++) {
+    for (let j = i + 1; j < TILESETS.length; j++) {
+      const a = TILESETS[i] as (typeof TILESETS)[number];
+      const b = TILESETS[j] as (typeof TILESETS)[number];
+      if (JSON.stringify(a.wall) !== JSON.stringify(b.wall)) continue;
+      const shared = a.sub.filter((step) => b.sub.includes(step));
+      rows.push(`  ${a.name} and ${b.name} share a wall, and ${shared.length} palette steps`);
+      expect({ pair: `${a.name}/${b.name}`, shared }).toEqual({ pair: `${a.name}/${b.name}`, shared: [] });
+    }
+  }
+  console.log(`\n${rows.join("\n") || "  no world borrows another's wall"}`);
+});
+
+test("the two pairs that were reported alike are not alike any more", () => {
+  // No mechanical rule separates these from the sharing this project does on
+  // purpose -- the cave and the city share their WHOLE ramp and read as
+  // different places, because a street is not a cavern. So these two are
+  // pinned decisions rather than a threshold, and they are pinned because a
+  // child said so:
+  //
+  //     "jungle and garden are too similar"
+  //     "beach and Egypt are too similar"
+  const by = (name: string) =>
+    TILESETS.find((set) => set.name === name) as (typeof TILESETS)[number];
+
+  // The jungle has its own canopy now. The ramps still overlap and that is
+  // fine: a jungle and a garden are both green, and nobody asked for a blue
+  // one.
+  expect(JSON.stringify(by("jungle").wall)).not.toEqual(JSON.stringify(by("garden").wall));
+  expect(JSON.stringify(by("jungle").tree)).not.toEqual(JSON.stringify(by("garden").tree));
+
+  // The tomb shares no step with the beach. It had four of its five.
+  const both = by("pyramid").sub.filter((step) => by("beach").sub.includes(step));
+  expect({ shared: both }).toEqual({ shared: [] });
+});

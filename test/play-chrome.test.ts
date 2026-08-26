@@ -100,22 +100,40 @@ test("start again mirrors sound: an icon at the other end of the same row", () =
   expect(footer.includes('id="hud"')).toBe(true);
 });
 
+/**
+ * The grid cell a rule puts its buttons in, as "row / column".
+ *
+ * The handset is a two-by-two grid, so "which cell" is the whole of the
+ * layout: cells cannot overlap, and two buttons collide only by being given
+ * the same one. That is a thing a test can compare. The pixel offsets this
+ * used to pin were not -- the two that shipped overlapped by 24 pixels square
+ * and every assertion about them passed.
+ */
+function cellOf(selector: string): string {
+  const at = html.indexOf(`${selector} { grid-area:`);
+  expect({ selector, found: at >= 0 }).toEqual({ selector, found: true });
+  const from = html.indexOf("grid-area:", at) + "grid-area:".length;
+  return (html.slice(from, html.indexOf(";", from)) as string).trim();
+}
+
 test("the action button is under the resting thumb, in every game", () => {
   // The rule this has always been about: a thumb should find the button it
-  // presses most in the SAME PLACE whichever game it is. The old grid put it
-  // top-left from above and top-right from the side; the handset puts it in
-  // the lower-left circle always, which is where a thumb sits.
-  expect(html).toContain("#wait { left: 4px; bottom: 18px; }");
-  expect(html).toContain("#swing, #water { right: 4px; top: 18px; }");
-  // ...and with only one button there is no diagonal to sit on, so it takes
-  // the middle of the cluster, level with the pad.
-  expect(html).toContain("#pad.one #wait { left: 50%; top: 50%;");
+  // presses most in the SAME PLACE whichever game it is.
+  //
+  // THIS TEST USED TO ASSERT THE OPPOSITE OF ITS OWN COMMENT. It said the
+  // handset "puts it in the lower-left circle always", and then pinned a rule
+  // centring it from above -- two different places, asserted together, both
+  // passing, because a string test only asks whether a rule EXISTS.
+  //
+  // The weapon is one cell in both games now, so the rule is a comparison
+  // rather than a pair of literals: whatever cell the weapon has from the
+  // side, the weapon from above has the same one.
+  expect(cellOf("#swing, #water")).toEqual(cellOf("#pad.one #wait"));
+  // ...and the thing that is not the weapon takes the other cell.
+  expect(cellOf("#wait")).not.toEqual(cellOf("#swing, #water"));
+  expect(cellOf("#pad.one #water")).not.toEqual(cellOf("#pad.one #wait"));
   // ...and with only one ACTION button, the second circle is not drawn at all.
-  // The bucket is not an action button and must not be swept up in that: it
-  // was, and so it was never once visible in any game. It sits in the corner
-  // the centred action button leaves free. See test/pad.test.ts.
   expect(html).toContain("#pad.one #swing { display: none; }");
-  expect(html).toContain("#pad.one #water { top: 0; right: 0; }");
   expect(main.includes('pad.classList.toggle("one", !separate);')).toBe(true);
 });
 

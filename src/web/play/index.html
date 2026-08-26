@@ -176,12 +176,27 @@
   /* Two round buttons, set on the diagonal the way a handheld sets them: the
      lower-left one falls under a thumb at rest, so it is the one you press
      most -- jump from the side, the weapon from above. */
-  /* The same box as the pad, so the two clusters sit on one centre line. */
+  /* The same box as the pad, so the two clusters sit on one centre line.
+     A TWO BY TWO GRID, and that is a bug fix rather than a tidy-up.
+
+     These were absolutely positioned with hand-picked offsets, and in the
+     one-action-button layout -- which is every top-down game, so most of them
+     -- the centred button and the bucket in the corner OVERLAPPED by 24 pixels
+     square, 27 on a small screen. A tap in that corner went to whichever was
+     on top. The comment above that rule said the two "do not reach each
+     other"; it had never been measured, and they did. Reported as "the
+     controls are too fiddly".
+
+     Cells cannot overlap. So there is nothing left to get wrong, and nothing
+     to measure: the layout is now correct by construction rather than by
+     arithmetic somebody did once. */
   #keys {
-    position: relative; width: 156px; height: 156px; flex: none;
+    display: grid; width: 156px; height: 156px; flex: none;
+    grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
+    place-items: center;
   }
   #pad #keys button {
-    position: absolute; width: 68px; height: 68px; border-radius: 50%;
+    width: 72px; height: 72px; border-radius: 50%;
     display: grid; place-items: center; padding: 0;
     font: inherit; font-size: 19px; color: var(--ink-bright);
     background: var(--key); border: 1px solid var(--edge);
@@ -191,11 +206,20 @@
   #pad #keys button:active, #pad #keys button.lit {
     background: var(--key-lit); transform: translateY(2px); box-shadow: none;
   }
-  /* On the diagonal, the way a handheld sets them: the lower-left circle is
-     the one under a thumb at rest, so it is the one you press most -- jump
-     from the side, the weapon from above. */
-  #wait { left: 4px; bottom: 18px; }
-  #swing, #water { right: 4px; top: 18px; }
+  /* On the diagonal, the way a handheld sets them.
+     THE WEAPON IS ALWAYS THE TOP-RIGHT CIRCLE. That was already the stated
+     intention -- "a thumb reaching for the weapon should find it in the same
+     place whichever game this is" -- and the old rules did not do it: from
+     above, the weapon was centred instead. It is one cell now, in both games,
+     and whatever else the game offers takes the free one.
+
+       from the side:   jump bottom-left,   weapon top-right
+       from above:      bucket bottom-left, weapon top-right
+
+     #swing and #water can never both be on screen -- one is side-on only and
+     the other is top-down only -- so they share the cell. */
+  #wait { grid-area: 2 / 1; }
+  #swing, #water { grid-area: 1 / 2; }
   /* AT LEAST as specific as the button rule above, or it does not hide.
      `#pad #keys button` is two ids and a type; `#water[hidden]` is one id and
      an attribute, and loses -- so `hidden` stopped hiding, the bucket sat on
@@ -227,19 +251,14 @@
      One action button in the middle, the bucket up in the corner, and they do
      not reach each other. */
   #pad.one #swing { display: none; }
-  /* Clear of the centred action button: further out and further up than the
-     weapon sits, because the middle of the cluster is occupied here and the
-     corner is not. */
-  #pad.one #water { top: 0; right: 0; }
-  #pad.one #wait { left: 50%; top: 50%; bottom: auto; transform: translate(-50%, -50%); }
-  #pad.one #wait:active, #pad.one #wait.lit {
-    transform: translate(-50%, -50%) translateY(2px);
-  }
+  /* From above there is no jump, so the one action button IS the weapon and it
+     takes the weapon's cell. The bucket drops into the one the jump left. */
+  #pad.one #wait { grid-area: 1 / 2; }
+  #pad.one #water { grid-area: 2 / 1; }
   @media (max-width: 380px) {
     #dpad { width: 132px; height: 132px; }
     #keys { width: 132px; height: 132px; }
-    #pad #keys button { width: 62px; height: 62px; }
-    #wait { bottom: 10px; } #swing, #water { top: 10px; }
+    #pad #keys button { width: 64px; height: 64px; }
   }
   footer { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center; }
   #hud { color: var(--ink); display: flex; gap: 12px; }

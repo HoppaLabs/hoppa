@@ -1844,6 +1844,69 @@ const LITTER: Pattern = [
 ];
 
 /**
+ * The jungle's canopy, seen from above: big leaves, overlapping, each with a
+ * lit rib down it.
+ *
+ *     "jungle and garden are too similar"
+ *
+ * They were the SAME DRAWING. The jungle borrowed the garden's hedge -- BUSH,
+ * pixel for pixel, and the garden's bush for a lone cell too -- and changed
+ * only the ramp under it. Two worlds that share a shape and a hue are one
+ * world painted twice, however far apart their floors are; and the frame round
+ * the room is the biggest thing on screen, so that is what a child compares.
+ *
+ * A hedge is high-frequency speckle -- clipped twigs, hundreds of them. So the
+ * canopy is its opposite: three big flat leaves per tile, wrapping across the
+ * edges so a run of them is a canopy rather than a row of pot plants, with a
+ * bright rib and a dark crevice where one leaf lies over the next.
+ *
+ * Two other constructions were drawn first and both failed the same way.
+ * Rounded lobes shaded from one light came out as CORDUROY -- every lobe lit
+ * on the same diagonal, across a lattice, reads as ribbing -- and shrinking
+ * the highlight to a crest only made the streaks longer. The lesson is the one
+ * the litter and the starfield both taught: what a repeating tile does is not
+ * what the tile looks like on its own.
+ */
+const CANOPY: Pattern = [
+  "3322223431111124",
+  "4333322441111114",
+  "3444333241111112",
+  "2334443321111111",
+  "2233344432111112",
+  "4422333344112233",
+  "3211222334223344",
+  "3111111112333443",
+  "2111421123334333",
+  "1111442133443332",
+  "1111343234433221",
+  "1112343323322111",
+  "1112344322111111",
+  "1112334332111111",
+  "1111234432111111",
+  "1111233432111111",
+];
+
+/** ...and one standing on its own: a rosette of the same leaves. */
+const FROND: Pattern = [
+  "1111111111111111",
+  "1111111111111111",
+  "1111111111111111",
+  "1111143212341111",
+  "1111134323441111",
+  "1111134233431111",
+  "1111232334332111",
+  "1123323334333321",
+  "1144423343324441",
+  "1123333443323321",
+  "1111233433232111",
+  "1111134432431111",
+  "1111134323441111",
+  "1111143212341111",
+  "1111111111111111",
+  "1111111111111111",
+];
+
+/**
  * The jungle, seen from above. The garden's game, somewhere it can bite.
  *
  * Third skin, same trick as the beach and the city: this is not a new set of
@@ -1876,10 +1939,12 @@ export const JUNGLE: Tileset = {
   // The whole ramp sits a step brighter than it first did, because the ground
   // under it went green. See `ground` below.
   sub: [19, 20, 21, 22, 49, 50, 52, 53],
-  wall: BUSH,
+  // Its own drawing, not the garden's. See CANOPY for why that sentence is
+  // the whole of the fix.
+  wall: CANOPY,
   // One on its own is a tree, the garden's rule exactly: a wall cell with no
   // wall beside it, which costs the wire format nothing.
-  tree: TREE,
+  tree: FROND,
   floor: LITTER,
   // A fallen log over the creek, the job the garden's bridge does and the
   // beach's jetty does.
@@ -1997,8 +2062,19 @@ export const PYRAMID: Tileset = {
   name: "pyramid",
   hazard: "spikes",
   // Darkest first, same five roles the cave has: pit, mortar, shadow, face,
-  // lit edge. Sandstone rather than granite, and that is the entire recolour.
-  sub: [24, 25, 26, 27, 28],
+  // lit edge.
+  //
+  //     "beach and Egypt are too similar"
+  //
+  // Measured, and they were: FOUR of these five were the beach's, exactly.
+  // The beach's ramp was this ramp plus two paler steps, so a dune and a tomb
+  // block were the same yellow and the only thing telling them apart was the
+  // shape of the brick.
+  //
+  // ORANGE now, not gold. A beach is sand in full sun and a tomb is sandstone
+  // by torchlight, which is a warmer, redder, darker thing -- so the two share
+  // no step at all, and the world that is INDOORS is the darker of them.
+  sub: [30, 31, 32, 33, 34],
   wall: STONE,
   wallTop: STONE_TOP,
   // One on its own is a sarcophagus. See SARCOPHAGUS.
@@ -2017,7 +2093,7 @@ export const PYRAMID: Tileset = {
   // sandstone it is the darkest thing in the room, which is what you want of
   // the one tile that hurts.
   fireSub: [0, 1, 2, 3, 4, 5],
-  ground: PALETTE[24] as string,
+  ground: PALETTE[30] as string,
 };
 
 /** A grille bolted over the run, and a lamp beside it. */
