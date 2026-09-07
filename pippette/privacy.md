@@ -166,8 +166,8 @@ that would let a child be contacted by another user.
 
 ## Changes to this notice
 
-If we make significant changes we will tell you in the app before they take
-effect.
+We may update this notice. The current version is always at this address, and
+the date at the top of the page says when it last changed.
 
 ## Contact
 
