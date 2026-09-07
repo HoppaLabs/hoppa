@@ -128,4 +128,31 @@ jobs:
             fi
           done
 
+          # The legal pages. These 404'd for weeks with every job green, because
+          # nothing asked: they live in pippette/, only dist/ is uploaded, and
+          # no check knew the difference. The privacy URL is on the App Store
+          # listing -- if it stops resolving, the listing is in breach and the
+          # first anyone hears of it is a review rejection. See adr/0077.
+          for name in pippette/privacy/ pippette/terms/; do
+            page=$(curl -fsS --max-time 15 "${url}${name}" || true)
+            if [ -z "$page" ]; then
+              echo "::error::${url}${name} did not serve -- the legal page is not published."
+              exit 1
+            fi
+            case "$page" in
+              *"<!doctype html>"*) ;;
+              *) echo "::error::${url}${name} is not HTML. Raw Markdown downloads instead of rendering."
+                 exit 1 ;;
+            esac
+            # A placeholder that reaches the live page makes the notice void.
+            # The build refuses to emit one; this is the check that the thing
+            # on Pages is the thing the build made.
+            case "$page" in
+              *"[COMPANY NAME]"*|*"[EMAIL]"*|*"[ADDRESS]"*|*"[DATE]"*|*"[REGION]"*)
+                 echo "::error::${url}${name} is serving an unfilled template."
+                 exit 1 ;;
+            esac
+          done
+
           echo "ok: index.html loads ./app.js; app.js, sw.js, the manifest and the icon are 200"
+          echo "ok: the privacy policy and terms are published as HTML, with no placeholders"

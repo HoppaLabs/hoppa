@@ -4,6 +4,7 @@
 import { rm, mkdir } from "node:fs/promises";
 import { hashBytes, hashHex, hashInit } from "../src/core/hash.ts";
 import { faviconPng, iconPng } from "./icon.ts";
+import { LEGAL, renderLegal } from "./legal.ts";
 
 const OUT = "dist";
 
@@ -143,6 +144,24 @@ export async function build(): Promise<string[]> {
   }
   written.push(...worker.outputs.map((o) => o.path));
 
+  // The legal pages, built AFTER the worker on purpose: they are not in
+  // SHELL and must not be. The shell is what a child needs to play with the
+  // radio off, and a privacy policy is neither played nor read offline --
+  // caching it would grow every phone's install for a page nobody opens
+  // twice. Hashing them into the worker's version would also mean a typo
+  // fix in the terms invalidates the whole game's cache.
+  for (const doc of LEGAL) {
+    const source = await Bun.file(doc.md).text();
+    const { html } = renderLegal(doc.md, source);
+    await mkdir(`${OUT}/${doc.dir}`, { recursive: true });
+    // As a directory, not `privacy.html`: the URL goes on the App Store
+    // listing and into the app, and a published address should not carry an
+    // extension it may later want to change. Same reason `make/` and
+    // `level/` are directories -- see adr/0006.
+    await Bun.write(`${OUT}/${doc.dir}index.html`, html);
+    written.push(`${OUT}/${doc.dir}index.html`);
+  }
+
   // GitHub Pages runs Jekyll over the output unless told not to.
   await Bun.write(`${OUT}/.nojekyll`, "");
 
@@ -159,4 +178,8 @@ if (import.meta.main) {
     }
   }
   console.log(`  dist/${"sw.js".padEnd(15)} ${String(Bun.file(`${OUT}/sw.js`).size).padStart(6)}`);
+  for (const doc of LEGAL) {
+    const name = `${doc.dir}index.html`;
+    console.log(`  dist/${name.padEnd(15)} ${String(Bun.file(`${OUT}/${name}`).size).padStart(6)}`);
+  }
 }

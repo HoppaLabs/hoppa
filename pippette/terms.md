@@ -1,14 +1,15 @@
 ---
 layout: default
+status: draft
 title: Terms of Service
 ---
 
 # Terms of Service
 
-**Last updated:** [DATE]
+**Last updated:** 7 September 2026 (TEST BUILD)
 
-These terms apply to your use of [APP NAME], provided by [COMPANY NAME]
-([ADDRESS]).
+These terms apply to your use of Pippette, provided by TEST COMPANY NAME
+(TEST ADDRESS).
 
 ## 1. Definitions
 
@@ -114,7 +115,7 @@ other users have already bred.
 
 ## 7. Exporting and selling
 
-Where you have purchased the [UNLOCK NAME], you may export files of Your
+Where you have purchased the Pippette 3D Printing unlock, you may export files of Your
 Creatures.
 
 **You may sell physical objects you produce from Your Creatures.** This applies
@@ -126,7 +127,7 @@ design library.
 ## 8. Content and takedown
 
 We operate a notice-and-takedown process for content hosted in the app. If you
-believe content in the app infringes your rights, contact us at [EMAIL].
+believe content in the app infringes your rights, contact us at privacy@example.invalid.
 
 ## 9. Promotional use
 
@@ -165,6 +166,6 @@ app.
 
 ## 12. Contact
 
-[COMPANY NAME]
-[ADDRESS]
-[EMAIL]
+TEST COMPANY NAME  
+TEST ADDRESS  
+privacy@example.invalid

@@ -1,18 +1,19 @@
 ---
 layout: default
+status: draft
 title: Privacy Policy
 ---
 
 # Privacy Policy
 
-**Last updated:** [DATE]
+**Last updated:** 7 September 2026 (TEST BUILD)
 
 ## Who we are
 
-[COMPANY NAME] ([ADDRESS]) is the controller of the personal data described in
+TEST COMPANY NAME (TEST ADDRESS) is the controller of the personal data described in
 this notice.
 
-If you have any questions, contact us at [EMAIL].
+If you have any questions, contact us at privacy@example.invalid.
 
 ## The short version
 
@@ -54,7 +55,7 @@ other users who created a creature.
 
 ### Purchases
 
-If you buy the [UNLOCK NAME], the purchase is handled entirely by Apple through
+If you buy the Pippette 3D Printing unlock, the purchase is handled entirely by Apple through
 the App Store. We do not see or store your payment details, your name, or your
 billing address. We receive only confirmation from Apple that the purchase
 applies to your account.
@@ -116,7 +117,7 @@ We may also disclose information where the law requires it.
 
 ## Where your data goes
 
-Data stored through CloudKit is held by Apple in [REGION]. Apple's arrangements
+Data stored through CloudKit is held by Apple in TEST REGION. Apple's arrangements
 for international transfers are described in its privacy policy.
 
 ## How long we keep it
@@ -141,7 +142,7 @@ You have the right to:
 - complain to a supervisory authority — in the UK, the Information
   Commissioner's Office at [ico.org.uk](https://ico.org.uk)
 
-To exercise any of these, contact us at [EMAIL]. We will respond within one
+To exercise any of these, contact us at privacy@example.invalid. We will respond within one
 month.
 
 **One limitation to be aware of.** If you delete a creature you have shared,
@@ -156,8 +157,8 @@ request.
 The app is intended to be used by families, and the account holder must be an
 adult.
 
-We do not knowingly collect personal data from children under [13/16]. If you
-believe a child has provided us with personal data, contact us at [EMAIL] and we
+We do not knowingly collect personal data from children under 13. If you
+believe a child has provided us with personal data, contact us at privacy@example.invalid and we
 will delete it.
 
 The app does not use behavioural advertising, and does not include any feature
@@ -170,6 +171,6 @@ effect.
 
 ## Contact
 
-[COMPANY NAME]
-[ADDRESS]
-[EMAIL]
+TEST COMPANY NAME  
+TEST ADDRESS  
+privacy@example.invalid
