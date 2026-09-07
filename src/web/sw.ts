@@ -18,11 +18,17 @@
 // cache name that cannot collide with the old one.
 
 declare const __SHELL__: readonly string[];
-declare const __VERSION__: string;
+declare const __CACHE__: string;
+
+import { pageFor } from "./routes.ts";
 
 const SHELL = __SHELL__;
-const VERSION = __VERSION__;
-const CACHE = `hoppa-${VERSION}`;
+// The whole name, stamped in by the build rather than assembled here. Built
+// from a template the minifier is free to leave as `hoppa-${x}`, and it did
+// -- which broke the check that a changed page makes a new cache, without
+// changing what the worker actually does. A defined constant cannot drift
+// with the bundler's mood, which is the same reason bun is pinned.
+const CACHE = __CACHE__;
 
 // The service worker's own globals. Written out rather than pulled from a
 // dependency, because there are no dependencies.
@@ -71,22 +77,6 @@ self.addEventListener("activate", (event: never) => {
   );
 });
 
-/**
- * Which cached page answers a navigation.
- *
- * `/hoppa/level/` is its own page; everything else -- including every level
- * link, because the fragment never reaches here -- is the play page.
- */
-function pageFor(url: URL): string {
-  const scope = new URL(self.registration.scope);
-  const rest = url.pathname.startsWith(scope.pathname)
-    ? url.pathname.slice(scope.pathname.length)
-    : url.pathname;
-  if (rest.startsWith("level/")) return new URL("level/index.html", scope).href;
-  if (rest.startsWith("make/")) return new URL("make/index.html", scope).href;
-  return new URL("index.html", scope).href;
-}
-
 self.addEventListener("fetch", (event: never) => {
   const fetchEvent = event as unknown as FetchEvent;
   const request = fetchEvent.request;
@@ -108,9 +98,19 @@ self.addEventListener("fetch", (event: never) => {
       // A navigation is a page, and the page it wants is one of three -- the
       // path after the scope says which. This is what makes a level link work
       // offline the first time that particular link is opened.
+      //
+      // pageFor returns null for a path the game does not own, and then this
+      // does NOT answer from cache. It used to answer everything, which meant
+      // the privacy policy at /pippette/privacy/ was served the play page to
+      // every browser that had the game cached, while curl saw the real thing.
+      // See adr/0078.
       if (request.mode === "navigate") {
-        const page = await cache.match(pageFor(url));
-        if (page !== undefined) return page;
+        const scope = new URL(self.registration.scope);
+        const name = pageFor(scope.pathname, url.pathname);
+        if (name !== null) {
+          const page = await cache.match(new URL(name, scope).href);
+          if (page !== undefined) return page;
+        }
       }
 
       try {

@@ -134,7 +134,7 @@ export async function build(): Promise<string[]> {
     minify: true,
     define: {
       __SHELL__: JSON.stringify(SHELL),
-      __VERSION__: JSON.stringify(hashHex(stamp)),
+      __CACHE__: JSON.stringify(`hoppa-${hashHex(stamp)}`),
     },
   });
 
