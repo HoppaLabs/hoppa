@@ -10,8 +10,8 @@ title: Privacy Policy
 
 ## Who we are
 
-TEST COMPANY NAME (TEST ADDRESS) is the controller of the personal data described in
-this notice.
+TEST COMPANY NAME is the controller of the personal data described in this
+notice.
 
 If you have any questions, contact us at privacy@example.invalid.
 
@@ -172,5 +172,4 @@ effect.
 ## Contact
 
 TEST COMPANY NAME  
-TEST ADDRESS  
 privacy@example.invalid

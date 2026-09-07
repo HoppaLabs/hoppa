@@ -17,7 +17,7 @@ export const LEGAL = [
 // deliberately above the first heading: the failure this guards against is
 // somebody pasting the URL into App Store Connect without scrolling.
 const DRAFT_BANNER = `<p class="draft"><b>DRAFT — not the published notice.</b>
-The company name, address, contact address and region below are <b>test values</b>,
+The company name, contact address and region below are <b>test values</b>,
 typed so the links and layout can be checked. Nothing on this page is a
 statement about how data is handled, and it must not be submitted to the App
 Store or relied on until it is filled in.</p>

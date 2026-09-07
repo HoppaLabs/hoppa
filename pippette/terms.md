@@ -8,8 +8,7 @@ title: Terms of Service
 
 **Last updated:** 7 September 2026 (TEST BUILD)
 
-These terms apply to your use of Pippette, provided by TEST COMPANY NAME
-(TEST ADDRESS).
+These terms apply to your use of Pippette, provided by TEST COMPANY NAME.
 
 ## 1. Definitions
 
@@ -167,5 +166,4 @@ app.
 ## 12. Contact
 
 TEST COMPANY NAME  
-TEST ADDRESS  
 privacy@example.invalid

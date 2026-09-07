@@ -128,7 +128,11 @@ test("the contact block keeps its line breaks", async () => {
   for (const doc of LEGAL) {
     const { html } = renderLegal(doc.md, await Bun.file(doc.md).text());
     const contact = html.slice(html.lastIndexOf("<p>"));
-    expect(contact.match(/<br>/g)?.length).toBe(2);
+    const lines = contact.replace(/<\/?p>/g, "").split("<br>").map((l) => l.trim());
+    // Every line stands on its own: a contact block run together reads as a typo.
+    expect(lines.length).toBeGreaterThan(1);
+    expect(lines[lines.length - 1]).toContain("@");
+    for (const line of lines) expect(line).not.toBe("");
   }
 });
 
